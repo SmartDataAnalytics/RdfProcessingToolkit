@@ -1,0 +1,30 @@
+*.class
+.classpath
+.project
+.settings
+target
+
+bin
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+#Idea files
+.idea/
+*.iml
+*.log
+
+
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+
+deptree.txt
+felix-cache
+
+JSA-NOP.tsv
+results.tsv
+
+*.swp
