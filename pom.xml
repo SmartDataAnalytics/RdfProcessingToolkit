@@ -11,7 +11,7 @@
 
 	<name>Sparql Integrate</name>
 	<description>Sparql-based tool for the integration of heterogeneous data</description>
-	<url>https://github.com/QROWD/Sparql-Integrate</url>
+	<url>https://github.com/SmartDataAnalytics/SparqlIntegrate</url>
 
 	<modules>
 		<module>sparql-integrate-cli</module>
@@ -19,7 +19,7 @@
 	</modules>
 
 	<issueManagement>
-		<url>https://github.com/QROWD/Sparql-Integrate/issues</url>
+		<url>https://github.com/SmartDataAnalytics/SparqlIntegrate/issues</url>
 		<system>GitHub</system>
 	</issueManagement>
 
@@ -32,9 +32,9 @@
 	</licenses>
 
 	<scm>
-		<url>https://github.com/QROWD/Sparql-Integrate</url>
-		<connection>scm:git:git://github.com/QROWD/Sparql-Integrate.git</connection>
-		<developerConnection>scm:git:git@github.com:QROWD/Sparql-Integrate.git</developerConnection>
+		<url>https://github.com/SmartDataAnalytics/SparqlIntegrate</url>
+		<connection>scm:git:git://github.com/SmartDataAnalytics/SparqlIntegrate.git</connection>
+		<developerConnection>scm:git:git@github.com:SmartDataAnalytics/SparqlIntegrate.git</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
 
