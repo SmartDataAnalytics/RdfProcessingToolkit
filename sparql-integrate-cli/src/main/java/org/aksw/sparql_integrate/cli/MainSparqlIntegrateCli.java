@@ -47,9 +47,12 @@ import org.apache.jena.sparql.lang.arq.ParseException;
 import org.apache.jena.update.UpdateRequest;
 import org.eclipse.jetty.server.Server;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.Banner;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.AbstractIterator;
@@ -157,19 +160,24 @@ class SparqlStmtIterator
 	}
 }
 
-
+@SpringBootApplication
 public class MainSparqlIntegrateCli {
 	
-	class ConfigSparqlIntegrate {
+	@Configuration
+	public static class ConfigSparqlIntegrate {
 		
 		@Bean
-		private ApplicationRunner applicationRunner() {
+		public ApplicationRunner applicationRunner() {
 			return (args) -> {
 
+				//System.out.println("ARGS: " + args.getOptionNames());
 				Dataset dataset = DatasetFactory.create();
 				RDFConnection conn = RDFConnectionFactory.connect(dataset);
 
-				List<String> filenames = args.getOptionValues("f");
+				List<String> filenames = args.getOptionValues("sparql");
+				if(filenames == null) {
+					throw new RuntimeException("No SPARQL files specified. Use one or more instances of the command line argument --sparql='filename'");
+				}
 				for(String filename : filenames) {
 					InputStream in = new FileInputStream(filename);
 					Stream<SparqlStmt> stmts = parseSparqlQueryFile(in);
@@ -206,20 +214,27 @@ public class MainSparqlIntegrateCli {
 //							//.withPrefixes(PrefixMapping.Extended, false)
 //							.end().create();
 
-				int port = 7532;
-				Server server = FactoryBeanSparqlServer.newInstance()
-					.setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
-					.setSparqlStmtParser(sparqlStmtParser)
-					.setPort(port)
-					.create();
-
-				server.start();
 				
-				if(Desktop.isDesktopSupported()) {
-					Desktop.getDesktop().browse(new URI("http://localhost:" + port + "/sparql"));
+				if(args.containsOption("server")) {
+				
+					int port = 7532;
+					Server server = FactoryBeanSparqlServer.newInstance()
+						.setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
+						.setSparqlStmtParser(sparqlStmtParser)
+						.setPort(port)
+						.create();
+	
+					server.start();
+					
+					URI browseUri = new URI("http://localhost:" + port + "/sparql");
+					if(Desktop.isDesktopSupported()) {
+						Desktop.getDesktop().browse(browseUri);
+					} else {
+						System.err.println("SPARQL service with in-memory result dataset running at " + browseUri);
+					}
+	
+					server.join();
 				}
-
-				server.join();
 			};
 		}		
 	}
@@ -264,8 +279,13 @@ public class MainSparqlIntegrateCli {
 	
 	public static void main(String[] args) throws Exception {
 
+//		System.out.println("sup"+ Desktop.isDesktopSupported());
+
 		try(ConfigurableApplicationContext ctx = new SpringApplicationBuilder()
 			.sources(ConfigSparqlIntegrate.class)
+			.bannerMode(Banner.Mode.OFF)
+			.headless(false)
+			.web(false)
 			.run(args)) {
 			
 		}
@@ -285,7 +305,6 @@ public class MainSparqlIntegrateCli {
 //		ARQParser parser = new ARQParser(new FileInputStream(file));
 //		parser.setQuery(new Query());
 //		parser.
-		
 		
 		SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, PrefixMapping.Extended, true);
 
