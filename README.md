@@ -2,6 +2,13 @@
 Integrate heterogeneous data with standard SPARQL syntax plus function extensions.
 
 
+* Uses the plugin system of the [Apache Jena](http://jena.apache.org/)' SPARQL engine (ARQ) for adding the functionality to process JSON, CSV and XML.
+* Introduces *SPARQL functions* which compute a single RDF term from its arguments, e.g. `json json:parse(string)`
+* and *SPARQL property functions* (can be seen as magic RDF properties) which transform literals into multiple SPARQL result set rows, e.g. `{ ?jsonLiteral json:unnest ?itemVar }`
+
+This project is actually just a command line frontend for the SPARQL function extensions provided by the [jena-sparql-api sparql extensions module](https://github.com/SmartDataAnalytics/jena-sparql-api/tree/master/jena-sparql-api-sparql-ext)
+
+
 ## Usage Example
 
 The most convenient way to use this tool is to build this java project and make it available via a command line argument.
@@ -85,8 +92,6 @@ java -cp ".:lib/*" "-Dloader.main=org.aksw.sparql_integrate.cli.MainSparqlIntegr
 
 
 ## Acknowledgements
-
-* This project is actually just the command line frontend for the SPARQL function extensions provided by the [jena-sparql-api sparql extensions module](https://github.com/SmartDataAnalytics/jena-sparql-api/tree/master/jena-sparql-api-sparql-ext)
 
 * This project is developed with funding from the [QROWD](http://qrowd-project.eu/) H2020 project. Visit the [QROWD GitHub Organization](https://github.com/Qrowd) for more Open Source tools!
 
