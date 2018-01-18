@@ -1,12 +1,16 @@
 # Sparql-Integrate
-Integrate heterogeneous data with standard SPARQL syntax plus function extensions.
+Integrate heterogeneous data with **standard SPARQL syntax** plus function extensions.
 
 
-* Uses the plugin system of the [Apache Jena](http://jena.apache.org/)' SPARQL engine (ARQ) for adding the functionality to process JSON, CSV and XML.
+* Uses the plugin system of [Apache Jena](http://jena.apache.org/)'s SPARQL engine (ARQ) for adding the functionality to access local and remote data and to process JSON, CSV and XML formats
 * Introduces *SPARQL functions* which compute a single RDF term from its arguments, e.g. `json json:parse(string)`
-* and *SPARQL property functions* (can be seen as magic RDF properties) which transform literals into multiple SPARQL result set rows, e.g. `{ ?jsonLiteral json:unnest ?itemVar }`
+* ... and *SPARQL property functions* (can be seen as magic RDF properties) which transform literals into multiple SPARQL result set rows, e.g. `{ ?jsonLiteral json:unnest ?itemVar }`
+* The concept of this tool is to be a swiss army knife for realizing small to medium sized data integration workflows as a mere sequence of SPARQL queries stored in a `.sparql` file
+  * Note, that remote SPARQL queries can be performed using standard SPARQL simple federation
 
-This project is actually just a command line frontend for the SPARQL function extensions provided by the [jena-sparql-api sparql extensions module](https://github.com/SmartDataAnalytics/jena-sparql-api/tree/master/jena-sparql-api-sparql-ext)
+
+For the reference of supported SPARQL function extensions, please refer to the documentation of the [jena-sparql-api sparql extensions module](https://github.com/SmartDataAnalytics/jena-sparql-api/tree/master/jena-sparql-api-sparql-ext).
+Technically, SparqlIntegrate is just a thin command line frontend to these extensions.
 
 
 ## Usage Example
@@ -90,6 +94,12 @@ You can also manually start the tool from the 'sparql-integrate-cli/target` fold
 java -cp ".:lib/*" "-Dloader.main=org.aksw.sparql_integrate.cli.MainSparqlIntegrateCli" "org.springframework.boot.loader.PropertiesLauncher" "your" "args"
 ```
 
+## Related projects
+
+* [TARQL](https://github.com/tarql/tarql)
+* [JARQL](https://github.com/linked-solutions/jarql)
+* [RML](http://rml.io)
+* [SPARQLGenerate](http://w3id.org/sparql-generate)
 
 ## Acknowledgements
 
