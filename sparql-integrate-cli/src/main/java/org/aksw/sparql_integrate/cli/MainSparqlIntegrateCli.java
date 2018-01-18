@@ -4,6 +4,7 @@ import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -187,7 +188,12 @@ public class MainSparqlIntegrateCli {
 							"No SPARQL files specified. Use one or more instances of the command line argument --sparql='filename'");
 				}
 				for (String filename : filenames) {
-					String dirName = new File(filename).getParentFile().getAbsoluteFile().toURI().toString();
+					File file = new File(filename).getAbsoluteFile();
+					if(!file.exists()) {
+						throw new FileNotFoundException(file.getAbsolutePath() + " does not exist");
+					}
+					
+					String dirName = file.getParentFile().getAbsoluteFile().toURI().toString();
 
 					Prologue prologue = new Prologue();
 					prologue.setPrefixMapping(pm);
