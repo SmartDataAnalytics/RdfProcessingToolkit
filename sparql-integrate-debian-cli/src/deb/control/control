@@ -5,7 +5,7 @@ Priority: optional
 Architecture: all
 Depends: java-runtime-headless
 Maintainer: Claus Stadler <cstadler@informatik.uni-leipzig.de>
-Description: Sparqlify Command Line Interfaces
+Description: SparqlIntegrate Command Line Interfaces
 Distribution: ldstack-nightly
 Homepage: http://aksw.org/Projects/SparqlIntegrate
 Vcs-Git: git://github.com/SmartDataAnalytics/SparqlIntegrate.git
