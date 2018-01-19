@@ -41,11 +41,12 @@ import org.apache.jena.query.ResultSetFormatter;
 import org.apache.jena.query.Syntax;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
+import org.apache.jena.riot.out.SinkQuadOutput;
 import org.apache.jena.riot.out.SinkTripleOutput;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
-import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.core.Prologue;
+import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.lang.arq.ParseException;
 import org.apache.jena.update.UpdateRequest;
 import org.eclipse.jetty.server.Server;
@@ -200,7 +201,7 @@ public class MainSparqlIntegrateCli {
 
 					prologue.setBaseURI(dirName);
 
-					Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
+					Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxARQ,
 							prologue, false);// .getQueryParser();
 
 					InputStream in = new FileInputStream(filename);
@@ -265,7 +266,16 @@ public class MainSparqlIntegrateCli {
 
 			if (q.isConstructQuad()) {
 				// ResultSetFormatter.ntrqe.execConstructTriples();
-				throw new RuntimeException("not supported yet");
+				//throw new RuntimeException("not supported yet");
+				SinkQuadOutput sink = new SinkQuadOutput(System.out, null, null);
+				Iterator<Quad> it = qe.execConstructQuads();
+				while (it.hasNext()) {
+					Quad t = it.next();
+					sink.send(t);
+				}
+				sink.flush();
+				sink.close();
+
 			} else if (q.isConstructType()) {
 				// System.out.println(Algebra.compile(q));
 
