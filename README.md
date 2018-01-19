@@ -63,7 +63,7 @@ CONSTRUCT {
 Several common namespaces are readily available:
 
 * Jena's Extended namespaces: `rdf`, `rdfs`, `owl`, `dc`, `xsd`, `rss`, `vcard`, `ja`, `eg`.
-  * We have plans to enhance this to all [RDF Initial Context Namespaces]( https://www.w3.org/2011/rdfa-context/rdfa-1.1).
+  * We have plans to enhance this to all [RDFa Initial Context Namespaces]( https://www.w3.org/2011/rdfa-context/rdfa-1.1).
 * Additionally, the namespaces `json`, `csv`, `xml` and `url` are introduced, which contain the SPARQL extensions.
 
 ## Detailed Usage
