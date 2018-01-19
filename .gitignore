@@ -4,8 +4,6 @@
 .settings
 target
 
-bin
-
 # Package Files #
 *.jar
 *.war
