@@ -76,7 +76,7 @@ The following rules apply:
   * SPARQL Update queries (INSERT/DELETE) will modify this dataset
   * `CONSTRUCT` queries are used to produce actual data output to STDOUT as NTRIPLES
   * `SELECT` queries will output formatted tables on STDERR and can be used for debugging / information
-* Relative IRIs of SPARQL queries are resolved against the folder of the containing `.sparql`. 
+* Relative IRIs of SPARQL queries are resolved against the folder of the containing `.sparql` file. 
 Hence, a data integration project can just put a `.sparql` file next to data files, such as `mydata.json`, and a query can reference it with `SELECT * { <mydata.json> url:text ?src }`.
 
 ### Command Line Options
