@@ -3,7 +3,7 @@
 
 PREFIX wgs: <http://www.w3.org/2003/01/geo/wgs84_pos#>
 PREFIX q: <http://qrowd-project.eu/ontology/>
-CONSTRUCT 
+CONSTRUCT {
   GRAPH eg:myGraph {
     ?s
       a q:BikeStation ;
