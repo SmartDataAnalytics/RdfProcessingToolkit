@@ -9,8 +9,15 @@ Integrate heterogeneous data with **standard SPARQL syntax** plus function exten
   * Note, that remote SPARQL queries can be performed using standard SPARQL simple federation
 
 
-For the reference of supported SPARQL function extensions, please refer to the documentation of the [jena-sparql-api sparql extensions module](https://github.com/SmartDataAnalytics/jena-sparql-api/tree/master/jena-sparql-api-sparql-ext).
-Technically, SparqlIntegrate is just a thin command line frontend to these extensions.
+## Function Reference and Programmatic Usage
+This tool is just a thin command line wrapper for Jena ARQ and our extensions.
+
+You can make the extensions available in your own Java/Scala project simply by adding a dependency to the
+[jena-sparql-api sparql extensions module](https://github.com/SmartDataAnalytics/jena-sparql-api/tree/master/jena-sparql-api-sparql-ext).
+This will auto-register all configuration-free extensions. Some extensions, such as HTTP, allow you to provide your own HTTPCient object (which enables intercepting HTTP requests for e.g. statistics and throttling), so you need to configure this yourself to your liking.
+
+
+For the reference of supported SPARQL function extensions, please refer to the documentation of the [jena-sparql-api sparql extensions module](https://github.com/SmartDataAnalytics/jena-sparql-api/tree/master/jena-sparql-api-sparql-ext). 
 
 
 ## Usage Example
