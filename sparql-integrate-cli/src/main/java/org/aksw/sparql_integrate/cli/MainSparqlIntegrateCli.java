@@ -202,7 +202,7 @@ public class MainSparqlIntegrateCli {
 					prologue.setBaseURI(dirName);
 
 					Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxARQ,
-							prologue, false);// .getQueryParser();
+							prologue, true);// .getQueryParser();
 
 					InputStream in = new FileInputStream(filename);
 					Stream<SparqlStmt> stmts = parseSparqlQueryFile(in, sparqlStmtParser);
