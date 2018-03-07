@@ -183,8 +183,8 @@ public class MainSparqlIntegrateCli {
 				Dataset dataset = DatasetFactory.create();
 				RDFConnection conn = RDFConnectionFactory.connect(dataset);
 
-				List<String> filenames = args.getOptionValues("sparql");
-				if (filenames == null) {
+				List<String> filenames = args.getNonOptionArgs();//args.getOptionValues("sparql");
+				if (filenames == null || filenames.isEmpty()) {
 					throw new RuntimeException(
 							"No SPARQL files specified. Use one or more instances of the command line argument --sparql='filename'");
 				}
