@@ -57,9 +57,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @SpringBootApplication
-public class MainSparqlIntegrateCli {
+public class MainCliSparqlIntegrate {
 
-	private static final Logger logger = LoggerFactory.getLogger(MainSparqlIntegrateCli.class);
+	private static final Logger logger = LoggerFactory.getLogger(MainCliSparqlIntegrate.class);
 
 	@Configuration
 	public static class ConfigSparqlIntegrate {
