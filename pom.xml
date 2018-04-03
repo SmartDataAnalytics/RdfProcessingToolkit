@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
@@ -15,6 +16,9 @@
 
 	<modules>
 		<module>sparql-integrate-cli</module>
+		<module>sparql-integrate-ckan-core</module>
+		<module>sparql-integrate-ckan-cli</module>
+
 		<module>sparql-integrate-debian-cli</module>
 	</modules>
 
@@ -76,6 +80,18 @@
 			</dependency>
 
 			<dependency>
+				<groupId>org.aksw.sparql-integrate</groupId>
+				<artifactId>sparql-integrate-ckan-core</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.aksw.sparql-integrate</groupId>
+				<artifactId>sparql-integrate-ckan-cli</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
 				<groupId>org.aksw.jena-sparql-api</groupId>
 				<artifactId>jena-sparql-api-sparql-ext</artifactId>
 				<version>${jena-sparql-api.version}</version>
@@ -109,6 +125,12 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-loader</artifactId>
 				<version>${spring-boot.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>eu.trentorise.opendata</groupId>
+				<artifactId>jackan</artifactId>
+				<version>0.4.2</version>
 			</dependency>
 
 			<dependency>
