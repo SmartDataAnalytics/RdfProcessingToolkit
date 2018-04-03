@@ -16,9 +16,6 @@
 
 	<modules>
 		<module>sparql-integrate-cli</module>
-		<module>sparql-integrate-ckan-core</module>
-		<module>sparql-integrate-ckan-cli</module>
-
 		<module>sparql-integrate-debian-cli</module>
 	</modules>
 
