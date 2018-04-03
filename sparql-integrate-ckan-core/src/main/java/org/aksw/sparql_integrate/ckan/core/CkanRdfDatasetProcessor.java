@@ -4,25 +4,35 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.aksw.commons.util.strings.StringUtils;
 import org.aksw.sparql_integrate.ckan.domain.api.Dataset;
 import org.aksw.sparql_integrate.ckan.domain.api.DatasetResource;
+import org.apache.jena.graph.Triple;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.riot.RDFDataMgr;
-import org.apache.jena.riot.RDFFormat;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.riot.writer.NTriplesWriter;
 import org.apache.jena.vocabulary.DCAT;
 import org.apache.jena.vocabulary.RDF;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 
 import eu.trentorise.opendata.jackan.CkanClient;
 import eu.trentorise.opendata.jackan.exceptions.CkanException;
@@ -72,17 +82,32 @@ public class CkanRdfDatasetProcessor {
 	}
 	
 	
+	/**
+	 * Upload a file to an *existing* record
+	 * 
+	 * @param ckanClient
+	 * @param datasetName
+	 * @param resourceId
+	 * @param isResourceCreationRequired
+	 * @param srcFilename
+	 * @return
+	 */
 	public static String uploadFile(
 			CkanClient ckanClient,
 			String datasetName,
 			String resourceId,
 			//String resourceName,
-			boolean isResourceCreationRequired,
-			String filename)
+			//boolean isResourceCreationRequired,
+			String srcFilename,
+			ContentType contentType,
+			String downloadFilename)
 	{
-		Path path = Paths.get(filename);
+		Path path = Paths.get(srcFilename);
 		logger.info("Updating ckan resource " + resourceId + " with content from " + path.toAbsolutePath());
 
+		contentType = contentType == null ? ContentType.DEFAULT_TEXT : contentType;
+		downloadFilename = downloadFilename == null ? path.getFileName().toString() : downloadFilename;
+		
 		String apiKey = ckanClient.getCkanToken();
 		String HOST = ckanClient.getCatalogUrl();// "http://ckan.host.com";
 
@@ -100,7 +125,7 @@ public class CkanRdfDatasetProcessor {
 					.addPart("id", new StringBody(resourceId, ContentType.TEXT_PLAIN))
 					//.addPart("name", new StringBody(resourceName, ContentType.TEXT_PLAIN))
 					.addPart("package_id", new StringBody(datasetName, ContentType.TEXT_PLAIN))
-					.addPart("upload", new FileBody(file, ContentType.DEFAULT_BINARY, "test.nt")) // , ContentType.APPLICATION_OCTET_STREAM))
+					.addPart("upload", new FileBody(file, contentType, downloadFilename)) // , ContentType.APPLICATION_OCTET_STREAM))
 					// .addPart("file", cbFile)
 					// .addPart("url",new StringBody("path/to/save/dir", ContentType.TEXT_PLAIN))
 					// .addPart("comment",new StringBody("comments",ContentType.TEXT_PLAIN))
@@ -174,33 +199,52 @@ public class CkanRdfDatasetProcessor {
 			CkanResource remoteCkanResource = createOrUpdateResource(ckanClient, remoteCkanDataset, dataset, res);
 
 			// Check if there is a graph in the dataset that matches the distribution
-			String distributionGraphUri = res.getURI();
-			Model model = sparqlDataset.getNamedModel(distributionGraphUri);
+			String distributionName = res.getTitle();
+						
+			Set<Resource> distributionGraphs = res.getAccessURLs();
+			Map<String, Model> uriToModel = distributionGraphs.stream()
+					.filter(Resource::isURIResource)
+					.map(Resource::getURI)
+					.filter(sparqlDataset::containsNamedModel)
+					.collect(Collectors.toMap(uri -> uri, sparqlDataset::getNamedModel));
 			
-			System.out.println("Distribution in graph: " + distributionGraphUri);
-			
-
-			if(model != null) {
-				try {
-					Path path = Files.createTempFile(StringUtils.urlEncode("data-" + distributionGraphUri), ".nt");
-					try {				
-						RDFDataMgr.write(Files.newOutputStream(path), model, RDFFormat.NTRIPLES);
-
-						uploadFile(ckanClient, remoteCkanDataset.getName(), remoteCkanResource.getId(), false, path.toString());
-					} finally {
-						Files.delete(path);
-					}
-					
-				} catch (IOException e) {
-					throw new RuntimeException(e);
+			if(!uriToModel.isEmpty()) {
+				Model combinedModel;
+				if(uriToModel.size() > 1) {
+					combinedModel = ModelFactory.createDefaultModel();
+					uriToModel.values().forEach(combinedModel::add);
+				} else {
+					combinedModel = uriToModel.values().iterator().next();
 				}
-				
-				System.out.println("YAY model");
-			}
-			
-			
-			//System.out.println("Resource: " + dr);
-			//break;
+
+				try(QueryExecution qe = QueryExecutionFactory.create("CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o } ORDER BY ?s ?p ?o", combinedModel)) {
+					Iterator<Triple> it = qe.execConstructTriples();
+					
+					try {
+						Path path = Files.createTempFile(StringUtils.urlEncode("data-" + distributionName), ".nt");
+						
+						try(OutputStream out = Files.newOutputStream(path)) {
+							NTriplesWriter.write(out, it);
+//							for(Model model : uriToModel.values()) {
+//								RDFDataMgr.write(out, model, RDFFormat.NTRIPLES);
+//								//NTriplesWriter.
+//							}
+							out.flush();
+						
+							uploadFile(ckanClient,
+									remoteCkanDataset.getName(),
+									remoteCkanResource.getId(),
+									path.toString(),
+									ContentType.create("application/n-triples"),
+									distributionName + ".nt");
+						} finally {
+							Files.delete(path);
+						}
+					} catch(Exception e) {
+						throw new RuntimeException(e);
+					}
+				}
+			}			
 		}
 		//cka
 	}
@@ -214,16 +258,30 @@ public class CkanRdfDatasetProcessor {
 	 * @throws IOException 
 	 */
 	public CkanResource createOrUpdateResource(CkanClient ckanClient, CkanDataset ckanDataset, Dataset dataset, DatasetResource res) {
-		Map<String, CkanResource> nameToCkanResource = Optional.ofNullable(ckanDataset.getResources()).orElse(Collections.emptyList()).stream()
-				//.collect(Collectors.toMap(r -> Optional.ofNullable(r.getId()).orElse(r.getName()), x -> x));
-				.collect(Collectors.toMap(r -> Optional.ofNullable(r.getName()).orElse(r.getId()), x -> x));
-		
+		Multimap<String, CkanResource> nameToCkanResources = Multimaps.index(
+				Optional.ofNullable(ckanDataset.getResources()).orElse(Collections.emptyList()),
+				CkanResource::getName);
+
 		// Resources are required to have an ID
-		String resName = Optional.ofNullable(res.getName())
+		String resName = Optional.ofNullable(res.getTitle())
 				.orElseThrow(() -> new RuntimeException("resource must have a name i.e. public id"));
 		
 		boolean isResourceCreationRequired = false;
-		CkanResource remote = nameToCkanResource.get(resName);
+		
+		CkanResource remote = null;
+		Collection<CkanResource> remotes = nameToCkanResources.get(resName);
+		
+		// If there are multiple resources with the same name,
+		// update the first one and delete all others
+		
+		Iterator<CkanResource> it = remotes.iterator();
+		remote = it.hasNext() ? it.next() : null;
+		
+		while(it.hasNext()) {
+			CkanResource tmp = it.next();
+			ckanClient.deleteResource(tmp.getId());
+		}
+		
 		
 		// TODO We need a file for the resource
 		
@@ -232,11 +290,10 @@ public class CkanRdfDatasetProcessor {
 			
 			remote = new CkanResource(null, ckanDataset.getName());
 		}
-
 		
 		// Update existing attributes with non-null values
-		Optional.ofNullable(res.getName()).ifPresent(remote::setName);
-		//Optional.ofNullable(res.getTitle()).ifPresent(remote::set);
+		Optional.ofNullable(res.getTitle()).ifPresent(remote::setName);
+		//Optional.ofNullable(res.getTitle()).ifPresent(remote::setna);
 		Optional.ofNullable(res.getDescription()).ifPresent(remote::setDescription);
 
 		if(isResourceCreationRequired) {
