@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
@@ -198,7 +199,7 @@ public class MainCliSparqlIntegrate {
 		}
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args) {		
 		JenaExtensionHttp.register(() -> HttpClientBuilder.create().build());
 
 		// RDFConnection conn = RDFConnectionFactory.connect(DatasetFactory.create());
