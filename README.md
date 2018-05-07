@@ -49,7 +49,7 @@ CONSTRUCT {
 {
   # url:text is a property function that fetches the content of subject URL and
   # makes it available as a SPARQL result set row via the object variable
-  <https://rawgit.com/QROWD/trento-bike-racks/tree/master/datasets/bikesharing.json> url:text ?src .
+  <https://raw.githubusercontent.com/QROWD/QROWD-RDF-Data-Integration/master/datasets/1014-electric-bikesharing-stations/trento-bike-sharing.json> url:text ?src .
   BIND(json:parse(?src) AS ?json) .
 
   # Unnest each item of the json array into its own SPARQL result set row
