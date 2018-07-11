@@ -49,8 +49,8 @@
 	</developers>
 
 	<properties>
-		<jena.version>3.7.0</jena.version>
-		<jena-sparql-api.subversion>4-SNAPSHOT</jena-sparql-api.subversion>
+		<jena.version>3.8.0</jena.version>
+		<jena-sparql-api.subversion>1-SNAPSHOT</jena-sparql-api.subversion>
 
 		<jena-sparql-api.version>${jena.version}-${jena-sparql-api.subversion}</jena-sparql-api.version>
 
