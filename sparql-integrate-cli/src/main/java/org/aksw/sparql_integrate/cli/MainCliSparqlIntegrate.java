@@ -25,6 +25,7 @@ import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtQuery;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.jena.atlas.json.JsonString;
 import org.apache.jena.ext.com.google.common.collect.Streams;
 import org.apache.jena.ext.com.google.common.io.CharStreams;
 import org.apache.jena.graph.Triple;
@@ -187,6 +188,9 @@ public class MainCliSparqlIntegrate {
 				ResultSet rs = qe.execSelect();
 				String str = ResultSetFormatter.asText(rs);
 				System.err.println(str);
+			} else if(q.isJsonType()) {
+				String json = qe.execJson().toString();
+				System.out.println(json);
 			} else {
 				throw new RuntimeException("Unsupported query type");
 			}
