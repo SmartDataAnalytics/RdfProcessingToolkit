@@ -27,7 +27,7 @@ The build also creates a debian package for convenient installation on debian-li
 
 
 ```bash
-sparql-generate /path/to/your/first/file.sparql your/next/file.sparql
+sparql-generate [--server] file1.sparql ... filen.sparql
 ```
 
 
@@ -88,7 +88,7 @@ Hence, a data integration project can just put a `.sparql` file next to data fil
 
 ### Command Line Options
 
-* `--sparql=path/to/file.sparql` Specify one ore more SPARQL query files which to run against the default dataset.
+* `file.sparql` Specify one ore more SPARQL query files which to run against the default dataset.
 * `--server` Start a local SPARQL endpoint, featuring a simple [SNORQL HTML](https://github.com/kurtjx/SNORQL) frontend, for exploring the content of the default dataset.
 
 ## Building
