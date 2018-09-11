@@ -27,7 +27,7 @@ The build also creates a debian package for convenient installation on debian-li
 
 
 ```bash
-sparql-generate --sparql=/path/to/your/first/file.sparql --sparql=your/next/file.sparql
+sparql-generate /path/to/your/first/file.sparql your/next/file.sparql
 ```
 
 
