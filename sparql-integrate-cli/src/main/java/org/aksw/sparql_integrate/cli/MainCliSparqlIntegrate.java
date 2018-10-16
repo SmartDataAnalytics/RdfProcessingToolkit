@@ -98,9 +98,28 @@ public class MainCliSparqlIntegrate {
 
 					prologue.setBaseURI(dirName);
 
-					Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxARQ,
+					Function<String, SparqlStmt> rawSparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxARQ,
 							prologue, true);// .getQueryParser();
 
+					
+					// Wrap the parser with tracking the prefixes
+					Function<String, SparqlStmt> sparqlStmtParser = s -> {
+						SparqlStmt r = rawSparqlStmtParser.apply(s);
+						if(r.isParsed()) {
+							PrefixMapping pm2 = null;
+							if(r.isQuery()) {
+								pm2 = r.getAsQueryStmt().getQuery().getPrefixMapping();
+							} else if(r.isUpdateRequest()) {
+								pm2 = pm.setNsPrefixes(r.getAsUpdateStmt().getUpdateRequest().getPrefixMapping());
+							}
+							
+							if(pm2 != null) {
+								pm.setNsPrefixes(pm2);
+							}
+						}
+						return r;
+					};
+					
 					InputStream in = new FileInputStream(filename);
 					Stream<SparqlStmt> stmts = parseSparqlQueryFile(in, sparqlStmtParser);
 
