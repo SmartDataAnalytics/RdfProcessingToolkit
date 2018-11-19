@@ -4,14 +4,12 @@ import java.awt.Desktop;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -20,33 +18,23 @@ import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtIterator;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtParser;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtQuery;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.jena.atlas.json.JsonString;
-import org.apache.jena.ext.com.google.common.collect.Streams;
-import org.apache.jena.ext.com.google.common.io.CharStreams;
-import org.apache.jena.graph.Triple;
+import org.apache.jena.atlas.lib.Sink;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.ReadWrite;
-import org.apache.jena.query.ResultSet;
-import org.apache.jena.query.ResultSetFormatter;
 import org.apache.jena.query.Syntax;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
-import org.apache.jena.riot.out.SinkQuadOutput;
-import org.apache.jena.riot.out.SinkTripleOutput;
+import org.apache.jena.riot.RDFFormat;
+import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.core.Prologue;
 import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sparql.lang.arq.ParseException;
-import org.apache.jena.update.UpdateRequest;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +58,20 @@ public class MainCliSparqlIntegrate {
 		public ApplicationRunner applicationRunner() {
 			return (args) -> {
 
+				Collection<RDFFormat> available = RDFWriterRegistry.registered();
+
+				String optOutFormat = Optional.ofNullable(args.getOptionValues("w")).map(x -> x.iterator().next()).orElse(null);
+				RDFFormat outFormat = null;
+				if(optOutFormat != null) {
+			        outFormat = available.stream()
+			        		.filter(f -> f.toString().equalsIgnoreCase(optOutFormat))
+			        		.findFirst()
+							.orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + available));
+				}
+				
+				Sink<Quad> sink = SparqlStmtUtils.createSink(outFormat, System.out);
+				
+				
 				PrefixMapping pm = new PrefixMappingImpl();
 				pm.setNsPrefixes(PrefixMapping.Extended);
 				JenaExtensionUtil.addPrefixes(pm);
@@ -103,28 +105,32 @@ public class MainCliSparqlIntegrate {
 
 					
 					// Wrap the parser with tracking the prefixes
-					Function<String, SparqlStmt> sparqlStmtParser = s -> {
-						SparqlStmt r = rawSparqlStmtParser.apply(s);
-						if(r.isParsed()) {
-							PrefixMapping pm2 = null;
-							if(r.isQuery()) {
-								pm2 = r.getAsQueryStmt().getQuery().getPrefixMapping();
-							} else if(r.isUpdateRequest()) {
-								pm2 = pm.setNsPrefixes(r.getAsUpdateStmt().getUpdateRequest().getPrefixMapping());
-							}
-							
-							if(pm2 != null) {
-								pm.setNsPrefixes(pm2);
-							}
-						}
-						return r;
-					};
+					SparqlStmtParser sparqlStmtParser = SparqlStmtParser.wrapWithNamespaceTracking(pm, rawSparqlStmtParser);
+//					Function<String, SparqlStmt> sparqlStmtParser = s -> {
+//						SparqlStmt r = rawSparqlStmtParser.apply(s);
+//						if(r.isParsed()) {
+//							PrefixMapping pm2 = null;
+//							if(r.isQuery()) {
+//								pm2 = r.getAsQueryStmt().getQuery().getPrefixMapping();
+//							} else if(r.isUpdateRequest()) {
+//								pm2 = pm.setNsPrefixes(r.getAsUpdateStmt().getUpdateRequest().getPrefixMapping());
+//							}
+//							
+//							if(pm2 != null) {
+//								pm.setNsPrefixes(pm2);
+//							}
+//						}
+//						return r;
+//					};
 					
 					InputStream in = new FileInputStream(filename);
-					Stream<SparqlStmt> stmts = parseSparqlQueryFile(in, sparqlStmtParser);
+					Stream<SparqlStmt> stmts = SparqlStmtUtils.parse(in, sparqlStmtParser);
 
-					stmts.forEach(stmt -> process(conn, stmt));
+					stmts.forEach(stmt -> process(conn, stmt, sink::send));
 				}
+				
+				sink.flush();
+				sink.close();
 
 				// Path path = Paths.get(args[0]);
 				// //"/home/raven/Projects/Eclipse/trento-bike-racks/datasets/bikesharing/trento-bike-sharing.json");
@@ -169,57 +175,9 @@ public class MainCliSparqlIntegrate {
 		}
 	}
 
-	public static void process(RDFConnection conn, SparqlStmt stmt) {
+	public static void process(RDFConnection conn, SparqlStmt stmt, Consumer<Quad> sink) {
 		logger.info("Processing SPARQL Statement: " + stmt);
-
-		if (stmt.isQuery()) {
-			SparqlStmtQuery qs = stmt.getAsQueryStmt();
-			Query q = qs.getQuery();
-			q.isConstructType();
-			conn.begin(ReadWrite.READ);
-			// SELECT -> STDERR, CONSTRUCT -> STDOUT
-			QueryExecution qe = conn.query(q);
-
-			if (q.isConstructQuad()) {
-				// ResultSetFormatter.ntrqe.execConstructTriples();
-				//throw new RuntimeException("not supported yet");
-				SinkQuadOutput sink = new SinkQuadOutput(System.out, null, null);
-				Iterator<Quad> it = qe.execConstructQuads();
-				while (it.hasNext()) {
-					Quad t = it.next();
-					sink.send(t);
-				}
-				sink.flush();
-				sink.close();
-
-			} else if (q.isConstructType()) {
-				// System.out.println(Algebra.compile(q));
-
-				SinkTripleOutput sink = new SinkTripleOutput(System.out, null, null);
-				Iterator<Triple> it = qe.execConstructTriples();
-				while (it.hasNext()) {
-					Triple t = it.next();
-					sink.send(t);
-				}
-				sink.flush();
-				sink.close();
-			} else if (q.isSelectType()) {
-				ResultSet rs = qe.execSelect();
-				String str = ResultSetFormatter.asText(rs);
-				System.err.println(str);
-			} else if(q.isJsonType()) {
-				String json = qe.execJson().toString();
-				System.out.println(json);
-			} else {
-				throw new RuntimeException("Unsupported query type");
-			}
-
-			conn.end();
-		} else if (stmt.isUpdateRequest()) {
-			UpdateRequest u = stmt.getAsUpdateStmt().getUpdateRequest();
-
-			conn.update(u);
-		}
+		SparqlStmtUtils.process(conn, stmt, sink);
 	}
 
 	public static void main(String[] args) {		
@@ -238,31 +196,6 @@ public class MainCliSparqlIntegrate {
 				.headless(false).web(false).run(args)) {
 
 		}
-	}
-
-	public static Stream<SparqlStmt> parseSparqlQueryFile(InputStream in, Function<String, SparqlStmt> parser)
-			throws IOException, ParseException {
-		// try(QueryExecution qe = qef.createQueryExecution(q)) {
-		// Model result = qe.execConstruct();
-		// RDFDataMgr.write(System.out, result, RDFFormat.TURTLE_PRETTY);
-		// //ResultSet rs = qe.execSelect();
-		// //System.out.println(ResultSetFormatter.asText(rs));
-		// }
-		// File file = new
-		// File("/home/raven/Projects/Eclipse/trento-bike-racks/datasets/test/test.sparql");
-		// String str = Files.asCharSource(, StandardCharsets.UTF_8).read();
-
-		String str = CharStreams.toString(new InputStreamReader(in, StandardCharsets.UTF_8));
-
-		// ARQParser parser = new ARQParser(new FileInputStream(file));
-		// parser.setQuery(new Query());
-		// parser.
-
-		// SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ,
-		// PrefixMapping.Extended, true);
-
-		Stream<SparqlStmt> result = Streams.stream(new SparqlStmtIterator(parser, str));
-		return result;
 	}
 
 }
