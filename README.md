@@ -50,10 +50,12 @@ CONSTRUCT {
   # url:text is a property function that fetches the content of subject URL and
   # makes it available as a SPARQL result set row via the object variable
   <https://raw.githubusercontent.com/QROWD/QROWD-RDF-Data-Integration/master/datasets/1014-electric-bikesharing-stations/trento-bike-sharing.json> url:text ?src .
-  BIND(json:parse(?src) AS ?json) .
+  # Treat the url text as a json object
+  BIND(STRDT(?src, xsd:json) AS ?json) .
 
   # Unnest each item of the json array into its own SPARQL result set row
-  ?json json:unnest ?i .
+  # (The parenthesis around ?i are currently needed; we will try to get rid of them in a later version)
+  ?json json:unnest (?i) .
 
   # For each row, craft the values for the CONSTRUCT template
   BIND("http://qrowd-project.eu/resource/" AS ?ns)
