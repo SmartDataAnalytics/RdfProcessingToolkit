@@ -1,24 +1,19 @@
 package org.aksw.sparql_integrate.cli;
 
 import java.awt.Desktop;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 import org.aksw.jena_sparql_api.core.SparqlService;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
+import org.aksw.jena_sparql_api.sparql.ext.fs.JenaExtensionFs;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtParser;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
@@ -26,6 +21,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.atlas.lib.Sink;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.query.Query;
 import org.apache.jena.query.Syntax;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
@@ -33,7 +29,8 @@ import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
-import org.apache.jena.sparql.core.Prologue;
+import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.core.Quad;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
@@ -71,6 +68,8 @@ public class MainCliSparqlIntegrate {
 				
 				Sink<Quad> sink = SparqlStmtUtils.createSink(outFormat, System.out);
 				
+
+				// TODO Replace with our RDFDataMgrEx 
 				
 				PrefixMapping pm = new PrefixMappingImpl();
 				pm.setNsPrefixes(PrefixMapping.Extended);
@@ -78,6 +77,9 @@ public class MainCliSparqlIntegrate {
 
 				JenaExtensionHttp.addPrefixes(pm);
 
+				// Extended SERVICE <> keyword implementation
+				JenaExtensionFs.registerFileServiceHandler();
+				
 				// System.out.println("ARGS: " + args.getOptionNames());
 				Dataset dataset = DatasetFactory.create();
 				RDFConnection conn = RDFConnectionFactory.connect(dataset);
@@ -88,45 +90,8 @@ public class MainCliSparqlIntegrate {
 							"No SPARQL files specified. Use one or more instances of the command line argument --sparql='filename'");
 				}
 				for (String filename : filenames) {
-					File file = new File(filename).getAbsoluteFile();
-					if(!file.exists()) {
-						throw new FileNotFoundException(file.getAbsolutePath() + " does not exist");
-					}
-					
-					String dirName = file.getParentFile().getAbsoluteFile().toURI().toString();
-
-					Prologue prologue = new Prologue();
-					prologue.setPrefixMapping(pm);
-
-					prologue.setBaseURI(dirName);
-
-					Function<String, SparqlStmt> rawSparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxARQ,
-							prologue, true);// .getQueryParser();
-
-					
-					// Wrap the parser with tracking the prefixes
-					SparqlStmtParser sparqlStmtParser = SparqlStmtParser.wrapWithNamespaceTracking(pm, rawSparqlStmtParser);
-//					Function<String, SparqlStmt> sparqlStmtParser = s -> {
-//						SparqlStmt r = rawSparqlStmtParser.apply(s);
-//						if(r.isParsed()) {
-//							PrefixMapping pm2 = null;
-//							if(r.isQuery()) {
-//								pm2 = r.getAsQueryStmt().getQuery().getPrefixMapping();
-//							} else if(r.isUpdateRequest()) {
-//								pm2 = pm.setNsPrefixes(r.getAsUpdateStmt().getUpdateRequest().getPrefixMapping());
-//							}
-//							
-//							if(pm2 != null) {
-//								pm.setNsPrefixes(pm2);
-//							}
-//						}
-//						return r;
-//					};
-					
-					InputStream in = new FileInputStream(filename);
-					Stream<SparqlStmt> stmts = SparqlStmtUtils.parse(in, sparqlStmtParser);
-
-					stmts.forEach(stmt -> process(conn, stmt, sink::send));
+					SparqlStmtUtils.processFile(conn, pm, filename)
+						.forEach(stmt -> processSparqlStmt(conn, stmt, sink::send));
 				}
 				
 				sink.flush();
@@ -175,10 +140,16 @@ public class MainCliSparqlIntegrate {
 		}
 	}
 
-	public static void process(RDFConnection conn, SparqlStmt stmt, Consumer<Quad> sink) {
+	public static void processSparqlStmt(RDFConnection conn, SparqlStmt stmt, Consumer<Quad> sink) {
 		logger.info("Processing SPARQL Statement: " + stmt);
+		if(stmt.isQuery()) {
+			Query q = stmt.getAsQueryStmt().getQuery();
+			Op op = Algebra.compile(q);
+			logger.info("Algebra: " + op);
+		}
 		SparqlStmtUtils.process(conn, stmt, sink);
 	}
+
 
 	public static void main(String[] args) {		
 		JenaExtensionHttp.register(() -> HttpClientBuilder.create().build());
