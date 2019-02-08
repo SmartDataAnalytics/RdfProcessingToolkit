@@ -1,0 +1,11 @@
+SELECT *
+FROM <dcat.ttl>
+{
+?s ?p ?o
+}
+
+#SELECT * {
+#  SERVICE <dcat.ttl> {
+#    ?s ?p ?o
+#  }
+#}

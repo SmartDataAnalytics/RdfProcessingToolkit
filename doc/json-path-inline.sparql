@@ -1,0 +1,3 @@
+SELECT ?s {
+  BIND(json:path('{"hello": "world"}'^^xsd:json, "$.hello") AS ?s)
+}

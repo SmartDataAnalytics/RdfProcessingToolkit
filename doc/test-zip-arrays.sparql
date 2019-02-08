@@ -1,0 +1,23 @@
+INSERT DATA {
+  eg:workload1 eg:workload """{
+    "stopIds": [ "TRENTO_STATION_FTM", "TRENTO_NORD"],
+    "stopNames": [ "Trento Staz.Ftm", "Trento Nord", ]
+  }"""^^xsd:json
+}
+
+# Add stop labels
+#CONSTRUCT { GRAPH ?x { ?s a eg:TrainStop ; rdfs:label ?l } }
+SELECT ?s ?l
+WHERE {
+  ?x eg:workload ?o  .
+  BIND(json:path(?o, "$.stopIds") AS ?stops)
+  BIND(json:path(?o, "$.stopNames") AS ?stopNames)
+
+  ?stops json:unnest (?stop ?i) .
+  ?stopNames json:unnest (?l ?i) .
+
+  BIND("http://qrowd-project.eu/resource/" AS ?ns)
+  BIND(URI(CONCAT(?ns, 'stop-', ENCODE_FOR_URI(?stop))) AS ?s)
+}
+
+

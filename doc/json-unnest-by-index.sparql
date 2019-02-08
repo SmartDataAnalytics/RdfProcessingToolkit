@@ -1,0 +1,4 @@
+SELECT * {
+  '[true, 1, "hi", {}, []]'^^xsd:json json:unnest (?item 2)
+}
+
