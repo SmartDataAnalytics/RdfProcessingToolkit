@@ -201,6 +201,47 @@ SELECT * { <example-data/people.csv> csv:parse (?rowJson "excel -h") }
 ```
 
 
+
+## Processing XML
+For XML processing, the `xml:path` function and property functions are provided.
+Unlike JSON, XML does not have a native array datatype which could be used for storing XML nodes matching an XPath expression.
+In order to avoid having to introduce one, the `xml:path` *property function* can be used to unnest XML nodes based on an XPath expression, whereas the `xml:path` *function* can be used to access attributes and texts:
+
+**NOTE: XPath matches are converted to independent RDF terms, i.e. the link to a match's parent element is lost and so is e.g. namespace information defined on ancestors. In most cases, XPath's `local-name` function should be usable as a workaround: `//[local-name()="elementNameWithoutNamespace"]`**
+
+```
+SELECT * {
+  BIND('<ul id="ul1"><li>item</li></ul>'^^xsd:xml AS ?xml)
+  BIND(xml:path(?xml, "//ul/@id") AS ?id)
+  BIND(xml:path(?xml, "//li") AS ?item)
+}
+```
+
+```
+------------------------------------------------------------------------------------------------
+| xml                                                                         | id    | item   |
+================================================================================================
+| "<ul id=\"ul1\"><li>item</li></ul>"^^<http://www.w3.org/2001/XMLSchema#xml> | "ul1" | "item" |
+------------------------------------------------------------------------------------------------
+
+```
+
+Unnesting an XML document is done in regard to a given xpath expression:
+```
+SELECT * {
+  """<ul id="ul1"><li>item</li></ul>"""^^xsd:xml xml:unnest ("//li" ?item)
+}
+```
+
+```
+-----------------------------------------------------------------------------------------------------------------------
+| item                                                                                                                |
+=======================================================================================================================
+| "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><li>item</li>"^^<http://www.w3.org/2001/XMLSchema#xml> |
+-----------------------------------------------------------------------------------------------------------------------
+```
+
+
 ## Querying the file system
 
 * Simple recursive listing of files

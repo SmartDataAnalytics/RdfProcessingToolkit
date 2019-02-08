@@ -1,0 +1,6 @@
+#!/usr/bin/sparql-integrate
+
+SELECT * {
+  """<ul id="ul1"><li>item</li></ul>"""^^xsd:xml xml:unnest ("//li" ?item)
+}
+
