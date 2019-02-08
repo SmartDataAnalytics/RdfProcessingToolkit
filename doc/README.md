@@ -207,6 +207,8 @@ For XML processing, the `xml:path` function and property functions are provided.
 Unlike JSON, XML does not have a native array datatype which could be used for storing XML nodes matching an XPath expression.
 In order to avoid having to introduce one, the `xml:path` *property function* can be used to unnest XML nodes based on an XPath expression, whereas the `xml:path` *function* can be used to access attributes and texts:
 
+**NOTE: In order to avoid potential conflicts with Jena's machinery, this version of sparql-integrate introduces a custom xsd:xml datatype instead of reusing rdf:XMLLiteral.**
+
 **NOTE: XPath matches are converted to independent RDF terms, i.e. the link to a match's parent element is lost and so is e.g. namespace information defined on ancestors. In most cases, XPath's `local-name` function should be usable as a workaround: `//[local-name()="elementNameWithoutNamespace"]`**
 
 ```
