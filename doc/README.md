@@ -6,11 +6,12 @@ When installing the debian package of the command line runner, you can use a con
 
 ```
 hashbang.sparql:
-
+-----------------------------
 #!/usr/bin/sparql-integrate
 
 
 SELECT 1 { }
+-----------------------------
 ```
 
 ```
@@ -27,6 +28,10 @@ Output:
 ------
 ```
 
+Of course, you can always run files using
+```
+sparql-integrate file1.sparql ... filen.sparql
+```
 
 ## Retrieving remote content
 A simple but effective mechanism for unified retrieval of local or remote data is provided by the `url:text` function and property function.
