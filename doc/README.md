@@ -1,6 +1,32 @@
 # SPARQL Integrate examples
 
 
+
+## Retrieving remote content
+A simple but effective mechanism for unified retrieval of local or remote data is provided by the `url:text` function and property function.
+
+```
+SELECT * {
+  <example-data/data.csv> url:text ?str
+}
+```
+
+```
+SELECT * {
+  # TODO: Insert url to data.csv via a rawgit-like service
+  <https://cdn.jsdelivr.net/gh/...> url:text ?str
+}
+```
+
+
+```
+--------------------------------
+| str                          |
+================================
+| "\"a\",\"b\"\n\"c\",\"d\"\n" |
+--------------------------------
+```
+
 ## Processing JSON
 This section explains the supported features for working with JSON literals in SPARQL. For simplicity, we hijacked the `xsd` namespace and
 added a `xsd:json` datatype.
@@ -55,17 +81,17 @@ Again, in both cases the output is:
 ```
 
 * Unnesting JSON arrays
-JSON arrays can be tranformed into result sets using the `json:unnest` function:
+JSON arrays can be tranformed into result sets using the `json:unnest` function.
 
 ```
 SELECT * {
   '[true, 1, "hi", {}, []]'^^xsd:json json:unnest (?item ?index)
 }
-
 ```
 
+This operation transform literal values (boolean, string and numeric) into corresponding standard RDF literals, whereas JSON objects (arrays *are* also JSON objects) remain literals of type `xsd:json`.
 
-Note, that this operation transform literal values (boolean, string and numeric) into corresponding standard RDF literals, whereas JSON objects (arrays *are* also JSON objects) remain literals of type `xsd:json`.
+**Note: In a future version we also intend to allow `?json json:unnest ?item` in cases where the index is not needed, but this is not supported yet.**
  
 ```
 ------------------------------------------------------------
@@ -79,8 +105,27 @@ Note, that this operation transform literal values (boolean, string and numeric)
 ------------------------------------------------------------
 ```
 
+One can also specify a specific index:
+```
+SELECT * {
+  '[true, 1, "hi", {}, []]'^^xsd:json json:unnest (?item 1)
+}
+
+```
+
+```
+--------
+| item |
+========
+| "hi" |
+--------
+```
 
 * Zipping JSON arrays
+Here we show a more sophicisticated example, that combines several techniques:
+
+* Multiple dependent SPARQL statements: The SELECT query refers to the inserted data
+* Construction of IRIs
 
 ```
 # Insert an example resource with a JSON literal
@@ -103,28 +148,105 @@ WHERE {
   ?names json:unnest (?name ?i) .
 
   BIND("http://www.example.org/" AS ?ns)
-  BIND(URI(CONCAT(?ns, 'stop-', ENCODE_FOR_URI(?id))) AS ?s)
+  BIND(IRI(CONCAT(?ns, ENCODE_FOR_URI(?id))) AS ?s)
 }
+```
 
 
+```
+------------------------------------------
+| s                            | name    |
+==========================================
+| <http://www.example.org/id1> | "name1" |
+| <http://www.example.org/id2> | "name2" |
+------------------------------------------
 ```
 
 
 ## Processing CSV
+In general, the `csv:parse` property function is used to make CSV data available in a SPARQL query with each CSV row becoming an entry in the result set. The syntax is `?s csv:parse(?rowJson "optionsString)"`.
+The options string is composed of a base CSV format name followed by an optional list of modifiers.
+
+If the subject is a string literal, it is interpreted as CSV data.
+If the argument is an IRI, `sparql-integrate` will attempt to resolve the IRI to an input stream to the data. If no further joins are used, this is a **streaming** operation that works with arbitrary large CSV files.
+
+**NOTE ?rowJson must be variable**
+
+
+* Using the first row as headers
+
+The `-h` option causes the first row to be used as headers which means that the header values will be used as keys in the JSON document for each row.
 
 ```
+SELECT * {
+"""fn,ln
+Mary,Major
+John,Doe""" csv:parse (?rowJson "excel -h")
+}
 ```
+
+
+```
+SELECT * { <example-data/people.csv> csv:parse (?rowJson "excel -h") }
+```
+
+```
+---------------------------------------------------------------------------------
+| rowJson                                                                       |
+=================================================================================
+| "{\"fn\":\"Mary\",\"ln\":\"Major\"}"^^<http://www.w3.org/2001/XMLSchema#json> |
+| "{\"fn\":\"John\",\"ln\":\"Doe\"}"^^<http://www.w3.org/2001/XMLSchema#json>   |
+---------------------------------------------------------------------------------
+
+```
+
 
 ## Querying the file system
 
-### 
+* Simple recursive listing of files
 (fs-list-files.sparql)[fs-list-files.sparql]
 
 ```
-SELECT ?file {
-  <folder> fs:find ?file
+SELECT * {
+  <example-data> fs:find ?file
 }
 ```
+
+The output will use absolute file URLs.
+**NOTE: This behavior is not stable and may be changed to relative file URLs**
+```
+---------------------------------------
+| file                                |
+=======================================
+| <file:///.../example-data/data.ttl> |
+| <file:///.../example-data/data.csv> |
+---------------------------------------
+```
+
+* Filtering files by content
+The SPARQL predicate `fs:probeRdf` yields true if the given RDF URL argument refers to an existing file whose content can be parsed as RDF.
+
+
+```
+SELECT * {
+  <example-data> fs:find ?file
+  FILTER(fs:probeRdf(?file))
+}
+
+```
+
+```
+---------------------------------------
+| file                                |
+=======================================
+| <file:///.../example-data/data.ttl> |
+---------------------------------------
+```
+
+
+* Querying over files
+
+`sparql-integrate` ships with an enhancement of jena's query processor that allows querying files via the `SERVICE` clause:
 
 
 
