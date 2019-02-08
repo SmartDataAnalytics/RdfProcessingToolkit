@@ -246,9 +246,27 @@ SELECT * {
 
 * Querying over files
 
-`sparql-integrate` ships with an enhancement of jena's query processor that allows querying files via the `SERVICE` clause:
+`sparql-integrate` ships with an enhancement of jena's query processor that allows "federating" queries to files via the `SERVICE` clause:
 
+```
+SELECT * {
+  <example-data> fs:find ?file
+  FILTER(fs:probeRdf(?file))
+  SERVICE ?file {
+    ?s ?p ?o
+  }
+}
+```
 
+**NOTE: As of now, the fs:probeRdf check is necessary, as querying non-rdf files will raise an exception. This behavior is subject to change.**
+
+```
+------------------------------------------------------------------------------------------------------------------------------
+| file                                | s                          | p                          | o                          |
+==============================================================================================================================
+| <file:///.../example-data/data.ttl> | <http://www.example.org/s> | <http://www.example.org/p> | <http://www.example.org/o> |
+------------------------------------------------------------------------------------------------------------------------------
+```
 
 
 
