@@ -1,6 +1,32 @@
 # SPARQL Integrate examples
 
 
+SPARQL Integrate is a set of function extensions for Jena plus interfaces, including a command line runner.
+When installing the debian package of the command line runner, you can use a conventional hash bang to make sparql integrate files self-executable: 
+
+```
+hashbang.sparql:
+
+#!/usr/bin/sparql-integrate
+
+
+SELECT 1 { }
+```
+
+```
+chmod +x hashbang.sparql
+./hashbang.sparql
+```
+
+Output:
+```
+------
+| .0 |
+======
+| 1  |
+------
+```
+
 
 ## Retrieving remote content
 A simple but effective mechanism for unified retrieval of local or remote data is provided by the `url:text` function and property function.
