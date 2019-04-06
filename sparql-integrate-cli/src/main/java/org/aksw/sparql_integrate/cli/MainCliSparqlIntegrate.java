@@ -56,8 +56,8 @@ public class MainCliSparqlIntegrate {
 			return (args) -> {
 
 				Collection<RDFFormat> available = RDFWriterRegistry.registered();
-
 				String optOutFormat = Optional.ofNullable(args.getOptionValues("w")).map(x -> x.iterator().next()).orElse(null);
+
 				RDFFormat outFormat = null;
 				if(optOutFormat != null) {
 			        outFormat = available.stream()
@@ -65,6 +65,7 @@ public class MainCliSparqlIntegrate {
 			        		.findFirst()
 							.orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + available));
 				}
+				System.out.println(outFormat);
 				
 				Sink<Quad> sink = SparqlStmtUtils.createSink(outFormat, System.out);
 				
@@ -87,10 +88,10 @@ public class MainCliSparqlIntegrate {
 				List<String> filenames = args.getNonOptionArgs();//args.getOptionValues("sparql");
 				if (filenames == null || filenames.isEmpty()) {
 					throw new RuntimeException(
-							"No SPARQL files specified. Use one or more instances of the command line argument --sparql='filename'");
+							"No SPARQL files specified.");
 				}
 				for (String filename : filenames) {
-					SparqlStmtUtils.processFile(conn, pm, filename)
+					SparqlStmtUtils.processFile(pm, filename)
 						.forEach(stmt -> processSparqlStmt(conn, stmt, sink::send));
 				}
 				
