@@ -5,6 +5,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -43,6 +44,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.google.common.base.Stopwatch;
+
 @SpringBootApplication
 public class MainCliSparqlIntegrate {
 
@@ -54,7 +57,7 @@ public class MainCliSparqlIntegrate {
 		@Bean
 		public ApplicationRunner applicationRunner() {
 			return (args) -> {
-
+				
 				Collection<RDFFormat> available = RDFWriterRegistry.registered();
 				String optOutFormat = Optional.ofNullable(args.getOptionValues("w")).map(x -> x.iterator().next()).orElse(null);
 
@@ -65,7 +68,7 @@ public class MainCliSparqlIntegrate {
 			        		.findFirst()
 							.orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + available));
 				}
-				System.out.println(outFormat);
+//				System.out.println(outFormat);
 				
 				Sink<Quad> sink = SparqlStmtUtils.createSink(outFormat, System.out);
 				
@@ -90,6 +93,9 @@ public class MainCliSparqlIntegrate {
 					throw new RuntimeException(
 							"No SPARQL files specified.");
 				}
+				
+				Stopwatch sw = Stopwatch.createStarted();
+				
 				for (String filename : filenames) {
 					SparqlStmtUtils.processFile(pm, filename)
 						.forEach(stmt -> processSparqlStmt(conn, stmt, sink::send));
@@ -98,6 +104,9 @@ public class MainCliSparqlIntegrate {
 				sink.flush();
 				sink.close();
 
+				
+				logger.info("SPARQL execution finished after " + sw.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
+				
 				// Path path = Paths.get(args[0]);
 				// //"/home/raven/Projects/Eclipse/trento-bike-racks/datasets/bikesharing/trento-bike-sharing.json");
 				// String str = ""; //new String(Files.readAllBytes(path),
@@ -110,6 +119,8 @@ public class MainCliSparqlIntegrate {
 				// str);
 
 				SparqlService sparqlService = FluentSparqlService.from(conn).create();
+
+				
 				// QueryExecutionFactory qef = FluentQueryExecutionFactory.from(model)
 				// .config()
 				// //.withParser(sparqlStmtParser)
