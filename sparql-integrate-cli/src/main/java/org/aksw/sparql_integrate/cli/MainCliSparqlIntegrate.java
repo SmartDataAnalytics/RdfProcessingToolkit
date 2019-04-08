@@ -98,14 +98,18 @@ public class MainCliSparqlIntegrate {
 				
 				for (String filename : filenames) {
 					SparqlStmtUtils.processFile(pm, filename)
-						.forEach(stmt -> processSparqlStmt(conn, stmt, sink::send));
+						.forEach(stmt -> {
+							Stopwatch sw2 = Stopwatch.createStarted();
+							processSparqlStmt(conn, stmt, sink::send);
+							logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
+						});
 				}
 				
 				sink.flush();
 				sink.close();
 
 				
-				logger.info("SPARQL execution finished after " + sw.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
+				logger.info("SPARQL overall execution finished after " + sw.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
 				
 				// Path path = Paths.get(args[0]);
 				// //"/home/raven/Projects/Eclipse/trento-bike-racks/datasets/bikesharing/trento-bike-sharing.json");
