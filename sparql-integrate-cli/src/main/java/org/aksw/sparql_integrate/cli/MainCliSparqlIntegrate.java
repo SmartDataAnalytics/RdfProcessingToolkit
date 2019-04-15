@@ -1,7 +1,13 @@
 package org.aksw.sparql_integrate.cli;
 
 import java.awt.Desktop;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
 import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +22,7 @@ import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtQuery;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -24,8 +31,12 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.Syntax;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
@@ -44,12 +55,34 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
 
 @SpringBootApplication
 public class MainCliSparqlIntegrate {
 
 	private static final Logger logger = LoggerFactory.getLogger(MainCliSparqlIntegrate.class);
+
+	
+	
+	public static Model parseTurtleAgainstModel(Model model, PrefixMapping prefixMapping, InputStream in) {
+		// Add namespaces from the spec
+		// Apparently Jena does not support parsing against
+		// namespace prefixes previously declared in the target model
+		// Therefore we serialize the prefix declarations and prepend them to the
+		// input stream of the dataset		
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		Model tmp = ModelFactory.createDefaultModel();
+		tmp.setNsPrefixes(prefixMapping);
+		RDFDataMgr.write(baos, tmp, Lang.TURTLE);
+		
+		InputStream combined = new SequenceInputStream(
+				new ByteArrayInputStream(baos.toByteArray()), in);
+		
+		RDFDataMgr.read(model, combined, Lang.TURTLE);
+		
+		return model;
+	}
 
 	@Configuration
 	public static class ConfigSparqlIntegrate {
@@ -95,14 +128,59 @@ public class MainCliSparqlIntegrate {
 				}
 				
 				Stopwatch sw = Stopwatch.createStarted();
-				
+
+				Path cwd = null;
+
+				String cwdKey = "cwd=";
+				String cwdResetCwd = "cwd";
+
 				for (String filename : filenames) {
-					SparqlStmtUtils.processFile(pm, filename)
-						.forEach(stmt -> {
-							Stopwatch sw2 = Stopwatch.createStarted();
-							processSparqlStmt(conn, stmt, sink::send);
-							logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
-						});
+					logger.info("Processing item " + filename);
+					// Determine the current working directory
+//					System.out.println(filename);
+//					System.out.println("foo: " + SparqlStmtUtils.extractBaseIri(filename));
+
+					// Just use class path resources for pre-configured queries
+//					if(filename.equals("emit")) {
+//						processSparqlStmtWrapper(conn, new SparqlStmtQuery("CONSTRUCT WHERE { ?s ?p ?o }"), sink::send);
+//					} else 
+					if(filename.startsWith(cwdKey)) {
+						String cwdValue = filename.substring(cwdKey.length()).trim();
+
+						if(cwd == null) {
+							cwd = Paths.get(StandardSystemProperty.USER_DIR.value());
+						}
+						
+						cwd = cwd.resolve(cwdValue);
+						logger.info("Pinned working directory to " + cwd);
+					} else if(filename.equals(cwdResetCwd)) {
+						// If cwdValue is an empty string, reset the working directory
+						logger.info("Unpinned working directory");
+
+						cwd = null;
+					} else {
+
+						Lang rdfLang = RDFDataMgr.determineLang(filename, null, null);
+						if(rdfLang != null) {
+							
+							Model tmp = ModelFactory.createDefaultModel();
+							InputStream in = SparqlStmtUtils.openInputStream(filename);
+							// FIXME Validate we are really using turtle here
+							parseTurtleAgainstModel(tmp, pm, in);
+
+//							tmp.setNsPrefixes(pm);
+//							RDFDataMgr.read(tmp, filename);
+							
+							// FIXME control which graph to load into - by default its the default graph
+							logger.info("RDF File detected, loading into graph");
+							conn.load(tmp);
+						} else {
+							
+							String baseIri = cwd == null ? null : cwd.toUri().toString();
+							SparqlStmtUtils.processFile(pm, filename, baseIri)
+								.forEach(stmt -> processSparqlStmtWrapper(conn, stmt, sink::send));
+						}
+					}
 				}
 				
 				sink.flush();
@@ -154,6 +232,12 @@ public class MainCliSparqlIntegrate {
 				}
 			};
 		}
+	}
+
+	public static void processSparqlStmtWrapper(RDFConnection conn, SparqlStmt stmt, Consumer<Quad> sink) {
+		Stopwatch sw2 = Stopwatch.createStarted();
+		processSparqlStmt(conn, stmt, sink);
+		logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
 	}
 
 	public static void processSparqlStmt(RDFConnection conn, SparqlStmt stmt, Consumer<Quad> sink) {
