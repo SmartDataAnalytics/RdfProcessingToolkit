@@ -6,6 +6,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -22,7 +24,6 @@ import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtQuery;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -44,6 +45,10 @@ import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.modify.request.UpdateModify;
+import org.apache.jena.sparql.syntax.Element;
+import org.apache.jena.update.Update;
+import org.apache.jena.update.UpdateRequest;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,6 +99,9 @@ public class MainCliSparqlIntegrate {
 				Collection<RDFFormat> available = RDFWriterRegistry.registered();
 				String optOutFormat = Optional.ofNullable(args.getOptionValues("w")).map(x -> x.iterator().next()).orElse(null);
 
+				// TODO Maybe show algebra is better for trace logging?
+				boolean showAlgebra = args.containsOption("a");
+				
 				RDFFormat outFormat = null;
 				if(optOutFormat != null) {
 			        outFormat = available.stream()
@@ -110,6 +118,7 @@ public class MainCliSparqlIntegrate {
 				
 				PrefixMapping pm = new PrefixMappingImpl();
 				pm.setNsPrefixes(PrefixMapping.Extended);
+				pm.setNsPrefix("afn", "http://jena.apache.org/ARQ/function#");
 				JenaExtensionUtil.addPrefixes(pm);
 
 				JenaExtensionHttp.addPrefixes(pm);
@@ -178,7 +187,7 @@ public class MainCliSparqlIntegrate {
 							
 							String baseIri = cwd == null ? null : cwd.toUri().toString();
 							SparqlStmtUtils.processFile(pm, filename, baseIri)
-								.forEach(stmt -> processSparqlStmtWrapper(conn, stmt, sink::send));
+								.forEach(stmt -> processSparqlStmtWrapper(conn, stmt, showAlgebra, sink::send));
 						}
 					}
 				}
@@ -234,24 +243,41 @@ public class MainCliSparqlIntegrate {
 		}
 	}
 
-	public static void processSparqlStmtWrapper(RDFConnection conn, SparqlStmt stmt, Consumer<Quad> sink) {
+	public static void processSparqlStmtWrapper(RDFConnection conn, SparqlStmt stmt, boolean showAlgebra, Consumer<Quad> sink) {
 		Stopwatch sw2 = Stopwatch.createStarted();
-		processSparqlStmt(conn, stmt, sink);
+		processSparqlStmt(conn, stmt, showAlgebra, sink);
 		logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
 	}
 
-	public static void processSparqlStmt(RDFConnection conn, SparqlStmt stmt, Consumer<Quad> sink) {
+	public static void processSparqlStmt(RDFConnection conn, SparqlStmt stmt, boolean showAlgebra, Consumer<Quad> sink) {
 		logger.info("Processing SPARQL Statement: " + stmt);
-		if(stmt.isQuery()) {
-			Query q = stmt.getAsQueryStmt().getQuery();
-			Op op = Algebra.compile(q);
-			logger.info("Algebra: " + op);
+		
+		if(showAlgebra) {
+			if(stmt.isQuery()) {
+				Query q = stmt.getAsQueryStmt().getQuery();
+				Op op = Algebra.compile(q);
+				logger.info("Algebra: " + op);
+			} else if(stmt.isUpdateRequest()) {
+				UpdateRequest ur = stmt.getAsUpdateStmt().getUpdateRequest();
+				for(Update u : ur) {
+					if(u instanceof UpdateModify) {
+						Element e = ((UpdateModify)u).getWherePattern();
+						Op op = Algebra.compile(e);
+						logger.info("Algebra: " + op);					
+					}
+				}
+			}
 		}
 		SparqlStmtUtils.process(conn, stmt, sink);
 	}
 
 
-	public static void main(String[] args) {		
+	public static void main(String[] args) throws URISyntaxException {
+//		if(true) {
+//			System.out.println(new URI("http://foo.bar/baz/bak//").resolve(".."));//.normalize());
+//			return;
+//		}
+		
 		JenaExtensionHttp.register(() -> HttpClientBuilder.create().build());
 
 		// RDFConnection conn = RDFConnectionFactory.connect(DatasetFactory.create());
