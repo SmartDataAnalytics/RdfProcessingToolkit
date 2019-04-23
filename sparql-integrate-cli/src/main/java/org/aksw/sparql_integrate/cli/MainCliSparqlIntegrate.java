@@ -205,9 +205,9 @@ public class MainCliSparqlIntegrate {
 			Resource r = rdfNode.asResource();
 			
 			if(r.isURIResource()) {
-				tmp.addProperty("@id", r.getURI());
+				tmp.addProperty("id", r.getURI());
 			} else if(r.isAnon()) {
-				tmp.addProperty("@id", r.getId().getLabelString());				
+				tmp.addProperty("id", r.getId().getLabelString());				
 			}
 			
 			List<Statement> stmts = r.listProperties().toList();
