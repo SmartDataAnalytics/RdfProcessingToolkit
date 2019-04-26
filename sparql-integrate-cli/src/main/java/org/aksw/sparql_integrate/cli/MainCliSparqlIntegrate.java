@@ -20,6 +20,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.aksw.jena_sparql_api.core.SparqlService;
+import org.aksw.jena_sparql_api.mapper.proxy.RDFa;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
 import org.aksw.jena_sparql_api.sparql.ext.fs.JenaExtensionFs;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
@@ -28,11 +29,15 @@ import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultVisitor;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtIterator;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtQuery;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
+import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.atlas.lib.Sink;
+import org.apache.jena.ext.com.google.common.base.StandardSystemProperty;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
@@ -74,7 +79,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -83,6 +87,77 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+
+
+
+class SparqlStmtProcessor {
+
+	private static final Logger logger = LoggerFactory.getLogger(SparqlStmtProcessor.class);
+
+	protected boolean showQuery = false;
+	protected boolean usedPrefixesOnly = true;
+	protected boolean showAlgebra = false;
+
+	public boolean isShowQuery() { return showQuery; }
+	public void setShowQuery(boolean showQuery) { this.showQuery = showQuery; }
+
+	public boolean isUsedPrefixesOnly() { return usedPrefixesOnly; }
+	public void setUsedPrefixesOnly(boolean usedPrefixesOnly) { this.usedPrefixesOnly = usedPrefixesOnly; }
+
+	public boolean isShowAlgebra() { return showAlgebra; }
+	public void setShowAlgebra(boolean showAlgebra) { this.showAlgebra = showAlgebra; }
+
+	public void processSparqlStmt(RDFConnection conn, SparqlStmt stmt, SPARQLResultVisitor sink) {
+		Stopwatch sw2 = Stopwatch.createStarted();
+
+		if(usedPrefixesOnly) {
+			if(stmt.isQuery()) {
+				Query oldQuery = stmt.getAsQueryStmt().getQuery();
+	        	Query newQuery = oldQuery.cloneQuery();
+	        	PrefixMapping usedPrefixes = QueryUtils.usedPrefixes(oldQuery);
+	        	newQuery.setPrefixMapping(usedPrefixes);
+	        	stmt = new SparqlStmtQuery(newQuery);
+			}
+			
+			// TODO Implement for update requests
+		}
+
+		if(showQuery) {
+			logger.info("Processing SPARQL Statement: " + stmt);
+		}
+		
+		if(showAlgebra) {
+			Op op = toAlgebra(stmt);
+			logger.info("Algebra: " + op);
+		}
+				
+		SparqlStmtUtils.process(conn, stmt, sink);
+		logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
+
+	}
+	
+	public static Op toAlgebra(SparqlStmt stmt) {
+		Op result = null;
+
+		if(stmt.isQuery()) {
+			Query q = stmt.getAsQueryStmt().getQuery();
+			result = Algebra.compile(q);
+		} else if(stmt.isUpdateRequest()) {
+			UpdateRequest ur = stmt.getAsUpdateStmt().getUpdateRequest();
+			for(Update u : ur) {
+				if(u instanceof UpdateModify) {
+					Element e = ((UpdateModify)u).getWherePattern();
+					result = Algebra.compile(e);
+				}
+			}
+		}
+
+		return result;
+	}
+	
+
+}
+
 
 @SpringBootApplication
 public class MainCliSparqlIntegrate {
@@ -255,7 +330,7 @@ public class MainCliSparqlIntegrate {
 		
 		return model;
 	}
-
+	
 	@Configuration
 	public static class ConfigSparqlIntegrate {
 
@@ -290,6 +365,11 @@ public class MainCliSparqlIntegrate {
 					if(true) { return; };
 				}
 				
+
+				SparqlStmtProcessor processor = new SparqlStmtProcessor();
+				processor.setShowQuery(args.containsOption("q"));
+				processor.setShowAlgebra(args.containsOption("a"));
+
 				Collection<RDFFormat> available = RDFWriterRegistry.registered();
 				String tmpOutFormat = Optional.ofNullable(args.getOptionValues("w"))
 						.orElse(Collections.emptyList()).stream()
@@ -299,8 +379,7 @@ public class MainCliSparqlIntegrate {
 						? "jq"
 						: tmpOutFormat;
 				
-				// TODO Maybe show algebra is better for trace logging?
-				boolean showAlgebra = args.containsOption("a");
+
 				
 				SPARQLResultSink sink;
 				RDFFormat outFormat = null;
@@ -329,8 +408,7 @@ public class MainCliSparqlIntegrate {
 				// TODO Replace with our RDFDataMgrEx 
 				
 				PrefixMapping pm = new PrefixMappingImpl();
-				pm.setNsPrefixes(PrefixMapping.Extended);
-				pm.setNsPrefix("afn", "http://jena.apache.org/ARQ/function#");
+				pm.setNsPrefixes(RDFa.prefixes);
 				JenaExtensionUtil.addPrefixes(pm);
 
 				JenaExtensionHttp.addPrefixes(pm);
@@ -356,7 +434,7 @@ public class MainCliSparqlIntegrate {
 				String cwdResetCwd = "cwd";
 
 				for (String filename : filenames) {
-					logger.info("Processing item " + filename);
+					logger.info("Processing argument '" + filename + "'");
 					// Determine the current working directory
 //					System.out.println(filename);
 //					System.out.println("foo: " + SparqlStmtUtils.extractBaseIri(filename));
@@ -400,8 +478,14 @@ public class MainCliSparqlIntegrate {
 						} else {
 							
 							String baseIri = cwd == null ? null : cwd.toUri().toString();
-							SparqlStmtUtils.processFile(pm, filename, baseIri)
-								.forEach(stmt -> processSparqlStmtWrapper(conn, stmt, showAlgebra, sink));
+							SparqlStmtIterator it = SparqlStmtUtils.processFile(pm, filename, baseIri);
+						
+							
+							while(it.hasNext()) {
+								logger.info("Processing SPARQL statement at line " + it.getLine() + ", column " + it.getColumn());
+								SparqlStmt stmt = it.next();
+								processor.processSparqlStmt(conn, stmt, sink);
+							}
 						}
 					}
 				}
@@ -457,41 +541,16 @@ public class MainCliSparqlIntegrate {
 		}
 	}
 
-	public static void processSparqlStmtWrapper(RDFConnection conn, SparqlStmt stmt, boolean showAlgebra, SPARQLResultVisitor sink) {
-		Stopwatch sw2 = Stopwatch.createStarted();
-		processSparqlStmt(conn, stmt, showAlgebra, sink);
-		logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
-	}
-
-	public static Op toAlgebra(SparqlStmt stmt) {
-		Op result = null;
-
-		if(stmt.isQuery()) {
-			Query q = stmt.getAsQueryStmt().getQuery();
-			result = Algebra.compile(q);
-		} else if(stmt.isUpdateRequest()) {
-			UpdateRequest ur = stmt.getAsUpdateStmt().getUpdateRequest();
-			for(Update u : ur) {
-				if(u instanceof UpdateModify) {
-					Element e = ((UpdateModify)u).getWherePattern();
-					result = Algebra.compile(e);
-				}
-			}
-		}
-
-		return result;
-	}
+//	public static void processSparqlStmtWrapper(RDFConnection conn, SparqlStmt stmt, boolean showAlgebra, SPARQLResultVisitor sink) {
+//		Stopwatch sw2 = Stopwatch.createStarted();
+//		processSparqlStmt(conn, stmt, showAlgebra, sink);
+//		logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
+//	}
 	
-	public static void processSparqlStmt(RDFConnection conn, SparqlStmt stmt, boolean showAlgebra, SPARQLResultVisitor sink) {
-		logger.info("Processing SPARQL Statement: " + stmt);
+	// TODO Maybe show algebra is better for trace logging?
+	
+	
 		
-		if(showAlgebra) {
-			Op op = toAlgebra(stmt);
-			logger.info("Algebra: " + op);
-		}
-		SparqlStmtUtils.process(conn, stmt, sink);
-	}
-
 
 	public static void main(String[] args) throws URISyntaxException {
 //		if(true) {
@@ -515,5 +574,5 @@ public class MainCliSparqlIntegrate {
 
 		}
 	}
-
+	
 }
