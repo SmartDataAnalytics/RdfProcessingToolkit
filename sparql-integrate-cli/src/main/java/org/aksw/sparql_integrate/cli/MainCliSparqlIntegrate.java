@@ -39,6 +39,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.atlas.lib.Sink;
 import org.apache.jena.ext.com.google.common.base.StandardSystemProperty;
 import org.apache.jena.graph.Node;
+import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
@@ -265,13 +266,16 @@ public class MainCliSparqlIntegrate {
 			Object obj = node.getLiteralValue();
 			//boolean isNumber =//NodeMapperRdfDatatype.canMapCore(node, Number.class);
 			//if(isNumber) {
-			if(obj instanceof Number) {
+			if(obj instanceof String) {
+				String value = (String)obj;
+				result = new JsonPrimitive(value);
+			} else if(obj instanceof Number) {
 				Number value = (Number)obj; //NodeMapperRdfDatatype.toJavaCore(node, Number.class);
 //				Literal literal = rdfNode.asLiteral();
 				result = new JsonPrimitive(value);	
-			} else if(obj instanceof String) {
-				String value = (String)obj;
-				result = new JsonPrimitive(value);
+			} else if(obj instanceof Boolean) {
+				Boolean value = (Boolean)obj;
+				result = new JsonPrimitive(value);					
 			} else {
 				throw new RuntimeException("Unsupported literal: " + rdfNode);
 			}
@@ -337,8 +341,12 @@ public class MainCliSparqlIntegrate {
 		@Bean
 		public ApplicationRunner applicationRunner() {
 			return (args) -> {
+
 				Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
+				ARQ.set(ARQ.constantBNodeLabels, true);
+				ARQ.enableBlankNodeResultLabels(false);
+				
 				if(false)
 				{
 					Model model = RDFDataMgr.loadModel("/home/raven/Projects/limbo/git/claus-playground-dataset/04-dcat-sparql/target/release.dcat.ttl");

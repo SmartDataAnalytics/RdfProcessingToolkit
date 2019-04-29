@@ -1,0 +1,8 @@
+## Rename via environment variables
+DELETE { ?a ?b ?x . ?x ?c ?d }
+INSERT{ ?a ?b ?y . ?y ?c ?d }
+WHERE {
+  ?a ?b ?x . ?x ?c ?d
+  FILTER(?x = URI(sys:getenv('FROM')))
+  FILTER(?y = URI(sys:getenv('TO')))
+}
