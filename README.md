@@ -75,6 +75,24 @@ Several common namespaces are readily available:
   * We have plans to enhance this to all [RDFa Initial Context Namespaces]( https://www.w3.org/2011/rdfa-context/rdfa-1.1).
 * Additionally, the namespaces `json`, `csv`, `xml` and `url` are introduced, which contain the SPARQL extensions.
 
+## Environment variables
+sparql-integrate provides the following SPARQL extensions for passing values to queries:
+
+### sys:getenv
+* The function `sys:getenv`: It can be used in expressions such as `BIND(sys:getenv('VAR_NAME') AS ?x)`
+
+
+### `<env:...>` URIS
+
+Substitution takes place for explicit mentions of URIs that start with 'env:'.
+The rules are as follows:
+* `<env://FOOBAR>` treats the value of the environment variable FOOBAR as a _URI_. This can be used e.g. in conjunction with the `SERVICE` keyword: `SERVICE <env:REMOTE_URL> { }`
+* `<env:FOOBAR>` (without //) substitues the URL with a _string literal_
+
+If there is no value defined for a key, then the behavior is not yet defined - in construct templates, such keys should be treated as unbound.
+In query patterns, it should yield an empty string literal or URI that does not appear in the data.
+
+
 ## Detailed Usage
 
 ### The .sparql file

@@ -1,3 +1,7 @@
+INSERT DATA {
+  <env://S> a <env:S>
+}
+
 INSERT {
   <env://S> a <env:S>
 }
