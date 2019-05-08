@@ -3,6 +3,8 @@ package org.aksw.sparql_integrate.cli;
 import java.awt.Desktop;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.net.URI;
@@ -14,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -38,7 +41,9 @@ import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.atlas.lib.Sink;
 import org.apache.jena.ext.com.google.common.base.StandardSystemProperty;
+import org.apache.jena.ext.com.google.common.base.Strings;
 import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
@@ -65,8 +70,10 @@ import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.lang.arq.ParseException;
 import org.apache.jena.sparql.modify.request.UpdateModify;
 import org.apache.jena.sparql.syntax.Element;
+import org.apache.jena.sparql.util.PrefixMapping2;
 import org.apache.jena.update.Update;
 import org.apache.jena.update.UpdateRequest;
 import org.eclipse.jetty.server.Server;
@@ -107,8 +114,39 @@ class SparqlStmtProcessor {
 
 	public boolean isShowAlgebra() { return showAlgebra; }
 	public void setShowAlgebra(boolean showAlgebra) { this.showAlgebra = showAlgebra; }
+	
+	public static Node substWithLookup(Node node, Function<String, String> lookup) {
+		String ENV = "env:";
+		
+		Node result = node;
+		if(node.isURI()) {
+			String str = node.getURI();
+			if(str.startsWith(ENV)) {
+				String key = str.substring(ENV.length());
 
+				boolean isUri = false;
+				if(key.startsWith("//")) {
+					key = key.substring(2);
+					isUri = true;
+				}
+
+				
+				String value = lookup.apply(key);
+				if(!Strings.isNullOrEmpty(value)) {
+					result = isUri
+						? NodeFactory.createURI(value)
+						: NodeFactory.createLiteral(value);
+				}
+			}
+		}
+		
+		return result;
+	}
+	
 	public void processSparqlStmt(RDFConnection conn, SparqlStmt stmt, SPARQLResultVisitor sink) {
+		
+		stmt = SparqlStmtUtils.applyNodeTransform(stmt, x -> SparqlStmtProcessor.substWithLookup(x, System::getenv));
+		
 		Stopwatch sw2 = Stopwatch.createStarted();
 
 		if(usedPrefixesOnly) {
@@ -131,7 +169,9 @@ class SparqlStmtProcessor {
 			Op op = toAlgebra(stmt);
 			logger.info("Algebra: " + op);
 		}
-				
+
+		// Apply node transforms
+		
 		SparqlStmtUtils.process(conn, stmt, sink);
 		logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
 
@@ -277,7 +317,9 @@ public class MainCliSparqlIntegrate {
 				Boolean value = (Boolean)obj;
 				result = new JsonPrimitive(value);					
 			} else {
-				throw new RuntimeException("Unsupported literal: " + rdfNode);
+				String value = Objects.toString(obj);
+				result = new JsonPrimitive(value);
+//				throw new RuntimeException("Unsupported literal: " + rdfNode);
 			}
 		} else if(rdfNode.isResource()) {
 			JsonObject tmp = new JsonObject();
@@ -560,7 +602,17 @@ public class MainCliSparqlIntegrate {
 	
 		
 
-	public static void main(String[] args) throws URISyntaxException {
+	public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
+//		Function<String, SparqlStmt> parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, true);
+//		parser.apply("INSERT { ?s ?p ?o } WHERE { <env://TEST> ?p ? o . {SELECT ?x {)
+
+		if(true) {
+			SparqlStmt stmt = SparqlStmtUtils.processFile(new PrefixMapping2(PrefixMapping.Extended), "env-test.sparql").next();
+			stmt = SparqlStmtUtils.applyNodeTransform(stmt, n -> SparqlStmtProcessor.substWithLookup(n, s -> s.equals("S") ? "http://foo" : null));
+			System.out.println(stmt);
+			return;
+		}
+		
 //		if(true) {
 //			System.out.println(new URI("http://foo.bar/baz/bak//").resolve(".."));//.normalize());
 //			return;
