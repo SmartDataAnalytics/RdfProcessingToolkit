@@ -27,7 +27,7 @@ The build also creates a debian package for convenient installation on debian-li
 
 
 ```bash
-sparql-generate [--server] file1.sparql ... filen.sparql
+sparql-integrate [--server] file1.sparql ... filen.sparql
 ```
 
 
@@ -108,8 +108,14 @@ Hence, a data integration project can just put a `.sparql` file next to data fil
 
 ### Command Line Options
 
-* `file.sparql` Specify one ore more SPARQL query files which to run against the default dataset.
+Arguments are processed in the order in which they appear.
+
+* `file.sparql` Specify one ore more SPARQL query files which to run against an in-memory triple store.
+* `file.ttl` RDF files are loaded into the in-memory triple store.
 * `--server` Start a local SPARQL endpoint, featuring a simple [SNORQL HTML](https://github.com/kurtjx/SNORQL) frontend, for exploring the content of the default dataset.
+* `--cwd=directory` Sets the base URL (and current working directory) for any subsequent files. Can be used multiple times: `sparql-integrate --cwd=/tmp file1.ttl --cwd=subfolder file2.sparql`
+* `--cwd` (without argument) Resets base URL and cwd to whatever its initial value was
+* `<(echo 'SELECT * { ?s ?p ?o }')` If you want to specify queries directly (without files), use this bash `<(..)` trick which substitutes the expression with a temporary file that exists for the duration of the process.
 
 ## Building
 The build requires maven. 
