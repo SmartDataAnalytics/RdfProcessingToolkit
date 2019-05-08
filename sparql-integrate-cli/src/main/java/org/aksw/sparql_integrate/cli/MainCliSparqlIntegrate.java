@@ -606,12 +606,12 @@ public class MainCliSparqlIntegrate {
 //		Function<String, SparqlStmt> parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, true);
 //		parser.apply("INSERT { ?s ?p ?o } WHERE { <env://TEST> ?p ? o . {SELECT ?x {)
 
-		if(true) {
-			SparqlStmt stmt = SparqlStmtUtils.processFile(new PrefixMapping2(PrefixMapping.Extended), "env-test.sparql").next();
-			stmt = SparqlStmtUtils.applyNodeTransform(stmt, n -> SparqlStmtProcessor.substWithLookup(n, s -> s.equals("S") ? "http://foo" : null));
-			System.out.println(stmt);
-			return;
-		}
+//		if(true) {
+//			SparqlStmt stmt = SparqlStmtUtils.processFile(new PrefixMapping2(PrefixMapping.Extended), "env-test.sparql").next();
+//			stmt = SparqlStmtUtils.applyNodeTransform(stmt, n -> SparqlStmtProcessor.substWithLookup(n, s -> s.equals("S") ? "http://foo" : null));
+//			System.out.println(stmt);
+//			return;
+//		}
 		
 //		if(true) {
 //			System.out.println(new URI("http://foo.bar/baz/bak//").resolve(".."));//.normalize());
