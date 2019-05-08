@@ -9,6 +9,9 @@ import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -603,6 +606,18 @@ public class MainCliSparqlIntegrate {
 		
 
 	public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
+		
+//		if(true) {
+//			String file = "/home/raven/tmp/strange-dbpedia-data.nt";
+////			String file = "/home/raven/tmp/test.txt";
+//			String str = Files.lines(Paths.get(file), Charset.forName("cesu-8")).collect(Collectors.joining("\n"));
+//			System.out.println(str);
+//			
+//			return;
+//			//Model m = RDFDataMgr.loadModel("/home/raven/tmp/strange-dbpedia-data.nt");
+//			//RDFDataMgr.write(System.out, m, RDFFormat.TURTLE_PRETTY);
+//		}
+		
 //		Function<String, SparqlStmt> parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, true);
 //		parser.apply("INSERT { ?s ?p ?o } WHERE { <env://TEST> ?p ? o . {SELECT ?x {)
 
