@@ -9,9 +9,6 @@ import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -68,6 +65,8 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFWriterRegistry;
+import org.apache.jena.riot.resultset.ResultSetLang;
+import org.apache.jena.riot.resultset.rw.ResultsWriter;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.algebra.Algebra;
@@ -76,7 +75,6 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.lang.arq.ParseException;
 import org.apache.jena.sparql.modify.request.UpdateModify;
 import org.apache.jena.sparql.syntax.Element;
-import org.apache.jena.sparql.util.PrefixMapping2;
 import org.apache.jena.update.Update;
 import org.apache.jena.update.UpdateRequest;
 import org.eclipse.jetty.server.Server;
@@ -330,8 +328,10 @@ public class MainCliSparqlIntegrate {
 			
 			if(r.isURIResource()) {
 				tmp.addProperty("id", r.getURI());
+				tmp.addProperty("id_type", "uri");
 			} else if(r.isAnon()) {
 				tmp.addProperty("id", r.getId().getLabelString());				
+				tmp.addProperty("id_type", "bnode");
 			}
 			
 			List<Statement> stmts = r.listProperties().toList();
@@ -388,9 +388,6 @@ public class MainCliSparqlIntegrate {
 			return (args) -> {
 
 				Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-				ARQ.set(ARQ.constantBNodeLabels, true);
-				ARQ.enableBlankNodeResultLabels(false);
 				
 				if(false)
 				{
@@ -606,7 +603,39 @@ public class MainCliSparqlIntegrate {
 		
 
 	public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
+
+		// Retain blank node labels
+		// Note, that it is not sufficient to enable only input or output bnode labels
+		ARQ.enableBlankNodeResultLabels();
+
 		
+		// ARQ.setTrue(ARQ.inputGraphBNodeLabels); // Only this gives in the output bnode labels such as b2
+		
+		// Only this gives in the output bnode labels such as e6fb382e90ae1d44f42275492ab4c907
+		// This means, that input blank nodes were renamed
+		// ARQ.setTrue(ARQ.outputGraphBNodeLabels);
+		
+
+//		if(true) {
+//			try(RDFConnection conn = RDFConnectionFactory.connect("http://localhost:8890/sparql")) {
+//				QueryExecution qe = conn.query("SELECT * { ?s ?p ?o FILTER(isBlANK(?s)) }");
+//				ResultSet rs = qe.execSelect();
+////				while(rs.hasNext()) {
+////					Binding b = rs.nextBinding();
+////					//System.out.println(b);
+////				}
+//		        ResultsWriter.create()
+//		        .context(ARQ.getContext())
+//	            .lang(ResultSetLang.SPARQLResultSetJSON)
+//	            .write(System.out, rs);
+//
+//				//ResultSetFormatter.outputAsJSON(System.out, qe.execSelect());
+//				//ResultSetMgr.write(System.out, rs, ResultSetLang.SPARQLResultSetJSON);
+////				ResultSetMgr.write(System.out, rs, ResultSetLang.SPARQLResultSetCSV);
+//				//				System.out.println(ResultSetFormatter.outputAsJSON(qe.execSelect()));
+//			}
+//			return;
+//		}
 //		if(true) {
 //			String file = "/home/raven/tmp/strange-dbpedia-data.nt";
 ////			String file = "/home/raven/tmp/test.txt";
