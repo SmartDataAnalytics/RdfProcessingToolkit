@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.core.SparqlService;
 import org.aksw.jena_sparql_api.mapper.proxy.RDFa;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
@@ -31,6 +32,7 @@ import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultVisitor;
+import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtIterator;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
@@ -52,6 +54,7 @@ import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
+import org.apache.jena.query.ResultSetFormatter;
 import org.apache.jena.query.Syntax;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
@@ -65,12 +68,11 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFWriterRegistry;
-import org.apache.jena.riot.resultset.ResultSetLang;
-import org.apache.jena.riot.resultset.rw.ResultsWriter;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.core.Prologue;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.lang.arq.ParseException;
 import org.apache.jena.sparql.modify.request.UpdateModify;
@@ -468,8 +470,23 @@ public class MainCliSparqlIntegrate {
 				
 				// System.out.println("ARGS: " + args.getOptionNames());
 				Dataset dataset = DatasetFactory.create();
-				RDFConnection conn = RDFConnectionFactory.connect(dataset);
+				RDFConnection conn = RDFConnectionFactoryEx.wrapWithContext(
+						RDFConnectionFactoryEx.wrapWithQueryParser(RDFConnectionFactory.connect(dataset),
+						SparqlQueryParserImpl.create(Syntax.syntaxARQ, new Prologue(pm))));
 
+//				if(true) {
+//					String queryStr = "" +
+//						"SELECT * { BIND(sys:nextLong() AS ?rowNum) BIND(sys:nextLong() AS ?rowNum2) BIND(sys:benchmark('SELECT * { ?s eg:foobar ?o }') AS ?x) }";
+//for(int i = 0; i < 10; ++i) {
+//						try(QueryExecution qe = conn.query(queryStr)) {
+//							ResultSet rs = qe.execSelect();
+//							ResultSetFormatter.outputAsCSV(System.out, rs);
+//						}
+//}
+//						return;
+//				}
+				
+				
 				List<String> filenames = args.getNonOptionArgs();//args.getOptionValues("sparql");
 				if (filenames == null || filenames.isEmpty()) {
 					throw new RuntimeException(
