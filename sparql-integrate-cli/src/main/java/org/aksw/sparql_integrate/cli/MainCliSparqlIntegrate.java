@@ -32,7 +32,6 @@ import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultVisitor;
-import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtIterator;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
@@ -54,7 +53,6 @@ import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
-import org.apache.jena.query.ResultSetFormatter;
 import org.apache.jena.query.Syntax;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
@@ -72,7 +70,6 @@ import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.core.Prologue;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.lang.arq.ParseException;
 import org.apache.jena.sparql.modify.request.UpdateModify;
@@ -472,7 +469,7 @@ public class MainCliSparqlIntegrate {
 				Dataset dataset = DatasetFactory.create();
 				RDFConnection conn = RDFConnectionFactoryEx.wrapWithContext(
 						RDFConnectionFactoryEx.wrapWithQueryParser(RDFConnectionFactory.connect(dataset),
-						SparqlQueryParserImpl.create(Syntax.syntaxARQ, new Prologue(pm))));
+						SparqlStmtParserImpl.create(Syntax.syntaxARQ, pm, false)));
 
 //				if(true) {
 //					String queryStr = "" +
@@ -624,6 +621,11 @@ public class MainCliSparqlIntegrate {
 		// Retain blank node labels
 		// Note, that it is not sufficient to enable only input or output bnode labels
 		ARQ.enableBlankNodeResultLabels();
+		
+		// Jena (at least up to 3.11.0) handles pseudo iris for blank nodes on the parser level
+		// {@link org.apache.jena.sparql.lang.ParserBase}
+		// This means, that blank nodes in SERVICE clauses would not be passed on as such
+		ARQ.setFalse(ARQ.constantBNodeLabels);
 
 		
 		// ARQ.setTrue(ARQ.inputGraphBNodeLabels); // Only this gives in the output bnode labels such as b2
