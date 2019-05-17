@@ -96,6 +96,8 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
+import io.github.galbiston.geosparql_jena.configuration.GeoSPARQLConfig;
+
 
 
 class SparqlStmtProcessor {
@@ -617,6 +619,9 @@ public class MainCliSparqlIntegrate {
 		
 
 	public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
+
+		// Init geosparql module
+		GeoSPARQLConfig.setupNoIndex();
 
 		// Retain blank node labels
 		// Note, that it is not sufficient to enable only input or output bnode labels

@@ -15,6 +15,13 @@
 
 
 	<dependencies>
+
+                <dependency>
+                        <groupId>org.apache.sis.non-free</groupId>
+                        <artifactId>sis-embedded-data</artifactId>
+			<version>0.8</version>
+                </dependency>
+
 		<dependency>
 			<groupId>org.aksw.jena-sparql-api</groupId>
 			<artifactId>jena-sparql-api-sparql-ext</artifactId>
@@ -28,6 +35,11 @@
 		<dependency>
 			<groupId>org.aksw.jena-sparql-api</groupId>
 			<artifactId>jena-sparql-api-server-standalone</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.github.galbiston</groupId>
+			<artifactId>geosparql-jena</artifactId>
 		</dependency>
 
 		<dependency>
