@@ -1,0 +1,8 @@
+SELECT * {
+  VALUES (?x ?y) { ("a" "b") ("c" "d") }
+  
+  OPTIONAL { BIND(?x AS ?v) }
+  #UNION { BIND(?y AS ?v) }
+  #}
+}
+

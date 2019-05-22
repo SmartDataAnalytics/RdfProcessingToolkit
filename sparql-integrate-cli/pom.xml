@@ -31,6 +31,7 @@
 			<artifactId>jena-sparql-api-server-standalone</artifactId>
 		</dependency>
 
+<!--
 		<dependency>
 			<groupId>io.github.galbiston</groupId>
 			<artifactId>geosparql-jena</artifactId>
@@ -40,6 +41,7 @@
 			<groupId>org.apache.sis.non-free</groupId>
 			<artifactId>sis-embedded-data</artifactId>
 		</dependency>
+-->
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

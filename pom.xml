@@ -94,7 +94,7 @@
 				<groupId>org.aksw.jena-sparql-api</groupId>
 				<artifactId>jena-sparql-api-sparql-ext</artifactId>
 				<version>${jena-sparql-api.version}</version>
-
+<!--
 
 				<exclusions>
 					<exclusion>
@@ -111,7 +111,6 @@
 						<groupId>com.vividsolutions</groupId>
 						<artifactId>jts-io</artifactId>
 					</exclusion>
-
 					<exclusion>
 						<groupId>org.geotools</groupId>
 						<artifactId>gt-epsg-hsql</artifactId>
@@ -132,7 +131,7 @@
 						<artifactId>plexus-utils</artifactId>
 					</exclusion>
 				</exclusions>
-
+			-->
 
 			</dependency>
 
@@ -148,6 +147,7 @@
 				<version>${jena-sparql-api.version}</version>
 			</dependency>
 
+<!--
 			<dependency>
 				<groupId>io.github.galbiston</groupId>
 				<artifactId>geosparql-jena</artifactId>
@@ -159,6 +159,7 @@
 				<artifactId>sis-embedded-data</artifactId>
 				<version>0.8</version>
 			</dependency>
+-->
 
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
