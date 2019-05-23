@@ -112,6 +112,7 @@ Arguments are processed in the order in which they appear.
 
 * `file.sparql` Specify one ore more SPARQL query files which to run against an in-memory triple store.
 * `file.ttl` RDF files are loaded into the in-memory triple store.
+* `--w` Select the output format based on Jena's registry, such as `--w=trig/pretty`. Defaults to the nquads format.
 * `--server` Start a local SPARQL endpoint, featuring a simple [SNORQL HTML](https://github.com/kurtjx/SNORQL) frontend, for exploring the content of the default dataset.
 * `--cwd=directory` Sets the base URL (and current working directory) for any subsequent files. Can be used multiple times: `sparql-integrate --cwd=/tmp file1.ttl --cwd=subfolder file2.sparql`
 * `--cwd` (without argument) Resets base URL and cwd to whatever its initial value was
