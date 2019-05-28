@@ -441,13 +441,6 @@ public class MainCliSparqlIntegrate {
 				JenaExtensionUtil.addPrefixes(pm);
 
 				JenaExtensionHttp.addPrefixes(pm);
-
-				PrefixMapping pm = new PrefixMappingImpl();
-				pm.setNsPrefixes(RDFa.prefixes);
-				JenaExtensionUtil.addPrefixes(pm);
-
-				JenaExtensionHttp.addPrefixes(pm);
-
 				
 				SPARQLResultSink sink;
 				RDFFormat outFormat = null;
