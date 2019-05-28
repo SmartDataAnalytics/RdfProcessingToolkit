@@ -436,6 +436,11 @@ public class MainCliSparqlIntegrate {
 						? "jq"
 						: tmpOutFormat;
 				
+				PrefixMapping pm = new PrefixMappingImpl();
+				pm.setNsPrefixes(RDFa.prefixes);
+				JenaExtensionUtil.addPrefixes(pm);
+
+				JenaExtensionHttp.addPrefixes(pm);
 
 				
 				SPARQLResultSink sink;
@@ -449,11 +454,11 @@ public class MainCliSparqlIntegrate {
 				        		.findFirst()
 								.orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + available));
 				        
-						Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, System.out);
+						Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, System.out, pm);
 						sink = new SPARQLResultSinkQuads(quadSink);
 					}			        
 				} else {
-					Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, System.out);
+					Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, System.out, pm);
 					sink = new SPARQLResultSinkQuads(quadSink);
 				}
 //				System.out.println(outFormat);
@@ -464,11 +469,6 @@ public class MainCliSparqlIntegrate {
 
 				// TODO Replace with our RDFDataMgrEx 
 				
-				PrefixMapping pm = new PrefixMappingImpl();
-				pm.setNsPrefixes(RDFa.prefixes);
-				JenaExtensionUtil.addPrefixes(pm);
-
-				JenaExtensionHttp.addPrefixes(pm);
 
 				// Extended SERVICE <> keyword implementation
 				JenaExtensionFs.registerFileServiceHandler();
