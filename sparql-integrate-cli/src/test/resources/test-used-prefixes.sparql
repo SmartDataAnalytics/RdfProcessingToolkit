@@ -1,0 +1,4 @@
+INSERT DATA {
+  eg:s rdfs:label "Foobar" .
+}
+
