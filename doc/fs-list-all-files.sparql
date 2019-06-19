@@ -1,0 +1,5 @@
+#!/usr/bin/sparql-integrate
+
+SELECT * {
+  <example-data> fs:find ?file
+}

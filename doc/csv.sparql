@@ -1,0 +1,10 @@
+#!/usr/bin/sparql-integrate
+
+SELECT * { <example-data/people.csv> csv:parse (?rowJson "excel -h") }
+
+SELECT * {
+"""fn,ln
+Mary,Major
+John,Doe""" csv:parse (?rowJson "excel -h")
+}
+

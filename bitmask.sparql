@@ -1,0 +1,33 @@
+# Exploit named graphs to model associative arrays (i.e. Maps) in RDF
+INSERT DATA {
+  GRAPH eg:modeOfTransportation {
+    eg:Bike      eg:hasBit 1 .
+    eg:Car       eg:hasBit 2 .
+    eg:Train     eg:hasBit 4 .
+    eg:Airplane  eg:hasBit 8 .
+  }
+}
+
+CONSTRUCT {
+  eg:s eg:usesMode ?o
+} WHERE {
+  BIND(10 AS ?bitmask)
+
+  # Convert the integer to
+  # (1) a binary string representation, (2) split the string by each character into a JSON array
+  # (3) reverse the order
+  BIND(json:reverse(json:split(json:binaryString(?bitmask), "(?!$)")) AS ?bitarr)
+
+  # Unnest each charactor ("0" or "1") with its array index
+  ?bitarr json:unnest (?bitstr ?bitindex)
+
+  # Filter out zero bits
+  FILTER(?bitstr != "0")
+
+  # Obtain the bit's corresponding decimal value (using Jena's power function)
+  BIND(math:pow(2, ?bitindex) AS ?val)
+
+  # Perform the lookup
+  OPTIONAL { GRAPH eg:modeOfTransportation { ?o eg:hasBit ?val } } 
+}
+

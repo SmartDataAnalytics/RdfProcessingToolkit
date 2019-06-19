@@ -1,0 +1,17 @@
+#INSERT DATA {
+#  <env://S> a <env:S>
+#}
+
+INSERT {
+  <env://S> a <env:S>
+}
+WHERE {
+  <env://S> ?p ?o
+  { SELECT (<env://S> AS ?x) {
+    <env://S> ?p ?o
+    SERVICE <env://S> { <env://S> ?p ?o }
+  } }
+#  BIND(<http://$S$> AS ?test)
+  VALUES (?s) { (<env://S>) } 
+}
+

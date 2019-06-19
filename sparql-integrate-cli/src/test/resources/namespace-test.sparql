@@ -1,0 +1,5 @@
+#Just a quick check whether namespaces work as expected
+# The second query should yield results because it reuses the prior namespace declaration
+PREFIX test: <http://foo.bar/baz> INSERT DATA { test:a test:b test:c }
+
+SELECT * { ?s test:b ?o }

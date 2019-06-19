@@ -1,0 +1,1 @@
+SELECT * { SERVICE <http://localhost:8890/sparql> { ?s ?p ?o FILTER(isBlANK(?s)) } }

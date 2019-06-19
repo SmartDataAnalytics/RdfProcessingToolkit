@@ -1,0 +1,7 @@
+SELECT * {
+  <> fs:find ?file
+  FILTER(REGEX(STR(?file), '\\.ttl$', 'i'))
+  SERVICE ?file {
+    ?s ?p ?o
+  }
+}

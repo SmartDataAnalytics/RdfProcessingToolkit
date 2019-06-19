@@ -1,0 +1,7 @@
+SELECT * {
+  <folder> fs:find ?file
+  FILTER(fs:probeRdf(?file))
+  SERVICE ?file {
+    ?s ?p ?o
+  }
+}

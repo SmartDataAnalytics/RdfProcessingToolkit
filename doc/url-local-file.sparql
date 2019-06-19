@@ -1,0 +1,6 @@
+#!/usr/bin/sparql-integrate
+
+SELECT * {
+  <example-data/data.csv> url:text ?str
+}
+

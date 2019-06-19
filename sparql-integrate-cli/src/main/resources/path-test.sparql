@@ -1,0 +1,6 @@
+SELECT * {
+  BIND(fs:get('tmp') AS ?w)
+  BIND(fs:get('/tmp') AS ?x)
+  BIND(fs:get(<file:/tmp>) AS ?y)
+  BIND(fs:get(<file:///tmp>) AS ?z)
+}

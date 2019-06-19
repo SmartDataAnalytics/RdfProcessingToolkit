@@ -1,0 +1,9 @@
+#!/usr/bin/sparql-integrate
+
+SELECT * {
+  <example-data> fs:find ?file
+  FILTER(fs:probeRdf(?file))
+  SERVICE ?file {
+    ?s ?p ?o
+  }
+}

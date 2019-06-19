@@ -1,0 +1,8 @@
+#!/usr/bin/sparql-integrate
+
+SELECT * {
+  BIND('<ul id="ul1"><li>item</li></ul>'^^xsd:xml AS ?xml)
+  BIND(xml:path(?xml, "//ul/@id") AS ?id)
+  BIND(xml:path(?xml, "//li") AS ?item)
+}
+

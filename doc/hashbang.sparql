@@ -1,0 +1,4 @@
+#!/usr/bin/sparql-integrate
+
+
+SELECT 1 { }

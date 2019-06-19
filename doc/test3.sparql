@@ -1,0 +1,4 @@
+SELECT * 
+FROM <file:///home/raven/Projects/Eclipse/qrowd-rdf-data-integration/datasets/1014-electric-bikesharing-stations/dcat.ttl> {
+  ?s ?p ?o
+}

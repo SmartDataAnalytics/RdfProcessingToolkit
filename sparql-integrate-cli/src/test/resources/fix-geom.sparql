@@ -1,0 +1,17 @@
+SELECT * {
+  BIND("POLYGON((11.118292808532715 46.069896058164055, 11.118561029434204 46.069352683251914))" AS ?x)
+
+#  BIND(REPLACE(?x, ".*\\(\\(([^,]*),.*", "$1") AS ?part)
+#  BIND(REPLACE(?x, "(\\)\\))", CONCAT(', ', ?part, "$1")) AS ?final)
+
+
+
+
+  BIND(
+STRDT(REPLACE(STR(?x), "(\\)\\))", CONCAT(', ', REPLACE(STR(?x), ".*\\(\\(([^,]*),.*", "$1"), "$1")), geo:wktLiteral)
+AS ?oneLiner)
+
+
+
+}
+

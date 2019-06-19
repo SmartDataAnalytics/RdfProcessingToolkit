@@ -27,7 +27,7 @@ The build also creates a debian package for convenient installation on debian-li
 
 
 ```bash
-sparql-generate --sparql=/path/to/your/first/file.sparql --sparql=your/next/file.sparql
+sparql-integrate [--server] file1.sparql ... filen.sparql
 ```
 
 
@@ -49,11 +49,13 @@ CONSTRUCT {
 {
   # url:text is a property function that fetches the content of subject URL and
   # makes it available as a SPARQL result set row via the object variable
-  <https://rawgit.com/QROWD/trento-bike-racks/tree/master/datasets/bikesharing.json> url:text ?src .
-  BIND(json:parse(?src) AS ?json) .
+  <https://raw.githubusercontent.com/QROWD/QROWD-RDF-Data-Integration/master/datasets/1014-electric-bikesharing-stations/trento-bike-sharing.json> url:text ?src .
+  # Treat the url text as a json object
+  BIND(STRDT(?src, xsd:json) AS ?json) .
 
   # Unnest each item of the json array into its own SPARQL result set row
-  ?json json:unnest ?i .
+  # (The parenthesis around ?i are currently needed; we will try to get rid of them in a later version)
+  ?json json:unnest (?i) .
 
   # For each row, craft the values for the CONSTRUCT template
   BIND("http://qrowd-project.eu/resource/" AS ?ns)
@@ -70,8 +72,26 @@ CONSTRUCT {
 Several common namespaces are readily available:
 
 * Jena's Extended namespaces: `rdf`, `rdfs`, `owl`, `dc`, `xsd`, `rss`, `vcard`, `ja`, `eg`.
-  * We have plans to enhance this to all [RDFa Initial Context Namespaces]( https://www.w3.org/2011/rdfa-context/rdfa-1.1).
+* All namespaces of the [RDFa Initial Context]( https://www.w3.org/2011/rdfa-context/rdfa-1.1).
 * Additionally, the namespaces `json`, `csv`, `xml` and `url` are introduced, which contain the SPARQL extensions.
+
+## Environment variables
+sparql-integrate provides the following SPARQL extensions for passing values to queries:
+
+### sys:getenv
+* The function `sys:getenv`: It can be used in expressions such as `BIND(sys:getenv('VAR_NAME') AS ?x)`
+
+
+### `<env:...>` URIS
+
+Substitution takes place for explicit mentions of URIs that start with 'env:'.
+The rules are as follows:
+* `<env://FOOBAR>` treats the value of the environment variable FOOBAR as a _URI_. This can be used e.g. in conjunction with the `SERVICE` keyword: `SERVICE <env:REMOTE_URL> { }`
+* `<env:FOOBAR>` (without //) substitues the URL with a _string literal_
+
+If there is no value defined for a key, then the behavior is not yet defined - in construct templates, such keys should be treated as unbound.
+In query patterns, it should yield an empty string literal or URI that does not appear in the data.
+
 
 ## Detailed Usage
 
@@ -88,8 +108,15 @@ Hence, a data integration project can just put a `.sparql` file next to data fil
 
 ### Command Line Options
 
-* `--sparql=path/to/file.sparql` Specify one ore more SPARQL query files which to run against the default dataset.
+Arguments are processed in the order in which they appear.
+
+* `file.sparql` Specify one ore more SPARQL query files which to run against an in-memory triple store.
+* `file.ttl` RDF files are loaded into the in-memory triple store.
+* `--w` Select the output format based on Jena's registry, such as `--w=trig/pretty`. Defaults to the nquads format.
 * `--server` Start a local SPARQL endpoint, featuring a simple [SNORQL HTML](https://github.com/kurtjx/SNORQL) frontend, for exploring the content of the default dataset.
+* `--cwd=directory` Sets the base URL (and current working directory) for any subsequent files. Can be used multiple times: `sparql-integrate --cwd=/tmp file1.ttl --cwd=subfolder file2.sparql`
+* `--cwd` (without argument) Resets base URL and cwd to whatever its initial value was
+* `<(echo 'SELECT * { ?s ?p ?o }')` If you want to specify queries directly (without files), use this bash `<(..)` trick which substitutes the expression with a temporary file that exists for the duration of the process.
 
 ## Building
 The build requires maven. 

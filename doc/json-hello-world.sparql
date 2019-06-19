@@ -1,0 +1,4 @@
+SELECT * {
+  BIND('{"hello": "world"}'^^xsd:json AS ?s)
+}
+
