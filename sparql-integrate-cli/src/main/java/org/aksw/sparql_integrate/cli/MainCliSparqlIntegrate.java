@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -425,6 +426,10 @@ public class MainCliSparqlIntegrate {
 					if(true) { return; };
 				}
 				
+				
+				List<String> filenames = new ArrayList<>(args.getNonOptionArgs());//args.getOptionValues("sparql");
+
+
 
 				// If an out file is given, it is only overridden if the process succeeds.
 				// This allows scripts to 'update' an existing file without
@@ -433,6 +438,21 @@ public class MainCliSparqlIntegrate {
 						.orElse(Collections.emptyList()).stream()
 						.findFirst().orElse(null);
 
+				String ioFilename = Optional.ofNullable(args.getOptionValues("io"))
+						.orElse(Collections.emptyList()).stream()
+						.findFirst().orElse(null);
+
+				// io uses the given file also as input
+				if(ioFilename != null) {
+					if(outFilename != null) {
+						throw new RuntimeException("--o and --io are mutually exclusive");
+					}
+					
+					outFilename = ioFilename;
+					filenames.listIterator().add(outFilename);
+				}
+
+				
 				Path outFile;
 				Path tmpFile;
 				OutputStream operationalOut;
@@ -536,12 +556,11 @@ public class MainCliSparqlIntegrate {
 //				}
 				
 				
-				List<String> filenames = args.getNonOptionArgs();//args.getOptionValues("sparql");
 				if (filenames == null || filenames.isEmpty()) {
 					throw new RuntimeException(
 							"No SPARQL files specified.");
 				}
-				
+
 				Stopwatch sw = Stopwatch.createStarted();
 
 				Path cwd = null;
