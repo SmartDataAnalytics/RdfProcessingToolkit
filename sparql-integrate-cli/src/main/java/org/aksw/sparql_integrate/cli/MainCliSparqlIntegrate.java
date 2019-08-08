@@ -10,8 +10,11 @@ import java.io.OutputStream;
 import java.io.SequenceInputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -42,7 +45,6 @@ import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.atlas.lib.Sink;
-import org.apache.jena.ext.com.google.common.base.StandardSystemProperty;
 import org.apache.jena.ext.com.google.common.base.Strings;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
@@ -88,6 +90,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -423,6 +426,48 @@ public class MainCliSparqlIntegrate {
 				}
 				
 
+				// If an out file is given, it is only overridden if the process succeeds.
+				// This allows scripts to 'update' an existing file without
+				// corrupting it if something goes wrong
+				String outFilename = Optional.ofNullable(args.getOptionValues("o"))
+						.orElse(Collections.emptyList()).stream()
+						.findFirst().orElse(null);
+
+				Path outFile;
+				Path tmpFile;
+				OutputStream operationalOut;
+				if(!Strings.isNullOrEmpty(outFilename)) {
+					outFile = Paths.get(outFilename).toAbsolutePath();
+					if(Files.exists(outFile) && !Files.isWritable(outFile)) { 
+						throw new RuntimeException("Cannot write to specified output file: " + outFile.toAbsolutePath());
+					}
+					
+					Path parent = outFile.getParent();
+					String tmpName = "." + outFile.getFileName().toString() + ".tmp";
+					tmpFile = parent.resolve(tmpName);
+
+					operationalOut = Files.newOutputStream(tmpFile,
+							StandardOpenOption.CREATE,
+							StandardOpenOption.WRITE,
+							StandardOpenOption.TRUNCATE_EXISTING);
+					
+					// Register a shutdown hook to delete the temporary file
+					Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+						try {
+							operationalOut.close();
+							Files.deleteIfExists(tmpFile);
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					}));
+					
+				} else {
+					operationalOut = System.out;
+					outFile = null;
+					tmpFile = null;
+				}
+								
+				
 				SparqlStmtProcessor processor = new SparqlStmtProcessor();
 				processor.setShowQuery(args.containsOption("q"));
 				processor.setShowAlgebra(args.containsOption("a"));
@@ -453,11 +498,11 @@ public class MainCliSparqlIntegrate {
 				        		.findFirst()
 								.orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + available));
 				        
-						Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, System.out, pm);
+						Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm);
 						sink = new SPARQLResultSinkQuads(quadSink);
 					}			        
 				} else {
-					Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, System.out, pm);
+					Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm);
 					sink = new SPARQLResultSinkQuads(quadSink);
 				}
 //				System.out.println(outFormat);
@@ -562,11 +607,16 @@ public class MainCliSparqlIntegrate {
 				}
 				
 				sink.flush();
-				sink.close();
-
+				sink.close();				
 				
 				logger.info("SPARQL overall execution finished after " + sw.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
 				
+				if(outFile != null) {
+					operationalOut.flush();
+					operationalOut.close();
+					Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
+				}
+
 				// Path path = Paths.get(args[0]);
 				// //"/home/raven/Projects/Eclipse/trento-bike-racks/datasets/bikesharing/trento-bike-sharing.json");
 				// String str = ""; //new String(Files.readAllBytes(path),
@@ -578,7 +628,6 @@ public class MainCliSparqlIntegrate {
 				// model.getResource(path.toAbsolutePath().toUri().toString()).addLiteral(RDFS.label,
 				// str);
 
-				SparqlService sparqlService = FluentSparqlService.from(conn).create();
 
 				
 				// QueryExecutionFactory qef = FluentQueryExecutionFactory.from(model)
@@ -588,6 +637,7 @@ public class MainCliSparqlIntegrate {
 				// .end().create();
 
 				if (args.containsOption("server")) {
+					SparqlService sparqlService = FluentSparqlService.from(conn).create();
 
 					Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
 							pm, false);// .getQueryParser();
@@ -626,7 +676,7 @@ public class MainCliSparqlIntegrate {
 	public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
 
 		// Disable creation of a derby.log file ; triggered by the GeoSPARQL module
-		System.setProperty("derby.stream.error.field", "org.aksw.sparql_integrate.cli.DerbyUtil.DEV_NULL");
+//		System.setProperty("derby.stream.error.field", "org.aksw.sparql_integrate.cli.DerbyUtil.DEV_NULL");
 		
 		// Init geosparql module
 		GeoSPARQLConfig.setupNoIndex();
