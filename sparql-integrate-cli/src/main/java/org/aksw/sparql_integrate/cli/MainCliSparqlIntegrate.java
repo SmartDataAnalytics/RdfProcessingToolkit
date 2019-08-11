@@ -103,13 +103,6 @@ import com.google.gson.JsonPrimitive;
 
 import io.github.galbiston.geosparql_jena.configuration.GeoSPARQLConfig;
 
-// Disable derby.log file - https://stackoverflow.com/questions/1004327/getting-rid-of-derby-log
-class DerbyUtil {
-    public static final OutputStream DEV_NULL = new OutputStream() {
-        public void write(int b) {}
-    };
-}
-
 class SparqlStmtProcessor {
 
 	private static final Logger logger = LoggerFactory.getLogger(SparqlStmtProcessor.class);
@@ -695,7 +688,7 @@ public class MainCliSparqlIntegrate {
 	public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
 
 		// Disable creation of a derby.log file ; triggered by the GeoSPARQL module
-//		System.setProperty("derby.stream.error.field", "org.aksw.sparql_integrate.cli.DerbyUtil.DEV_NULL");
+		System.setProperty("derby.stream.error.field", "org.aksw.sparql_integrate.cli.DerbyUtil.DEV_NULL");
 		
 		// Init geosparql module
 		GeoSPARQLConfig.setupNoIndex();
