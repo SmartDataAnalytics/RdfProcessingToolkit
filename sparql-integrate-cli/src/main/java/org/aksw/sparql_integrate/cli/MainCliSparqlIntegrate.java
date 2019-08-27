@@ -27,32 +27,28 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.core.SparqlService;
-import org.aksw.jena_sparql_api.mapper.proxy.RDFa;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
 import org.aksw.jena_sparql_api.sparql.ext.fs.JenaExtensionFs;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
-import org.aksw.jena_sparql_api.stmt.SPARQLResultVisitor;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtIterator;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtParser;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtQuery;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
-import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.atlas.lib.Sink;
 import org.apache.jena.ext.com.google.common.base.Strings;
 import org.apache.jena.graph.Node;
-import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
-import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QuerySolution;
@@ -72,14 +68,8 @@ import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
-import org.apache.jena.sparql.algebra.Algebra;
-import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.lang.arq.ParseException;
-import org.apache.jena.sparql.modify.request.UpdateModify;
-import org.apache.jena.sparql.syntax.Element;
-import org.apache.jena.update.Update;
-import org.apache.jena.update.UpdateRequest;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,8 +81,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.github.jsonldjava.shaded.com.google.common.base.Stopwatch;
 import com.google.common.base.StandardSystemProperty;
-import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -102,108 +92,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import io.github.galbiston.geosparql_jena.configuration.GeoSPARQLConfig;
-
-class SparqlStmtProcessor {
-
-	private static final Logger logger = LoggerFactory.getLogger(SparqlStmtProcessor.class);
-
-	protected boolean showQuery = false;
-	protected boolean usedPrefixesOnly = true;
-	protected boolean showAlgebra = false;
-
-	public boolean isShowQuery() { return showQuery; }
-	public void setShowQuery(boolean showQuery) { this.showQuery = showQuery; }
-
-	public boolean isUsedPrefixesOnly() { return usedPrefixesOnly; }
-	public void setUsedPrefixesOnly(boolean usedPrefixesOnly) { this.usedPrefixesOnly = usedPrefixesOnly; }
-
-	public boolean isShowAlgebra() { return showAlgebra; }
-	public void setShowAlgebra(boolean showAlgebra) { this.showAlgebra = showAlgebra; }
-	
-	public static Node substWithLookup(Node node, Function<String, String> lookup) {
-		String ENV = "env:";
-		
-		Node result = node;
-		if(node.isURI()) {
-			String str = node.getURI();
-			if(str.startsWith(ENV)) {
-				String key = str.substring(ENV.length());
-
-				boolean isUri = false;
-				if(key.startsWith("//")) {
-					key = key.substring(2);
-					isUri = true;
-				}
-
-				
-				String value = lookup.apply(key);
-				if(!Strings.isNullOrEmpty(value)) {
-					result = isUri
-						? NodeFactory.createURI(value)
-						: NodeFactory.createLiteral(value);
-				}
-			}
-		}
-		
-		return result;
-	}
-	
-	public void processSparqlStmt(RDFConnection conn, SparqlStmt stmt, SPARQLResultVisitor sink) {
-		
-		stmt = SparqlStmtUtils.applyNodeTransform(stmt, x -> SparqlStmtProcessor.substWithLookup(x, System::getenv));
-		
-		Stopwatch sw2 = Stopwatch.createStarted();
-
-		if(usedPrefixesOnly) {
-			if(stmt.isQuery()) {
-				Query oldQuery = stmt.getAsQueryStmt().getQuery();
-	        	Query newQuery = oldQuery.cloneQuery();
-	        	PrefixMapping usedPrefixes = QueryUtils.usedPrefixes(oldQuery);
-	        	newQuery.setPrefixMapping(usedPrefixes);
-	        	stmt = new SparqlStmtQuery(newQuery);
-			}
-			
-			// TODO Implement for update requests
-		}
-
-		if(showQuery) {
-			logger.info("Processing SPARQL Statement: " + stmt);
-		}
-		
-		if(showAlgebra) {
-			Op op = toAlgebra(stmt);
-			logger.info("Algebra: " + op);
-		}
-
-		// Apply node transforms
-		
-		SparqlStmtUtils.process(conn, stmt, sink);
-		logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
-
-	}
-	
-	public static Op toAlgebra(SparqlStmt stmt) {
-		Op result = null;
-
-		if(stmt.isQuery()) {
-			Query q = stmt.getAsQueryStmt().getQuery();
-			result = Algebra.compile(q);
-		} else if(stmt.isUpdateRequest()) {
-			UpdateRequest ur = stmt.getAsUpdateStmt().getUpdateRequest();
-			for(Update u : ur) {
-				if(u instanceof UpdateModify) {
-					Element e = ((UpdateModify)u).getWherePattern();
-					result = Algebra.compile(e);
-				}
-			}
-		}
-
-		return result;
-	}
-	
-
-}
-
 
 @SpringBootApplication
 public class MainCliSparqlIntegrate {
@@ -495,7 +383,7 @@ public class MainCliSparqlIntegrate {
 						: tmpOutFormat;
 				
 				PrefixMapping pm = new PrefixMappingImpl();
-				pm.setNsPrefixes(RDFa.prefixes);
+				pm.setNsPrefixes(DefaultPrefixes.prefixes);
 				JenaExtensionUtil.addPrefixes(pm);
 
 				JenaExtensionHttp.addPrefixes(pm);
@@ -529,12 +417,17 @@ public class MainCliSparqlIntegrate {
 
 				// Extended SERVICE <> keyword implementation
 				JenaExtensionFs.registerFileServiceHandler();
-				
+
 				// System.out.println("ARGS: " + args.getOptionNames());
 				Dataset dataset = DatasetFactory.create();
 				RDFConnection conn = RDFConnectionFactoryEx.wrapWithContext(
 						RDFConnectionFactoryEx.wrapWithQueryParser(RDFConnectionFactory.connect(dataset),
-						SparqlStmtParserImpl.create(Syntax.syntaxARQ, pm, false)));
+						str -> {
+							 SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, pm, false);
+							 SparqlStmt stmt = parser.apply(str);
+							 SparqlStmt r = SparqlStmtUtils.applyNodeTransform(stmt, x -> SparqlStmtProcessor.substWithLookup(x, System::getenv));
+							 return r;
+						}));
 
 //				if(true) {
 //					String queryStr = "" +
