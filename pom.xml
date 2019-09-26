@@ -19,6 +19,9 @@
 		<module>sparql-integrate-debian-cli</module>
 
 		<module>sparql-integrate-web-service</module>
+
+		<module>sparql-integrate-bundle</module>
+		<module>sparql-integrate-dummy</module>
 	</modules>
 
 	<issueManagement>
@@ -80,6 +83,13 @@
 
 			<dependency>
 				<groupId>org.aksw.sparql-integrate</groupId>
+				<artifactId>sparql-integrate-bundle</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+<!--
+			<dependency>
+				<groupId>org.aksw.sparql-integrate</groupId>
 				<artifactId>sparql-integrate-ckan-core</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -89,7 +99,7 @@
 				<artifactId>sparql-integrate-ckan-cli</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-
+-->
 			<dependency>
 				<groupId>org.aksw.jena-sparql-api</groupId>
 				<artifactId>jena-sparql-api-sparql-ext</artifactId>
@@ -333,11 +343,11 @@
 								<filters>
 									<filter>
 										<artifact>*:*</artifact>
-										<exclusions>
-											<exclusion>META-INF/*.SF</exclusion>
-											<exclusion>META-INF/*.DSA</exclusion>
-											<exclusion>META-INF/*.RSA</exclusion>
-										</exclusions>
+										<excludes>
+											<exclude>META-INF/*.SF</exclude>
+											<exclude>META-INF/*.DSA</exclude>
+											<exclude>META-INF/*.RSA</exclude>
+										</excludes>
 									</filter>
 								</filters>
 								<transformers>

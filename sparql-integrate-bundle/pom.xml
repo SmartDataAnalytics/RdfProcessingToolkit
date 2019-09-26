@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<artifactId>sparql-integrate-bundle</artifactId>
+
+	<parent>
+		<groupId>org.aksw.sparql-integrate</groupId>
+		<artifactId>sparql-integrate-parent</artifactId>
+		<version>1.0.1-SNAPSHOT</version>
+	</parent>
+
+	<!-- scm section needs to be duplicated on child module for github-release-plugin; see https://github.com/jutzig/github-release-plugin/issues/14 -->
+	<scm>
+		<url>https://github.com/SmartDataAnalytics/SparqlIntegrate</url>
+		<connection>scm:git:git@github.com:SmartDataAnalytics/SparqlIntegrate.git</connection>
+		<developerConnection>scm:git:git@github.com:SmartDataAnalytics/SparqlIntegrate.git</developerConnection>
+		<tag>HEAD</tag>
+	</scm>
+	
+	<dependencies>
+		<dependency>
+			<groupId>org.aksw.sparql-integrate</groupId>
+			<artifactId>sparql-integrate-cli</artifactId>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+
+			<plugin>
+				<groupId>de.jutzig</groupId>
+				<artifactId>github-release-plugin</artifactId>
+				<version>1.3.0</version>
+				<configuration>
+					<tag>${project.artifactId}-${project.version}</tag>
+<!-- 					<description>Facete 3 Release</description> -->
+<!-- 					<releaseName>${project.version}</releaseName> -->
+					<fileSets>
+						<fileSet>
+							<directory>${project.build.directory}</directory>
+							<includes>
+<!-- 								<include>${project.artifactId}*-jar-with-dependencies.jar</include> -->
+								<include>*dependencies.jar</include>
+							</includes>
+						</fileSet>
+					</fileSets>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.sonatype.plugins</groupId>
+				<artifactId>nexus-staging-maven-plugin</artifactId>
+				<configuration>
+					<skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+			</plugin>
+		</plugins>
+
+	</build>
+</project>
