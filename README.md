@@ -125,6 +125,11 @@ The build requires maven.
 mvn clean install
 ```
 
+The all-in-one jar is built in the `sparql-integrate-bundle` folder, which is also the jar file available in the [Releases Section](https://github.com/SmartDataAnalytics/SparqlIntegrate/releases).
+```
+java -cp sparql-integrate-bundle/target/sparql-integrate-bundle-VERSION-jar-with-dependencies.jar sparqlintegrate
+```
+
 Installing the Debian packages can then be easily accomplished using:
 ```
 sudo dpkg -i $(find . -name "sparql-integrate*.deb")
