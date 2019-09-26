@@ -130,12 +130,12 @@ The all-in-one jar is built in the `sparql-integrate-bundle` folder, which is al
 java -cp sparql-integrate-bundle/target/sparql-integrate-bundle-VERSION-jar-with-dependencies.jar sparqlintegrate
 ```
 
-Installing the Debian packages can then be easily accomplished using:
+Installing the Debian packages can be easily accomplished using:
 ```
 sudo dpkg -i $(find . -name "sparql-integrate*.deb")
 ```
 
-You can also manually start the tool from the 'sparql-integrate-cli/target` folder using:
+The bare-metal approach is to manually start the tool from the 'sparql-integrate-cli/target` folder using:
 ```bash
 java -cp ".:lib/*" "-Dloader.main=org.aksw.sparql_integrate.cli.MainSparqlIntegrateCli" "org.springframework.boot.loader.PropertiesLauncher" "your" "args"
 ```
