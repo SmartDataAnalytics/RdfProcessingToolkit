@@ -140,6 +140,10 @@ The bare-metal approach is to manually start the tool from the 'sparql-integrate
 java -cp ".:lib/*" "-Dloader.main=org.aksw.sparql_integrate.cli.MainSparqlIntegrateCli" "org.springframework.boot.loader.PropertiesLauncher" "your" "args"
 ```
 
+## License
+The source code of this repo is published under the [Apache License Version 2.0](LICENSE).
+Dependencies may be licensed under different terms. When in doubt please refer to the licenses of the dependencies declared in the pom.xml files.
+
 ## Related projects
 
 * [TARQL](https://github.com/tarql/tarql)
