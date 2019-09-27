@@ -108,7 +108,7 @@ Hence, a data integration project can just put a `.sparql` file next to data fil
 
 ### Command Line Options
 
-Arguments are processed in the order in which they appear.
+Most arguments are processed in the order in which they appear.
 
 * `file.sparql` Specify one ore more SPARQL query files which to run against an in-memory triple store.
 * `file.ttl` RDF files are loaded into the in-memory triple store.
@@ -117,6 +117,11 @@ Arguments are processed in the order in which they appear.
 * `--cwd=directory` Sets the base URL (and current working directory) for any subsequent files. Can be used multiple times: `sparql-integrate --cwd=/tmp file1.ttl --cwd=subfolder file2.sparql`
 * `--cwd` (without argument) Resets base URL and cwd to whatever its initial value was
 * `<(echo 'SELECT * { ?s ?p ?o }')` If you want to specify queries directly (without files), use this bash `<(..)` trick which substitutes the expression with a temporary file that exists for the duration of the process.
+
+These arguments are global:
+
+* `--u` Activate union default graph mode: The set of named graphs becomes the default graph. Useful for running "named-graph-unaware" SPARQL queries on quad-based datasets, such as data from `.trig` files. Internally, triple patterns `s p o` are rewritten to `GRAPH g { s p o }`.
+
 
 ## Building
 The build requires maven. 
