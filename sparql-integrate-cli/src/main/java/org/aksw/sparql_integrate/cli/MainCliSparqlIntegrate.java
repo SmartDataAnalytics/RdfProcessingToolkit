@@ -37,6 +37,7 @@ import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtIterator;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParser;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtUpdate;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -47,6 +48,7 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.query.Syntax;
 import org.apache.jena.rdf.model.Model;
@@ -60,6 +62,7 @@ import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
+import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.lang.arq.ParseException;
 import org.eclipse.jetty.server.Server;
@@ -260,7 +263,7 @@ public class MainCliSparqlIntegrate {
 					Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm);
 					sink = new SPARQLResultSinkQuads(quadSink);
 				}
-				
+
 				boolean isUnionDefaultGraphMode = args.containsOption("u");
 
 //				System.out.println(outFormat);
@@ -282,7 +285,7 @@ public class MainCliSparqlIntegrate {
 						str -> {
 							 SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, pm, false);
 							 SparqlStmt stmt = parser.apply(str);
-							 SparqlStmt r = SparqlStmtUtils.applyNodeTransform(stmt, x -> SparqlStmtProcessor.substWithLookup(x, System::getenv));
+							 SparqlStmt r = SparqlStmtUtils.applyNodeTransform(stmt, x -> SparqlStmtProcessor.substWithLookup(x, System::getenv));							 
 							 return r;
 						}))) {
 
@@ -398,6 +401,12 @@ public class MainCliSparqlIntegrate {
 							while(it.hasNext()) {
 								logger.info("Processing SPARQL statement at line " + it.getLine() + ", column " + it.getColumn());
 								SparqlStmt stmt = it.next();
+								
+								 if(isUnionDefaultGraphMode) {
+									 stmt = SparqlStmtUtils.applyOpTransform(stmt, Algebra::unionDefaultGraph);
+								 }
+								 
+
 								processor.processSparqlStmt(connActual, stmt, sink);
 							}
 						}
