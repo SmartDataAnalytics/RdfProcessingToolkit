@@ -1,16 +1,13 @@
 package org.aksw.sparql_integrate.cli;
 
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import org.aksw.jena_sparql_api.stmt.SPARQLResultVisitor;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtQuery;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
+import org.aksw.jena_sparql_api.utils.NodeUtils;
 import org.aksw.jena_sparql_api.utils.QueryUtils;
-import org.apache.jena.ext.com.google.common.base.Strings;
-import org.apache.jena.graph.Node;
-import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.shared.PrefixMapping;
@@ -42,37 +39,10 @@ public class SparqlStmtProcessor {
 	public boolean isShowAlgebra() { return showAlgebra; }
 	public void setShowAlgebra(boolean showAlgebra) { this.showAlgebra = showAlgebra; }
 	
-	public static Node substWithLookup(Node node, Function<String, String> lookup) {
-		String ENV = "env:";
-		
-		Node result = node;
-		if(node.isURI()) {
-			String str = node.getURI();
-			if(str.startsWith(ENV)) {
-				String key = str.substring(ENV.length());
-
-				boolean isUri = false;
-				if(key.startsWith("//")) {
-					key = key.substring(2);
-					isUri = true;
-				}
-
-				
-				String value = lookup.apply(key);
-				if(!Strings.isNullOrEmpty(value)) {
-					result = isUri
-						? NodeFactory.createURI(value)
-						: NodeFactory.createLiteral(value);
-				}
-			}
-		}
-		
-		return result;
-	}
 	
 	public void processSparqlStmt(RDFConnection conn, SparqlStmt stmt, SPARQLResultVisitor sink) {
 		
-		stmt = SparqlStmtUtils.applyNodeTransform(stmt, x -> SparqlStmtProcessor.substWithLookup(x, System::getenv));
+		stmt = SparqlStmtUtils.applyNodeTransform(stmt, x -> NodeUtils.substWithLookup(x, System::getenv));
 		
 		Stopwatch sw2 = Stopwatch.createStarted();
 
