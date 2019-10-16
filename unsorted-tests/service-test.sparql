@@ -1,0 +1,17 @@
+SELECT * {
+    {
+      SERVICE <triples.ttl> {
+          { ?s ?p ?o }
+        UNION 
+          { GRAPH ?g { ?s ?p ?o } }
+      }
+    }
+  UNION
+    {
+      SERVICE <quads.trig> {
+          { ?s ?p ?o }
+        UNION 
+          { GRAPH ?g { ?s ?p ?o } }
+      }
+    }
+}

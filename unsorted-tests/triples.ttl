@@ -1,0 +1,2 @@
+@prefix t: <http://www.example.org/triple/> .
+t:s t:p t:o
