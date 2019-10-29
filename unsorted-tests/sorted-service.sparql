@@ -1,0 +1,7 @@
+SELECT * {
+  SERVICE </home/raven/Projects/Data/LSQ/deleteme.sorted.nt?binsearch=true> {
+#  SERVICE </home/raven/Projects/Data/LSQ/deleteme.sorted.nt> {
+    <http://lsq.aksw.org/res/le-swdf-q-db01d0b8-02016-29-18_04:29:53-tp-1> ?p ?o
+  }
+}
+

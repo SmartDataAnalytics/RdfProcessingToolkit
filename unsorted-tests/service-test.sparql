@@ -1,4 +1,7 @@
-SELECT * {
+#CONSTRUCT { ?s ?p ?o . GRAPH ?g { ?s ?p ?o } } {
+#SELECT * {
+INSERT { ?s ?p ?o }
+WHERE {
     {
       SERVICE <triples.ttl> {
           { ?s ?p ?o }
