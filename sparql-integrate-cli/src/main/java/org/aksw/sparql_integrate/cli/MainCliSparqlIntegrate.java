@@ -144,7 +144,7 @@ public class MainCliSparqlIntegrate {
 					
 					try(QueryExecution qe = QueryExecutionFactory.create("SELECT ?ds ?dist { ?ds <http://www.w3.org/ns/dcat#distribution> ?dist }", model)) {
 						ResultSet rs = qe.execSelect();
-						JsonArray jsonElement = JsonUtils.toJson(rs, 3);
+						JsonArray jsonElement = JsonUtils.toJson(rs, 3, false);
 //						while(rs.hasNext()) {
 //							JsonElement jsonElement = toJson(rs.next().get("s"), 3);
 //							String str = gson.toJson(jsonElement);
@@ -237,7 +237,11 @@ public class MainCliSparqlIntegrate {
 				String optOutFormat = args.containsOption("jq")
 						? "jq"
 						: tmpOutFormat;
-				
+				boolean jsonFlat = args.containsOption("flat");
+				int depth = Integer.valueOf(Optional.ofNullable(args.getOptionValues("depth"))
+						.orElse(Collections.emptyList()).stream()
+						.findFirst().orElse("3"));
+
 				PrefixMapping pm = new PrefixMappingImpl();
 				pm.setNsPrefixes(DefaultPrefixes.prefixes);
 				JenaExtensionUtil.addPrefixes(pm);
@@ -248,7 +252,7 @@ public class MainCliSparqlIntegrate {
 				RDFFormat outFormat = null;
 				if(optOutFormat != null) {
 					if(optOutFormat.equals("jq")) {
-						sink = new SPARQLResultVisitorSelectJsonOutput(gson);
+						sink = new SPARQLResultVisitorSelectJsonOutput(null, depth, jsonFlat, gson);
 					} else {
 				        outFormat = available.stream()
 				        		.filter(f -> f.toString().equalsIgnoreCase(optOutFormat))

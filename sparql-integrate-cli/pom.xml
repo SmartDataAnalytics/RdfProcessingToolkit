@@ -42,6 +42,11 @@
 			<artifactId>sis-embedded-data</artifactId>
 		</dependency>
 -->
+		<dependency>
+			<groupId>org.locationtech.jts.io</groupId>
+			<artifactId>jts-io-common</artifactId>
+			<version>1.16.1</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

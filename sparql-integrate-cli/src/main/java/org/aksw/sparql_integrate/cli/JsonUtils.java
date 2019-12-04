@@ -6,6 +6,12 @@ import java.util.Objects;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import com.google.gson.*;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.geojson.GeoJsonWriter;
+import io.github.galbiston.geosparql_jena.implementation.GeometryWrapper;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
@@ -14,25 +20,19 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
-
 public class JsonUtils {
-	public static JsonElement toJson(RDFNode rdfNode, int maxDepth) {
-		JsonElement result = toJson(rdfNode, 0, maxDepth);
+	public static JsonElement toJson(RDFNode rdfNode, int maxDepth, boolean flat) {
+		JsonElement result = toJson(rdfNode, 0, maxDepth, flat);
 		return result;
 	}
 
-	public static JsonObject toJson(Resource rdfNode, int maxDepth) {
-		JsonElement tmp = toJson(rdfNode, 0, maxDepth);
+	public static JsonObject toJson(Resource rdfNode, int maxDepth, boolean flat) {
+		JsonElement tmp = toJson(rdfNode, 0, maxDepth, flat);
 		JsonObject result = tmp.getAsJsonObject();
 		return result;
 	}
 	
-	public static JsonArray toJson(ResultSet rs, int maxDepth) {
+	public static JsonArray toJson(ResultSet rs, int maxDepth, boolean flat) {
 		JsonArray result = new JsonArray();
 		List<String> vars = rs.getResultVars();
 		while(rs.hasNext()) {
@@ -40,7 +40,7 @@ public class JsonUtils {
 			QuerySolution qs = rs.next();
 			for(String var : vars) {
 				RDFNode rdfNode = qs.get(var);
-				JsonElement jsonElement = toJson(rdfNode, maxDepth);
+				JsonElement jsonElement = toJson(rdfNode, maxDepth, flat);
 				row.add(var, jsonElement);
 			}
 			result.add(row);
@@ -49,13 +49,13 @@ public class JsonUtils {
 		return result;
 	}
 	
-	public static JsonElement toJson(RDFNode rdfNode, int depth, int maxDepth) {
+	public static JsonElement toJson(RDFNode rdfNode, int depth, int maxDepth, boolean flat) {
 		JsonElement result;
 
 		if(depth >= maxDepth) {
 			// TODO We could add properties indicating that data was cut off here
-			result = new JsonObject();
-		} else if(rdfNode == null) { 
+			result = null; // new JsonObject();
+		} else if(rdfNode == null) {
 			result = JsonNull.INSTANCE;
 		} else if(rdfNode.isLiteral()) {
 			Node node = rdfNode.asNode();
@@ -70,11 +70,24 @@ public class JsonUtils {
 //				Literal literal = rdfNode.asLiteral();
 				result = new JsonPrimitive(value);	
 			} else if(obj instanceof Boolean) {
-				Boolean value = (Boolean)obj;
-				result = new JsonPrimitive(value);					
-			} else {
-				String value = Objects.toString(obj);
+				Boolean value = (Boolean) obj;
 				result = new JsonPrimitive(value);
+			} else if(obj instanceof GeometryWrapper) {
+				WKTReader wktReader = new WKTReader();
+				try {
+					final Geometry geom = wktReader.read(rdfNode.asLiteral().getLexicalForm());
+
+					GeoJsonWriter geoJsonWriter = new GeoJsonWriter();
+					String jsonString = geoJsonWriter.write(geom);
+					Gson gson = new Gson();
+					result = gson.fromJson(jsonString, JsonObject.class);
+				} catch (ParseException e) {
+					throw new RuntimeException("Invalid WKT : " + rdfNode);
+				}
+			} else {
+
+				String value = rdfNode.asLiteral().getLexicalForm() ; // Objects.toString(obj);
+				result = new JsonPrimitive(value ) ; //+ "^^" + obj.getClass().getCanonicalName());
 //				throw new RuntimeException("Unsupported literal: " + rdfNode);
 			}
 		} else if(rdfNode.isResource()) {
@@ -90,6 +103,8 @@ public class JsonUtils {
 			}
 			
 			List<Statement> stmts = r.listProperties().toList();
+
+
 			
 			Map<Property, List<RDFNode>> pos = stmts.stream()
 					.collect(Collectors.groupingBy(Statement::getPredicate,
@@ -99,13 +114,19 @@ public class JsonUtils {
 				JsonArray arr = new JsonArray();
 				Property p = e.getKey();
 				String k = p.getLocalName();
-				
+
 				for(RDFNode o : e.getValue()) {
-					JsonElement v = toJson(o, depth + 1, maxDepth);
+					JsonElement v = toJson(o, depth + 1, maxDepth, flat);
+					if (v != null)
 					arr.add(v);
 				}
-				
-				tmp.add(k, arr);
+
+				if (arr.size() > 0) {
+					if (flat && arr.size() == 1)
+						tmp.add(k, arr.get(0));
+					else
+						tmp.add(k, arr);
+				}
 			}
 			result = tmp;
 		} else {
