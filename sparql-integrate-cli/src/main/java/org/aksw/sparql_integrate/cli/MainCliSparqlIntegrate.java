@@ -133,7 +133,7 @@ public class MainCliSparqlIntegrate {
 
 		@Bean
 		public ApplicationRunner applicationRunner() {
-			return (args) -> {
+			return args -> {
 
 				Gson gson = new GsonBuilder().setPrettyPrinting().create();
 				
