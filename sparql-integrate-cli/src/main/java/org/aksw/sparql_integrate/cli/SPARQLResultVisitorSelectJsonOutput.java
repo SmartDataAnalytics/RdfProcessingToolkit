@@ -12,28 +12,30 @@ import com.google.gson.JsonObject;
 public class SPARQLResultVisitorSelectJsonOutput
 		implements SPARQLResultSink
 	{
+		protected boolean flat = false;
 		protected JsonArray arr;
 		protected int maxDepth = 3;
 		protected Gson gson;
 		
 		public SPARQLResultVisitorSelectJsonOutput() {
-			this(null, null, null);
+			this(null, null, null, null);
 		}
 
 		public SPARQLResultVisitorSelectJsonOutput(Gson gson) {
-			this(null, null, gson);
+			this(null, null, null, gson);
 		}
 		
-		public SPARQLResultVisitorSelectJsonOutput(JsonArray arr, Integer maxDepth, Gson gson) {
+		public SPARQLResultVisitorSelectJsonOutput(JsonArray arr, Integer maxDepth, Boolean flat, Gson gson) {
 			super();
 			this.arr = arr != null ? arr : new JsonArray();
 			this.maxDepth = maxDepth != null ? maxDepth : 3;
+			this.flat = flat != null ? flat : false;
 			this.gson = gson != null ? gson : new Gson();
 		}
 
 		@Override
 		public void onResultSet(ResultSet value) {
-			JsonElement json = JsonUtils.toJson(value, maxDepth);
+			JsonElement json = JsonUtils.toJson(value, maxDepth, flat);
 			onJson(json);
 		}
 
