@@ -80,6 +80,9 @@ public class SPARQLResultVisitorSelectJsonOutput
 //					? arr
 //					: arr.get(0);
 
+            if (flat && tmp.isJsonArray() && tmp.getAsJsonArray().size() == 1) {
+                tmp = tmp.getAsJsonArray().get(0);
+            }
 			String str = gson.toJson(tmp);
 			//System.out.println(str);
 			out.println(str);
