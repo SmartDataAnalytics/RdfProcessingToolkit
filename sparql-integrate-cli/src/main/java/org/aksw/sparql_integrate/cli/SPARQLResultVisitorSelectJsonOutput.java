@@ -1,5 +1,7 @@
 package org.aksw.sparql_integrate.cli;
 
+import java.io.PrintStream;
+
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.sparql.core.Quad;
@@ -16,6 +18,8 @@ public class SPARQLResultVisitorSelectJsonOutput
 		protected JsonArray arr;
 		protected int maxDepth = 3;
 		protected Gson gson;
+		protected PrintStream out;
+		protected PrintStream err;
 		
 		public SPARQLResultVisitorSelectJsonOutput() {
 			this(null, null, null, null);
@@ -25,12 +29,28 @@ public class SPARQLResultVisitorSelectJsonOutput
 			this(null, null, null, gson);
 		}
 		
-		public SPARQLResultVisitorSelectJsonOutput(JsonArray arr, Integer maxDepth, Boolean flat, Gson gson) {
+		public SPARQLResultVisitorSelectJsonOutput(
+				JsonArray arr,
+				Integer maxDepth,
+				Boolean flat,
+				Gson gson) {
+			this(arr, maxDepth, flat, gson, null, null);
+		}
+
+		public SPARQLResultVisitorSelectJsonOutput(
+				JsonArray arr,
+				Integer maxDepth,
+				Boolean flat,
+				Gson gson,
+				PrintStream out,
+				PrintStream err) {
 			super();
 			this.arr = arr != null ? arr : new JsonArray();
 			this.maxDepth = maxDepth != null ? maxDepth : 3;
 			this.flat = flat != null ? flat : false;
 			this.gson = gson != null ? gson : new Gson();
+			this.out = out != null ? out : System.out;
+			this.err = err != null ? err : System.err;
 		}
 
 		@Override
@@ -47,7 +67,7 @@ public class SPARQLResultVisitorSelectJsonOutput
 
 		@Override
 		public void onQuad(Quad value) {
-			System.err.println(value);
+			err.println(value);
 		}
 
 		@Override
@@ -61,11 +81,22 @@ public class SPARQLResultVisitorSelectJsonOutput
 //					: arr.get(0);
 
 			String str = gson.toJson(tmp);
-			System.out.println(str);
+			//System.out.println(str);
+			out.println(str);
 		}
 
 
 		@Override
 		public void flush() {
+			out.flush();
+			err.flush();
+		}
+
+		public PrintStream getOut() {
+			return out;
+		}
+
+		public PrintStream getErr() {
+			return err;
 		}
 	}
