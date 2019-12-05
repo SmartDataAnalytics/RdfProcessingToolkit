@@ -38,12 +38,16 @@ public class JsonUtils {
 		while(rs.hasNext()) {
 			JsonObject row = new JsonObject();
 			QuerySolution qs = rs.next();
-			for(String var : vars) {
+			for (String var : vars) {
 				RDFNode rdfNode = qs.get(var);
 				JsonElement jsonElement = toJson(rdfNode, maxDepth, flat);
 				row.add(var, jsonElement);
 			}
-			result.add(row);
+			if (flat && vars.size() == 1) {
+				result.add(row.entrySet().iterator().next().getValue());
+			} else {
+				result.add(row);
+			}
 		}
 		
 		return result;
