@@ -2,9 +2,11 @@ package org.aksw.sparql_integrate.cli;
 
 import java.util.concurrent.TimeUnit;
 
+import org.aksw.jena_sparql_api.core.utils.UpdateRequestUtils;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultVisitor;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtQuery;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtUpdate;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.utils.NodeUtils;
 import org.aksw.jena_sparql_api.utils.QueryUtils;
@@ -47,15 +49,25 @@ public class SparqlStmtProcessor {
 		Stopwatch sw2 = Stopwatch.createStarted();
 
 		if(usedPrefixesOnly) {
+			SparqlStmtUtils.optimizePrefixes(stmt);
+			/*
 			if(stmt.isQuery()) {
 				Query oldQuery = stmt.getAsQueryStmt().getQuery();
 	        	Query newQuery = oldQuery.cloneQuery();
 	        	PrefixMapping usedPrefixes = QueryUtils.usedPrefixes(oldQuery);
 	        	newQuery.setPrefixMapping(usedPrefixes);
 	        	stmt = new SparqlStmtQuery(newQuery);
+			} else if(stmt.isUpdateRequest()) {
+				// TODO Implement for update requests
+				UpdateRequest oldRequest = stmt.getUpdateRequest();
+				UpdateRequest newRequest = UpdateRequestUtils.clone(oldRequest);
+	        	PrefixMapping usedPrefixes = UpdateRequestUtils.usedPrefixes(oldRequest);
+	        	newRequest.setPrefixMapping(usedPrefixes);
+	        	stmt = new SparqlStmtUpdate(newRequest);
+			} else {
+				logger.warn("Cannot optimize prefixes for unknown SPARQL statetemnt type: " + stmt);
 			}
-			
-			// TODO Implement for update requests
+			*/
 		}
 
 		if(showQuery) {
