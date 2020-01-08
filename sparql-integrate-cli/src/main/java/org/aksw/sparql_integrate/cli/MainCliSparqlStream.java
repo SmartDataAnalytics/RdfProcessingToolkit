@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
@@ -81,9 +82,12 @@ public class MainCliSparqlStream {
 	
 	public static Consumer<RDFConnection> createProcessor(CommandMain cliArgs, PrefixMapping pm) throws FileNotFoundException, IOException, ParseException {
 		
-		List<Consumer<RDFConnection>> outerParts = new ArrayList<>();
+		List<BiConsumer<RDFConnection, SPARQLResultSink>> outerParts = new ArrayList<>();
 		
 		List<String> args = cliArgs.nonOptionArgs;
+
+		// Skip first argument
+		args = args.subList(1, args.size());
 
 		PrintStream operationalOut = System.out;
 		
@@ -101,12 +105,11 @@ public class MainCliSparqlStream {
 //
 		String optOutFormat = "trig/pretty";
 
-		SPARQLResultSink sink = createSink(optOutFormat, pm, operationalOut);
 
 		
 		Path cwd = null;
 		for (String filename : args) {
-			logger.info("Processing argument '" + filename + "'");
+			logger.info("Loading argument '" + filename + "'");
 
 			if(filename.startsWith(MainCliSparqlIntegrate.cwdKey)) {
 				String cwdValue = filename.substring(MainCliSparqlIntegrate.cwdKey.length()).trim();
@@ -131,17 +134,18 @@ public class MainCliSparqlStream {
 			List<SparqlStmt> stmts = new ArrayList<>();
 
 			while(it.hasNext()) {
-				logger.info("Processing SPARQL statement at line " + it.getLine() + ", column " + it.getColumn());
+				logger.info("Loading SPARQL statement at line " + it.getLine() + ", column " + it.getColumn());
 				SparqlStmt stmt = it.next();
 				
-				 if(cliArgs.isUnionDefaultGraphMode) {
+//				 if(cliArgs.isUnionDefaultGraphMode) {
 					 stmt = SparqlStmtUtils.applyOpTransform(stmt, Algebra::unionDefaultGraph);
-				 }
+//				 }
 
 				 stmts.add(stmt);
 			}
 
-			outerParts.add(conn -> {
+			outerParts.add((conn, sink) -> {
+
 				String inFile = filename;
 				logger.info("Processing argument '" + inFile + "'");
 
@@ -153,9 +157,19 @@ public class MainCliSparqlStream {
 		}		
 		
 		Consumer<RDFConnection> result = conn -> {
-			for(Consumer<RDFConnection> part : outerParts) {
-				part.accept(conn);
+			SPARQLResultSink sink = createSink(optOutFormat, pm, operationalOut);
+
+			for(BiConsumer<RDFConnection, SPARQLResultSink> part : outerParts) {
+				part.accept(conn, sink);
 			}
+
+			sink.flush();
+			try {
+				sink.close();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+			
 		};
 		
 		return result;
