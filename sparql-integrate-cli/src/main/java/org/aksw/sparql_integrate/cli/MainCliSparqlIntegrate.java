@@ -27,6 +27,7 @@ import java.util.function.Function;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.core.SparqlService;
+import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
 import org.aksw.jena_sparql_api.sparql.ext.fs.JenaExtensionFs;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
@@ -42,6 +43,7 @@ import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.jena_sparql_api.utils.NodeUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.atlas.lib.Sink;
+import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.ext.com.google.common.base.Strings;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
@@ -87,13 +89,17 @@ import io.github.galbiston.geosparql_jena.configuration.GeoSPARQLConfig;
 public class MainCliSparqlIntegrate {
 
 	private static final Logger logger = LoggerFactory.getLogger(MainCliSparqlIntegrate.class);
+
 	
-	public static Dataset parseTrigAgainstDataset(Dataset dataset, PrefixMapping prefixMapping, InputStream in) {
-		// Add namespaces from the spec
-		// Apparently Jena does not support parsing against
-		// namespace prefixes previously declared in the target model
-		// Therefore we serialize the prefix declarations and prepend them to the
-		// input stream of the dataset		
+	public static TypedInputStream prependWithPrefixes(TypedInputStream in, PrefixMapping prefixMapping) {
+		InputStream combined = prependWithPrefixes(in.getInputStream(), prefixMapping);
+		
+		TypedInputStream result = new TypedInputStream(combined, in.getContentType(), in.getBaseURI());
+		return result;
+		
+	}
+
+	public static InputStream prependWithPrefixes(InputStream in, PrefixMapping prefixMapping) {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		Model tmp = ModelFactory.createDefaultModel();
 		tmp.setNsPrefixes(prefixMapping);
@@ -102,7 +108,26 @@ public class MainCliSparqlIntegrate {
 		
 		InputStream combined = new SequenceInputStream(
 				new ByteArrayInputStream(baos.toByteArray()), in);
-		
+
+		return combined;
+	}
+	
+	public static Dataset parseTrigAgainstDataset(Dataset dataset, PrefixMapping prefixMapping, InputStream in) {
+		// Add namespaces from the spec
+		// Apparently Jena does not support parsing against
+		// namespace prefixes previously declared in the target model
+		// Therefore we serialize the prefix declarations and prepend them to the
+		// input stream of the dataset		
+//		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//		Model tmp = ModelFactory.createDefaultModel();
+//		tmp.setNsPrefixes(prefixMapping);
+//		RDFDataMgr.write(baos, tmp, Lang.TURTLE);
+////		System.out.println("Prefix str: " + baos.toString());
+//		
+//		InputStream combined = new SequenceInputStream(
+//				new ByteArrayInputStream(baos.toByteArray()), in);
+//		
+		InputStream combined = prependWithPrefixes(in, prefixMapping);
 		RDFDataMgr.read(dataset, combined, Lang.TRIG);
 		
 		return dataset;
@@ -127,6 +152,10 @@ public class MainCliSparqlIntegrate {
 		
 		return model;
 	}
+	
+	public static final String cwdKey = "cwd=";
+	public static final String cwdResetCwd = "cwd";
+
 	
 	@Configuration
 	public static class ConfigSparqlIntegrate {
@@ -229,7 +258,7 @@ public class MainCliSparqlIntegrate {
 				processor.setShowQuery(args.containsOption("q"));
 				processor.setShowAlgebra(args.containsOption("a"));
 				
-				Collection<RDFFormat> available = RDFWriterRegistry.registered();
+				Collection<RDFFormat> availableOutRdfFormats = RDFWriterRegistry.registered();
 				String tmpOutFormat = Optional.ofNullable(args.getOptionValues("w"))
 						.orElse(Collections.emptyList()).stream()
 						.findFirst().orElse(null);
@@ -254,10 +283,10 @@ public class MainCliSparqlIntegrate {
 					if(optOutFormat.equals("jq")) {
 						sink = new SPARQLResultVisitorSelectJsonOutput(null, depth, jsonFlat, gson);
 					} else {
-				        outFormat = available.stream()
+				        outFormat = availableOutRdfFormats.stream()
 				        		.filter(f -> f.toString().equalsIgnoreCase(optOutFormat))
 				        		.findFirst()
-								.orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + available));
+								.orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + availableOutRdfFormats));
 				        
 						Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm);
 						sink = new SPARQLResultSinkQuads(quadSink);
@@ -283,7 +312,7 @@ public class MainCliSparqlIntegrate {
 
 				// System.out.println("ARGS: " + args.getOptionNames());
 				Dataset dataset = DatasetFactory.create();
-				try(RDFConnection connActual = RDFConnectionFactoryEx.wrapWithContext(
+				try(RDFConnection actualConn = RDFConnectionFactoryEx.wrapWithContext(
 						RDFConnectionFactoryEx.wrapWithQueryParser(RDFConnectionFactory.connect(dataset),
 						str -> {
 							 SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, pm, false);
@@ -318,11 +347,13 @@ public class MainCliSparqlIntegrate {
 
 				Path cwd = null;
 
-				String cwdKey = "cwd=";
-				String cwdResetCwd = "cwd";
+//				String streamKey = "stream";
 
 				for (String filename : filenames) {
 					logger.info("Processing argument '" + filename + "'");
+					
+					
+					
 					// Determine the current working directory
 //					System.out.println(filename);
 //					System.out.println("foo: " + SparqlStmtUtils.extractBaseIri(filename));
@@ -349,7 +380,10 @@ public class MainCliSparqlIntegrate {
 
 						Lang rdfLang = RDFDataMgr.determineLang(filename, null, null);
 						if(rdfLang != null) {
-							if(RDFLanguages.isTriples(rdfLang)) {				
+							if(RDFLanguages.isTriples(rdfLang)) {
+								// What to do if stream mode is active?
+								
+								
 								Model tmp = ModelFactory.createDefaultModel();
 								InputStream in = SparqlStmtUtils.openInputStream(filename);
 								// FIXME Validate we are really using turtle here
@@ -362,7 +396,7 @@ public class MainCliSparqlIntegrate {
 								
 								// FIXME control which graph to load into - by default its the default graph
 								logger.info("RDF File detected, loading into default graph");
-								connActual.load(tmp);
+								actualConn.load(tmp);
 							} else if(RDFLanguages.isQuads(rdfLang)) {
 								Dataset tmp = DatasetFactory.create();
 								InputStream in = SparqlStmtUtils.openInputStream(filename);
@@ -373,7 +407,7 @@ public class MainCliSparqlIntegrate {
 								Model m = tmp.getDefaultModel();
 								if(m != null) {
 									logger.info("Loading default graph");
-									connActual.load(m);
+									actualConn.load(m);
 									pm.setNsPrefixes(m);
 								}
 
@@ -383,7 +417,7 @@ public class MainCliSparqlIntegrate {
 									m = tmp.getNamedModel(name);
 									if(m != null) {
 										logger.info("Loading named graph " + name);
-										connActual.load(name, m);
+										actualConn.load(name, m);
 										pm.setNsPrefixes(m);
 									}
 								}
@@ -410,7 +444,7 @@ public class MainCliSparqlIntegrate {
 								 }
 								 
 
-								processor.processSparqlStmt(connActual, stmt, sink);
+								processor.processSparqlStmt(actualConn, stmt, sink);
 							}
 						}
 					}
@@ -447,7 +481,7 @@ public class MainCliSparqlIntegrate {
 				// .end().create();
 
 				if (args.containsOption("server")) {
-					SparqlService sparqlService = FluentSparqlService.from(connActual).create();
+					SparqlService sparqlService = FluentSparqlService.from(actualConn).create();
 
 					Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
 							pm, false);// .getQueryParser();
@@ -482,10 +516,9 @@ public class MainCliSparqlIntegrate {
 	// TODO Maybe show algebra is better for trace logging?
 	
 	
+
+	public static void init() {
 		
-
-	public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
-
 		// Disable creation of a derby.log file ; triggered by the GeoSPARQL module
 		System.setProperty("derby.stream.error.field", "org.aksw.sparql_integrate.cli.DerbyUtil.DEV_NULL");
 		
@@ -500,6 +533,12 @@ public class MainCliSparqlIntegrate {
 		// {@link org.apache.jena.sparql.lang.ParserBase}
 		// This means, that blank nodes in SERVICE clauses would not be passed on as such
 		ARQ.setFalse(ARQ.constantBNodeLabels);
+		
+		JenaExtensionHttp.register(() -> HttpClientBuilder.create().build());		
+	}
+
+	public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
+		init();
 
 		
 		// ARQ.setTrue(ARQ.inputGraphBNodeLabels); // Only this gives in the output bnode labels such as b2
@@ -555,7 +594,6 @@ public class MainCliSparqlIntegrate {
 //			return;
 //		}
 		
-		JenaExtensionHttp.register(() -> HttpClientBuilder.create().build());
 
 		// RDFConnection conn = RDFConnectionFactory.connect(DatasetFactory.create());
 		// System.out.println(ResultSetFormatter.asText(conn.query("SELECT * {
