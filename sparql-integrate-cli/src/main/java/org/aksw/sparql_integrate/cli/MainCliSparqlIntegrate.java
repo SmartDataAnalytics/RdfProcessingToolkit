@@ -27,7 +27,8 @@ import java.util.function.Function;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.core.SparqlService;
-import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
+import org.aksw.jena_sparql_api.json.RdfJsonUtils;
+import org.aksw.jena_sparql_api.json.SPARQLResultVisitorSelectJsonOutput;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
 import org.aksw.jena_sparql_api.sparql.ext.fs.JenaExtensionFs;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
@@ -45,6 +46,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.atlas.lib.Sink;
 import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.ext.com.google.common.base.Strings;
+import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
@@ -82,8 +84,6 @@ import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
-
-import io.github.galbiston.geosparql_jena.configuration.GeoSPARQLConfig;
 
 @SpringBootApplication
 public class MainCliSparqlIntegrate {
@@ -173,7 +173,7 @@ public class MainCliSparqlIntegrate {
 					
 					try(QueryExecution qe = QueryExecutionFactory.create("SELECT ?ds ?dist { ?ds <http://www.w3.org/ns/dcat#distribution> ?dist }", model)) {
 						ResultSet rs = qe.execSelect();
-						JsonArray jsonElement = JsonUtils.toJson(rs, 3, false);
+						JsonArray jsonElement = RdfJsonUtils.toJson(rs, 3, false);
 //						while(rs.hasNext()) {
 //							JsonElement jsonElement = toJson(rs.next().get("s"), 3);
 //							String str = gson.toJson(jsonElement);

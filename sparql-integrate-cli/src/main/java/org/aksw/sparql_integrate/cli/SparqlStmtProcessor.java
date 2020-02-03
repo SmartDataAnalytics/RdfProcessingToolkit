@@ -10,15 +10,9 @@ import org.aksw.jena_sparql_api.stmt.SparqlStmtUpdate;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.utils.NodeUtils;
 import org.aksw.jena_sparql_api.utils.QueryUtils;
-import org.apache.jena.query.Query;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.shared.PrefixMapping;
-import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.modify.request.UpdateModify;
-import org.apache.jena.sparql.syntax.Element;
-import org.apache.jena.update.Update;
-import org.apache.jena.update.UpdateRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +69,7 @@ public class SparqlStmtProcessor {
 		}
 		
 		if(showAlgebra) {
-			Op op = toAlgebra(stmt);
+			Op op = SparqlStmtUtils.toAlgebra(stmt);
 			logger.info("Algebra: " + op);
 		}
 
@@ -84,25 +78,6 @@ public class SparqlStmtProcessor {
 		SparqlStmtUtils.process(conn, stmt, sink);
 		logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
 
-	}
-	
-	public static Op toAlgebra(SparqlStmt stmt) {
-		Op result = null;
-
-		if(stmt.isQuery()) {
-			Query q = stmt.getAsQueryStmt().getQuery();
-			result = Algebra.compile(q);
-		} else if(stmt.isUpdateRequest()) {
-			UpdateRequest ur = stmt.getAsUpdateStmt().getUpdateRequest();
-			for(Update u : ur) {
-				if(u instanceof UpdateModify) {
-					Element e = ((UpdateModify)u).getWherePattern();
-					result = Algebra.compile(e);
-				}
-			}
-		}
-
-		return result;
 	}
 	
 
