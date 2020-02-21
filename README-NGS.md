@@ -5,6 +5,11 @@ The tool suite is akin to well know shell scripting tools, such as head, tail, j
 
 Named graphs can be used to denote data records, i.e. sets of triples that form a logical unit for the task at hand.
 
+### Building
+NGS is part of the Sparql-Integrate build. Installing the debian package also makes the command `ngs` tool available.
+
+TODO Setup a bundle github release process
+
 ### Implementation status
 
 | Command | Descripion                                                                       | Status |
