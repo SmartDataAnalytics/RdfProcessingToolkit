@@ -415,16 +415,20 @@ public class MainCliSparqlIntegrate {
 									pm.setNsPrefixes(m);
 								}
 
+								logger.info("Loading named graphs");
+								int i = 0;
 								Iterator<String> it = tmp.listNames();
 								while(it.hasNext()) {
 									String name = it.next();
 									m = tmp.getNamedModel(name);
 									if(m != null) {
-										logger.info("Loading named graph " + name);
+										++i;
+										//logger.info("Loading named graph " + name);
 										actualConn.load(name, m);
 										pm.setNsPrefixes(m);
 									}
 								}
+								logger.info("Loaded " + i + " named graphs");
 							
 	//							tmp.setNsPrefixes(pm);
 	//							RDFDataMgr.read(tmp, filename);

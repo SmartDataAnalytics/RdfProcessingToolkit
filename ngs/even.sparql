@@ -1,0 +1,1 @@
+CONSTRUCT { GRAPH ?g { ?s ?p ?o } } { GRAPH ?g { ?s ?p ?o } FILTER EXISTS { ?x ?y ?z . FILTER(floor(?z * 0.5) = ?z * 0.5) } }
