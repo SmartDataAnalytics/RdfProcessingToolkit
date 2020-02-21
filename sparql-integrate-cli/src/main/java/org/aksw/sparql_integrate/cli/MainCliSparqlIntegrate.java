@@ -50,8 +50,10 @@ import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.query.Syntax;
 import org.apache.jena.rdf.model.Model;
@@ -66,6 +68,7 @@ import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.algebra.OpAsQuery;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.lang.arq.ParseException;
 import org.eclipse.jetty.server.Server;
@@ -94,7 +97,7 @@ public class MainCliSparqlIntegrate {
 	public static TypedInputStream prependWithPrefixes(TypedInputStream in, PrefixMapping prefixMapping) {
 		InputStream combined = prependWithPrefixes(in.getInputStream(), prefixMapping);
 		
-		TypedInputStream result = new TypedInputStream(combined, in.getContentType(), in.getBaseURI());
+		TypedInputStream result = new TypedInputStream(combined, in.getMediaType(), in.getBaseURI());
 		return result;
 		
 	}
@@ -539,6 +542,24 @@ public class MainCliSparqlIntegrate {
 
 	public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
 		init();
+		
+		if(false) {
+			Query expected = QueryFactory.create("SELECT * { ?s ?p ?o BIND(?s AS ?x) BIND(?x AS ?y) }");
+			Query actual = OpAsQuery.asQuery(Algebra.compile(expected));
+			System.out.println(expected);
+			System.out.println(actual);
+		}
+
+		if(false) {
+			Query expected = QueryFactory.create("SELECT * { ?s ?p ?o BIND(?s AS ?x) } ORDER BY ?s");
+			Query actual = OpAsQuery.asQuery(Algebra.compile(expected));
+			System.out.println(expected);
+			System.out.println(actual);
+		}
+		
+		if(false) {
+			return;
+		}
 
 		
 		// ARQ.setTrue(ARQ.inputGraphBNodeLabels); // Only this gives in the output bnode labels such as b2
