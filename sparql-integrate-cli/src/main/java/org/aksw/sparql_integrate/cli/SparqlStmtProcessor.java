@@ -2,16 +2,11 @@ package org.aksw.sparql_integrate.cli;
 
 import java.util.concurrent.TimeUnit;
 
-import org.aksw.jena_sparql_api.core.utils.UpdateRequestUtils;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultVisitor;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtQuery;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtUpdate;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.utils.NodeUtils;
-import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.apache.jena.rdfconnection.RDFConnection;
-import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.algebra.Op;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +20,18 @@ public class SparqlStmtProcessor {
 	protected boolean showQuery = false;
 	protected boolean usedPrefixesOnly = true;
 	protected boolean showAlgebra = false;
+	protected boolean logTime = false;
+
+	
+	
+	public boolean isLogTime() { return logTime; }
+
+	/**
+	 * Convenience flag to log execution time of sparql statements 
+	 * 
+	 * @param logTime
+	 */
+	public void setLogTime(boolean logTime) { this.logTime = logTime; }
 
 	public boolean isShowQuery() { return showQuery; }
 	public void setShowQuery(boolean showQuery) { this.showQuery = showQuery; }
@@ -76,7 +83,9 @@ public class SparqlStmtProcessor {
 		// Apply node transforms
 		
 		SparqlStmtUtils.process(conn, stmt, sink);
-		logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
+		if(logTime) {
+			logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
+		}
 
 	}
 	

@@ -1,0 +1,7 @@
+CONSTRUCT {
+  <urn:charming> <urn:charming> <urn:charming> .
+}
+{
+ ?s ?p ?o
+}
+

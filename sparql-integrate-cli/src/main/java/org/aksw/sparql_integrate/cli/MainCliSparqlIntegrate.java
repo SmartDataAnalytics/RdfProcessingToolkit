@@ -258,6 +258,7 @@ public class MainCliSparqlIntegrate {
 								
 				
 				SparqlStmtProcessor processor = new SparqlStmtProcessor();
+				processor.setLogTime(true);
 				processor.setShowQuery(args.containsOption("q"));
 				processor.setShowAlgebra(args.containsOption("a"));
 				

@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.json.SPARQLResultVisitorSelectJsonOutput;
@@ -81,16 +80,15 @@ public class MainCliSparqlStream {
 		return result;
 	}
 	
-	public static Consumer<RDFConnection> createProcessor(CommandMain cliArgs, PrefixMapping pm) throws FileNotFoundException, IOException, ParseException {
+	public static BiConsumer<RDFConnection, SPARQLResultSink> createProcessor(
+			//CommandMain cliArgs,
+			List<String> args,
+			PrefixMapping pm
+			) throws FileNotFoundException, IOException, ParseException {
 		
 		List<BiConsumer<RDFConnection, SPARQLResultSink>> outerParts = new ArrayList<>();
 		
-		List<String> args = cliArgs.nonOptionArgs;
-
-		// Skip first argument
-		args = args.subList(1, args.size());
-
-		PrintStream operationalOut = System.out;
+		//List<String> args = cliArgs.nonOptionArgs;
 		
 		SparqlStmtProcessor stmtProcessor = new SparqlStmtProcessor();
 //		processor.setShowQuery(args.containsOption("q"));
@@ -104,8 +102,6 @@ public class MainCliSparqlStream {
 //				? "jq"
 //				: tmpOutFormat;
 //
-		String optOutFormat = "trig/pretty";
-
 
 		
 		Path cwd = null;
@@ -137,6 +133,7 @@ public class MainCliSparqlStream {
 			while(it.hasNext()) {
 				logger.info("Loading SPARQL statement at line " + it.getLine() + ", column " + it.getColumn());
 				SparqlStmt stmt = it.next();
+				stmt = SparqlStmtUtils.optimizePrefixes(stmt);
 				
 //				 if(cliArgs.isUnionDefaultGraphMode) {
 					 stmt = SparqlStmtUtils.applyOpTransform(stmt, Algebra::unionDefaultGraph);
@@ -145,20 +142,20 @@ public class MainCliSparqlStream {
 				 stmts.add(stmt);
 			}
 
-			outerParts.add((conn, sink) -> {
+			outerParts.add((conn, _sink) -> {
 
 				String inFile = filename;
-				logger.info("Processing argument '" + inFile + "'");
+				// logger.info("Applying '" + inFile + "'");
 
 				for(SparqlStmt stmt : stmts) {
-					stmtProcessor.processSparqlStmt(conn, stmt, sink);
+					stmtProcessor.processSparqlStmt(conn, stmt, _sink);
 				}				
 			});
 
 		}		
 		
-		Consumer<RDFConnection> result = conn -> {
-			SPARQLResultSink sink = createSink(optOutFormat, pm, operationalOut);
+		BiConsumer<RDFConnection, SPARQLResultSink> result = (conn, sink) -> {
+			//SPARQLResultSink sink = createSink(optOutFormat, pm, operationalOut);
 
 			for(BiConsumer<RDFConnection, SPARQLResultSink> part : outerParts) {
 				part.accept(conn, sink);
@@ -212,7 +209,12 @@ public class MainCliSparqlStream {
 
 
 		//Function<Dataset, Dataset> processor = null;
-		Consumer<RDFConnection> consumer = createProcessor(cm, pm);
+		PrintStream operationalOut = System.out;
+		String optOutFormat = "trig/pretty";
+
+		SPARQLResultSink sink = createSink(optOutFormat, pm, operationalOut);
+		// Skip first argument
+		BiConsumer<RDFConnection, SPARQLResultSink> consumer = createProcessor(cm.nonOptionArgs.subList(1, cm.nonOptionArgs.size()), pm);
 		
 		
 		Flowable<Dataset> datasets = RDFDataMgrRx.createFlowableDatasets(() ->
@@ -222,7 +224,7 @@ public class MainCliSparqlStream {
 		datasets.forEach(ds -> {
 			Dataset indexedCopy = DatasetFactory.wrap(DatasetGraphFactory.cloneStructure(ds.asDatasetGraph()));
 			try(RDFConnection conn = RDFConnectionFactory.connect(indexedCopy)) { 
-				consumer.accept(conn);
+				consumer.accept(conn, sink);
 			}
 		});
 	}
