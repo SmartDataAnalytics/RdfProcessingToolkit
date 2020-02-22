@@ -43,8 +43,10 @@ import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.jena_sparql_api.utils.NodeUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.jena.atlas.io.NullOutputStream;
 import org.apache.jena.atlas.lib.Sink;
 import org.apache.jena.atlas.web.TypedInputStream;
+import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.ext.com.google.common.base.Strings;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.query.ARQ;
@@ -82,8 +84,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.github.jsonldjava.shaded.com.google.common.collect.Iterators;
 import com.google.common.base.StandardSystemProperty;
-import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -547,8 +549,9 @@ public class MainCliSparqlIntegrate {
 
 	public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
 		init();
-		
+				
 		if(false) {
+			// https://issues.apache.org/jira/browse/JENA-1843
 			Query expected = QueryFactory.create("SELECT * { ?s ?p ?o BIND(?s AS ?x) BIND(?x AS ?y) }");
 			Query actual = OpAsQuery.asQuery(Algebra.compile(expected));
 			System.out.println(expected);
@@ -556,12 +559,24 @@ public class MainCliSparqlIntegrate {
 		}
 
 		if(false) {
+			// https://issues.apache.org/jira/browse/JENA-1844
 			Query expected = QueryFactory.create("SELECT * { ?s ?p ?o BIND(?s AS ?x) } ORDER BY ?s");
 			Query actual = OpAsQuery.asQuery(Algebra.compile(expected));
 			System.out.println(expected);
 			System.out.println(actual);
 		}
 		
+		if(false) {
+			// https://issues.apache.org/jira/browse/JENA-1848
+			System.out.println("Benchmarking trig loading/writing");
+			Stopwatch sw = Stopwatch.createStarted();
+			Dataset ds = RDFDataMgr.loadDataset("../ngs/test-data.trig");
+			System.out.println("Loaded " + Iterators.size(ds.listNames()) + " graphs in in " + sw.elapsed(TimeUnit.SECONDS) + " seconds");
+			sw.reset().start();
+			RDFDataMgr.write(new NullOutputStream(), ds, RDFFormat.TRIG_PRETTY);
+			System.out.println("Writing time in seconds: " + sw.elapsed(TimeUnit.SECONDS));
+		}
+
 		if(false) {
 			return;
 		}
