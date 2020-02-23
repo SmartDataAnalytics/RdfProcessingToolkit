@@ -20,6 +20,7 @@ import org.aksw.jena_sparql_api.core.utils.ServiceUtils;
 import org.aksw.jena_sparql_api.io.utils.SimpleProcessExecutor;
 import org.aksw.jena_sparql_api.rx.FlowableTransformerLocalOrdering;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
+import org.aksw.jena_sparql_api.rx.RDFDataMgrRx.QuadEncoderMerge;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
@@ -35,6 +36,7 @@ import org.apache.commons.io.input.CloseShieldInputStream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.jena.atlas.web.TypedInputStream;
+import org.apache.jena.ext.com.google.common.collect.ImmutableSet;
 import org.apache.jena.ext.com.google.common.collect.Iterables;
 import org.apache.jena.ext.com.google.common.collect.Lists;
 import org.apache.jena.ext.com.google.common.collect.Maps;
@@ -69,6 +71,7 @@ import io.reactivex.FlowableEmitter;
 import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.FlowableTransformer;
 import io.reactivex.schedulers.Schedulers;
+import jersey.repackaged.com.google.common.collect.Iterators;
 
 public class MainCliNamedGraphStream {
 	
@@ -171,6 +174,7 @@ public class MainCliNamedGraphStream {
 		CmdNgsSort cmdSort = new CmdNgsSort();
 		CmdNgsHead cmdHead = new CmdNgsHead();
 		CmdNgsMap cmdMap = new CmdNgsMap();
+		//CmdNgsConflate cmdConflate = new CmdNgsConflate();
 
 		
 		// CommandCommit commit = new CommandCommit();
@@ -322,6 +326,22 @@ public class MainCliNamedGraphStream {
 				// sort by string before tab tabs, -h human-numeric
 				.compose(systemCall(sortArgs))
 				.map(str -> deserialize(str));
+			
+			boolean merge = cmdSort.merge;
+			if(merge) {
+				QuadEncoderMerge merger = new RDFDataMgrRx.QuadEncoderMerge();
+				Iterable<Dataset> pendingDs = () -> {
+					Dataset ds = merger.getPendingDataset();
+					return ds.isEmpty()
+							? ImmutableSet.<Dataset>of().iterator()
+							: Iterators.singletonIterator(ds);
+				};
+				
+				flow = flow
+						.map(merger::accept)
+						.concatWith(Flowable.fromIterable(pendingDs));
+			}
+			
 			
 			RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG_PRETTY);
 			

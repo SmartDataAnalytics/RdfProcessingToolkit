@@ -22,4 +22,9 @@ public class CmdNgsSort {
 	@Parameter(names={"-u", "--unique"})
 	public boolean unique = false;
 
+	// TODO Clarify merge semantics
+	// At present it is for conflating consecutive named graphs with the same name into a single graph
+	@Parameter(names={"-m", "--merge"})
+	public boolean merge = false;
+
 }
