@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -79,23 +80,23 @@ public class MainCliNamedGraphStream {
 //	public static String toString(Dataset dataset, RDFFormat format) {
 //	}
 	
-	public static String serialize(Node key, Dataset dataset) {		
+	public static String serialize(Node key, Dataset dataset, RDFFormat format) {		
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		RDFDataMgr.write(baos, dataset, RDFFormat.TRIG_PRETTY);
+		RDFDataMgr.write(baos, dataset, format);
 		String keyStr = key.isURI() ? key.getURI() : key.getLiteralValue().toString();
 		String result = keyStr + " \t" + StringEscapeUtils.escapeJava(baos.toString());
 		return result;
 	}
 	
 	
-	public static Dataset deserialize(String line) {
+	public static Dataset deserialize(String line, Lang lang) {
 		int idx = line.indexOf('\t');
 		String encoded = line.substring(idx + 1);
 		String decoded = StringEscapeUtils.unescapeJava(encoded);
 		InputStream in = new ByteArrayInputStream(decoded.getBytes());
 		
 		Dataset result = DatasetFactory.create();
-		RDFDataMgr.read(result, in, Lang.TRIG);
+		RDFDataMgr.read(result, in, lang);
 		return result;
 	}
 	
@@ -304,9 +305,9 @@ public class MainCliNamedGraphStream {
 				};
 			} else {
 				keyMapper = ds -> {
-					List<String> graphNames = Lists.newArrayList(ds.listNames());
-					String rn = Iterables.getFirst(graphNames, "");
-					Node r = NodeFactory.createURI(rn);
+					Iterator<Node> graphNames = ds.asDatasetGraph().listGraphNodes();
+					Node r = Iterators.getNext(graphNames, NodeFactory.createLiteral(""));
+					//Node r = NodeFactory.createURI(rn);
 					return r;
 				};
 			}
@@ -322,22 +323,27 @@ public class MainCliNamedGraphStream {
 				sortArgs.add("-h");
 			}
 			
-			
+			RDFFormat fmt = RDFFormat.TRIG_PRETTY;
+
 			Flowable<Dataset> flow = createNamedGraphStreamFromArgs(cmdSort.nonOptionArgs, null, pm)
-				.map(ds -> Maps.immutableEntry(keyMapper.apply(ds), ds))
-				.map(e -> serialize(e.getKey(), e.getValue()))
+				.map(ds -> {
+					Node key = keyMapper.apply(ds);
+					return Maps.immutableEntry(key, ds);
+				})
+				.map(e -> serialize(e.getKey(), e.getValue(), fmt))
 				// sort by string before tab tabs, -h human-numeric
 				.compose(systemCall(sortArgs))
-				.map(str -> deserialize(str));
+				.map(str -> deserialize(str, fmt.getLang()));
 			
 			boolean merge = cmdSort.merge;
 			if(merge) {
 				QuadEncoderMerge merger = new RDFDataMgrRx.QuadEncoderMerge();
 				Iterable<Dataset> pendingDs = () -> {
 					Dataset ds = merger.getPendingDataset();
-					return ds.isEmpty()
+					Iterator<Dataset> r = ds.isEmpty()
 							? ImmutableSet.<Dataset>of().iterator()
 							: Iterators.singletonIterator(ds);
+					return r;
 				};
 				
 				flow = flow
@@ -346,7 +352,7 @@ public class MainCliNamedGraphStream {
 			}
 			
 			
-			RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG_PRETTY);
+			RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.NQUADS);
 			
 //			List<String> noas = cmdSort.nonOptionArgs;
 //			if(noas.size() != 1) {
