@@ -352,7 +352,7 @@ public class MainCliNamedGraphStream {
 			}
 			
 			
-			RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.NQUADS);
+			RDFDataMgrRx.writeDatasets(flow, System.out, fmt);
 			
 //			List<String> noas = cmdSort.nonOptionArgs;
 //			if(noas.size() != 1) {
