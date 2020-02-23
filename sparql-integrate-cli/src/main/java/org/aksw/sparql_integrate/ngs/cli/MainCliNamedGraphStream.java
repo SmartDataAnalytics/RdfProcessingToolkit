@@ -29,6 +29,7 @@ import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
+import org.aksw.jena_sparql_api.transform.result_set.QueryExecutionTransformResult;
 import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.aksw.sparql_integrate.cli.MainCliSparqlIntegrate;
 import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
@@ -134,8 +135,10 @@ public class MainCliNamedGraphStream {
 		}
 		
 		Flowable<Dataset> result = RDFDataMgrRx.createFlowableDatasets(() ->
-		MainCliSparqlIntegrate.prependWithPrefixes(tmp, pm));
-			
+			MainCliSparqlIntegrate.prependWithPrefixes(tmp, pm))
+			// TODO Decoding of distinguished names should go into the util method
+			.map(ds -> QueryExecutionTransformResult.applyNodeTransform(RDFDataMgrRx::decodeDistinguished, ds));
+
 		return result;
 	}
 	
