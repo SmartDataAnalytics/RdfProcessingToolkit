@@ -1,45 +1,100 @@
 package org.aksw.sparql_integrate.ngs.cli;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
+import org.aksw.jena_sparql_api.core.utils.ServiceUtils;
+import org.aksw.jena_sparql_api.io.utils.SimpleProcessExecutor;
 import org.aksw.jena_sparql_api.rx.FlowableTransformerLocalOrdering;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
+import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
+import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
+import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
+import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.aksw.sparql_integrate.cli.MainCliSparqlIntegrate;
 import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
 import org.apache.commons.io.input.CloseShieldInputStream;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.jena.atlas.web.TypedInputStream;
+import org.apache.jena.ext.com.google.common.collect.Iterables;
+import org.apache.jena.ext.com.google.common.collect.Lists;
 import org.apache.jena.ext.com.google.common.collect.Maps;
 import org.apache.jena.ext.com.google.common.collect.Streams;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.WebContent;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
+import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.core.Var;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 
+import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
+import io.reactivex.FlowableTransformer;
 import io.reactivex.schedulers.Schedulers;
 
 public class MainCliNamedGraphStream {
+	
+//	public static String toString(Dataset dataset, RDFFormat format) {
+//	}
+	
+	public static String serialize(Node key, Dataset dataset) {		
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		RDFDataMgr.write(baos, dataset, RDFFormat.TRIG_PRETTY);
+		String keyStr = key.isURI() ? key.getURI() : key.getLiteralValue().toString();
+		String result = keyStr + " \t" + StringEscapeUtils.escapeJava(baos.toString());
+		return result;
+	}
+	
+	
+	public static Dataset deserialize(String line) {
+		int idx = line.indexOf('\t');
+		String encoded = line.substring(idx + 1);
+		String decoded = StringEscapeUtils.unescapeJava(encoded);
+		InputStream in = new ByteArrayInputStream(decoded.getBytes());
+		
+		Dataset result = DatasetFactory.create();
+		RDFDataMgr.read(result, in, Lang.TRIG);
+		return result;
+	}
+	
 	private static final Logger logger = LoggerFactory.getLogger(MainCliNamedGraphStream.class);
 	
 	/**
@@ -72,13 +127,36 @@ public class MainCliNamedGraphStream {
 					new CloseShieldInputStream(System.in),
 					WebContent.contentTypeTriG); 
 		} else {
-			tmp = SparqlStmtUtils.openInputStream(src);
+			tmp = Objects.requireNonNull(SparqlStmtUtils.openInputStream(src), "Could not create input stream from " + src);
 		}
 		
 		Flowable<Dataset> result = RDFDataMgrRx.createFlowableDatasets(() ->
 		MainCliSparqlIntegrate.prependWithPrefixes(tmp, pm));
 			
 		return result;
+	}
+	
+	
+	public static void main2(String[] args) {
+		String raw = "This is	a test \nYay";
+		System.out.println(raw);
+		System.out.println(StringEscapeUtils.escapeJava(raw));
+		
+		Random rand = new Random(0);
+		List<String> strs = IntStream.range(0, 1000000)
+			.mapToObj(i -> rand.nextInt(100) + "\t" + RandomStringUtils.randomAlphabetic(10))
+			.collect(Collectors.toList());
+		
+		System.out.println("Got random strings");
+		Flowable.fromIterable(strs)
+			.compose(systemCall(Arrays.asList("/usr/bin/sort", "-h", "-t", "\t")))
+			.timeout(60, TimeUnit.SECONDS)
+			.blockingForEach(System.out::println);
+		
+		  //.count()
+		//.blockingGet();
+		
+//		System.out.println(x);
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -183,11 +261,75 @@ public class MainCliNamedGraphStream {
 			break;
 		}
 		case "sort": {
-			List<String> noas = cmdSort.nonOptionArgs;
-			if(noas.size() != 1) {
-				throw new RuntimeException("Only one non-option argument expected for the artifact id");
+
+			SparqlQueryParser keyQueryParser = SparqlQueryParserWrapperSelectShortForm.wrap(
+					SparqlQueryParserImpl.create(pm));
+
+			// SPARQL      : SELECT ?key { ?s eg:hash ?key }
+			// Short SPARQL: ?key { ?s eg:hash ?key }
+			// LDPath      : issue: what to use as the root?
+			String keyArg = cmdSort.key;
+			
+			Function<Dataset, Node> keyMapper;
+			
+
+			if(keyArg != null && !keyArg.isEmpty()) {
+				Query rawKeyQuery = keyQueryParser.apply(keyArg);
+				QueryUtils.optimizePrefixes(rawKeyQuery);
+				
+				Query keyQuery = QueryUtils.applyOpTransform(rawKeyQuery, Algebra::unionDefaultGraph);
+
+				
+				List<Var> projectVars = rawKeyQuery.getProjectVars();
+				if(projectVars.size() != 1) {
+					throw new RuntimeException("Key query must have exactly 1 result var");
+				}
+				Var keyVar = projectVars.get(0);
+
+				keyMapper = ds -> {
+					QueryExecution qe = QueryExecutionFactory.create(keyQuery, ds);
+					//QueryExecutionUtils.
+					//SparqlRx.fetch
+					List<Node> nodes = ServiceUtils.fetchList(qe, keyVar);
+					
+					Node r = Iterables.getFirst(nodes, NodeFactory.createLiteral(""));
+					return r;
+				};
+			} else {
+				keyMapper = ds -> {
+					List<String> graphNames = Lists.newArrayList(ds.listNames());
+					String rn = Iterables.getFirst(graphNames, "");
+					Node r = NodeFactory.createURI(rn);
+					return r;
+				};
 			}
-			String pattern = noas.get(0);
+
+			List<String> sortArgs = Lists.newArrayList("/usr/bin/sort", "-t", "\t");
+			if(cmdSort.unique) {
+				sortArgs.add("-u");
+			}
+
+			if(cmdSort.randomSort) {
+				sortArgs.add("-R");
+			} else {
+				sortArgs.add("-h");
+			}
+			
+			
+			Flowable<Dataset> flow = createNamedGraphStreamFromArgs(cmdSort.nonOptionArgs, null, pm)
+				.map(ds -> Maps.immutableEntry(keyMapper.apply(ds), ds))
+				.map(e -> serialize(e.getKey(), e.getValue()))
+				// sort by string before tab tabs, -h human-numeric
+				.compose(systemCall(sortArgs))
+				.map(str -> deserialize(str));
+			
+			RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG_PRETTY);
+			
+//			List<String> noas = cmdSort.nonOptionArgs;
+//			if(noas.size() != 1) {
+//				throw new RuntimeException("Only one non-option argument expected for the artifact id");
+//			}
+//			String pattern = noas.get(0);
 
 			break;
 		}
@@ -198,4 +340,34 @@ public class MainCliNamedGraphStream {
 //		CommandDeployCkan cmDeployCkan = new CommandDeployCkan();
 //		deploySubCommands.addCommand("ckan", cmDeployCkan);
 	}
+
+	
+	public static FlowableTransformer<String, String> systemCall(List<String> args) {		
+		return upstream -> {
+			return Flowable.create(new FlowableOnSubscribe<String>() {
+				@Override
+				public void subscribe(FlowableEmitter<String> e) throws Exception {
+					SimpleProcessExecutor.wrap(new ProcessBuilder(args))
+						.executeReadLines(upstream, e);
+				}
+			}, BackpressureStrategy.BUFFER);
+		};
+	}
+
+	
 }
+
+
+//
+
+//flow
+//	.map(ds -> Maps.immutableEntry(keyMapper.apply(ds), ds))
+//	.map(e -> serialize(e.getKey(), e.getValue()))
+//	.compose(composer)
+//
+//		
+//		Subscriber<T> tmp = wrap(initiallyExpectedId, incrementSeqId, extractSeqId, e);
+//		upstream.subscribe(tmp::onNext, tmp::onError, tmp::onComplete);
+//	}
+//}, BackpressureStrategy.BUFFER);
+//

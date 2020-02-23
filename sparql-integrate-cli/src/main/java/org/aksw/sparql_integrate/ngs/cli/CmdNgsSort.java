@@ -12,4 +12,14 @@ public class CmdNgsSort {
 	 */
 	@Parameter(description="Non option args")
 	public List<String> nonOptionArgs = new ArrayList<>();
+
+	@Parameter(names={"-k", "--key"})
+	public String key = null;
+
+	@Parameter(names={"-R", "--random-sort"})
+	public boolean randomSort = false;
+	
+	@Parameter(names={"-u", "--unique"})
+	public boolean unique = false;
+
 }
