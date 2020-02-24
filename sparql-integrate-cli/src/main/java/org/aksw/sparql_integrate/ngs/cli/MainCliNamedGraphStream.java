@@ -37,6 +37,7 @@ import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
 import org.apache.commons.io.input.CloseShieldInputStream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.jena.atlas.io.NullOutputStream;
 import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.ext.com.google.common.collect.ImmutableSet;
 import org.apache.jena.ext.com.google.common.collect.Iterables;
@@ -74,6 +75,7 @@ import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.FlowableTransformer;
 import io.reactivex.schedulers.Schedulers;
 import jersey.repackaged.com.google.common.collect.Iterators;
+import joptsimple.internal.Strings;
 
 public class MainCliNamedGraphStream {
 	
@@ -217,14 +219,14 @@ public class MainCliNamedGraphStream {
 					MainCliSparqlStream.createProcessor(cmdMap.stmts, pm);					
 
 			//Sink<Quad> quadSink = SparqlStmtUtils.createSink(RDFFormat.TURTLE_PRETTY, System.err, pm);			
-			Function<Dataset, Dataset> mapper = ind -> {
+			Function<Dataset, Dataset> mapper = inDs -> {
 				
 //				System.out.println("Sleeping thread " + Thread.currentThread());
 //				try { Thread.sleep(500); } catch(InterruptedException e) { }
 				
 				Dataset out = DatasetFactory.create();
 
-				List<String> names = Streams.stream(ind.listNames()).collect(Collectors.toList());
+				List<String> names = Streams.stream(inDs.listNames()).collect(Collectors.toList());
 				if(names.size() != 1) {
 					logger.warn("Expected a single named graph, got " + names);
 					return out;
@@ -232,7 +234,7 @@ public class MainCliNamedGraphStream {
 				String name = names.get(0);
 				
 				SPARQLResultSinkQuads sink = new SPARQLResultSinkQuads(out.asDatasetGraph()::add);
-				try(RDFConnection conn = RDFConnectionFactory.connect(ind)) {
+				try(RDFConnection conn = RDFConnectionFactory.connect(inDs)) {
 					processor.accept(conn, sink);
 				}
 				
@@ -257,7 +259,10 @@ public class MainCliNamedGraphStream {
 				.parallel()
 				.runOn(Schedulers.computation())
 				//.observeOn(Schedulers.computation())
-				.map(e -> Maps.immutableEntry(mapper.apply(e.getKey()), e.getValue()))
+				.map(e -> {
+					Dataset tmp = mapper.apply(e.getKey());
+					return Maps.immutableEntry(tmp, e.getValue());
+				})
 				.sequential()
 				.compose(FlowableTransformerLocalOrdering.transformer(0l, i -> i + 1, Entry::getValue))
 //				.doAfterNext(System.out::println)
@@ -265,6 +270,7 @@ public class MainCliNamedGraphStream {
 				;
 			
 			//flow.forEach(System.out::println);
+			//RDFDataMgrRx.writeDatasets(flow, new NullOutputStream(), RDFFormat.TRIG);
 			RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG);
 			break;
 		}
@@ -321,6 +327,12 @@ public class MainCliNamedGraphStream {
 				sortArgs.add("-R");
 			} else {
 				sortArgs.add("-h");
+			}
+			
+			
+			if(!Strings.isNullOrEmpty(cmdSort.bufferSize)) {
+				sortArgs.add("-S");
+				sortArgs.add(cmdSort.bufferSize);
 			}
 			
 			RDFFormat fmt = RDFFormat.TRIG_PRETTY;

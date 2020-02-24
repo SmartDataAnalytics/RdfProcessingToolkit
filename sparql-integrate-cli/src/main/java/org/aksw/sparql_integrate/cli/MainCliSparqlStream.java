@@ -125,7 +125,13 @@ public class MainCliSparqlStream {
 			}
 			
 			String baseIri = cwd == null ? null : cwd.toUri().toString();
-			SparqlStmtIterator it = SparqlStmtUtils.processFile(pm, filename, baseIri);
+			
+			// Prevent concurrent modifications of prefixes;
+			// processFile will add encountered prefixes
+			PrefixMapping copy = new PrefixMappingImpl();
+			copy.setNsPrefixes(pm);
+			
+			SparqlStmtIterator it = SparqlStmtUtils.processFile(copy, filename, baseIri);
 		
 
 			List<SparqlStmt> stmts = new ArrayList<>();
@@ -144,7 +150,7 @@ public class MainCliSparqlStream {
 
 			outerParts.add((conn, _sink) -> {
 
-				String inFile = filename;
+				// String inFile = filename;
 				// logger.info("Applying '" + inFile + "'");
 
 				for(SparqlStmt stmt : stmts) {
