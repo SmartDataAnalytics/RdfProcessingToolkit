@@ -83,14 +83,14 @@ public class MainCliSparqlStream {
 	public static BiConsumer<RDFConnection, SPARQLResultSink> createProcessor(
 			//CommandMain cliArgs,
 			List<String> args,
-			PrefixMapping pm
+			PrefixMapping pm,
+			boolean closeSink
 			) throws FileNotFoundException, IOException, ParseException {
 		
 		List<BiConsumer<RDFConnection, SPARQLResultSink>> outerParts = new ArrayList<>();
 		
 		//List<String> args = cliArgs.nonOptionArgs;
 		
-		SparqlStmtProcessor stmtProcessor = new SparqlStmtProcessor();
 //		processor.setShowQuery(args.containsOption("q"));
 //		processor.setShowAlgebra(args.containsOption("a"));
 
@@ -149,12 +149,15 @@ public class MainCliSparqlStream {
 			}
 
 			outerParts.add((conn, _sink) -> {
+				SparqlStmtProcessor stmtProcessor = new SparqlStmtProcessor();
 
 				// String inFile = filename;
 				// logger.info("Applying '" + inFile + "'");
 
 				for(SparqlStmt stmt : stmts) {
-					stmtProcessor.processSparqlStmt(conn, stmt, _sink);
+					// Some SPARQL query features are not thread safe - clone them!
+					SparqlStmt cloneStmt = stmt.clone();
+					stmtProcessor.processSparqlStmt(conn, cloneStmt, _sink);
 				}				
 			});
 
@@ -168,10 +171,12 @@ public class MainCliSparqlStream {
 			}
 
 			sink.flush();
-			try {
-				sink.close();
-			} catch (Exception e) {
-				throw new RuntimeException(e);
+			if(closeSink) {
+				try {
+					sink.close();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
 			}
 			
 		};
@@ -220,7 +225,10 @@ public class MainCliSparqlStream {
 
 		SPARQLResultSink sink = createSink(optOutFormat, pm, operationalOut);
 		// Skip first argument
-		BiConsumer<RDFConnection, SPARQLResultSink> consumer = createProcessor(cm.nonOptionArgs.subList(1, cm.nonOptionArgs.size()), pm);
+		BiConsumer<RDFConnection, SPARQLResultSink> consumer = createProcessor(
+				cm.nonOptionArgs.subList(1, cm.nonOptionArgs.size()),
+				pm,
+				true);
 		
 		
 		Flowable<Dataset> datasets = RDFDataMgrRx.createFlowableDatasets(() ->

@@ -216,7 +216,7 @@ public class MainCliNamedGraphStream {
 		}
 		case "map": {
 			BiConsumer<RDFConnection, SPARQLResultSink> processor =
-					MainCliSparqlStream.createProcessor(cmdMap.stmts, pm);					
+					MainCliSparqlStream.createProcessor(cmdMap.stmts, pm, true);					
 
 			//Sink<Quad> quadSink = SparqlStmtUtils.createSink(RDFFormat.TURTLE_PRETTY, System.err, pm);			
 			Function<Dataset, Dataset> mapper = inDs -> {
@@ -270,7 +270,7 @@ public class MainCliNamedGraphStream {
 				;
 			
 			//flow.forEach(System.out::println);
-			//RDFDataMgrRx.writeDatasets(flow, new NullOutputStream(), RDFFormat.TRIG);
+			// RDFDataMgrRx.writeDatasets(flow, new NullOutputStream(), RDFFormat.TRIG);
 			RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG);
 			break;
 		}
