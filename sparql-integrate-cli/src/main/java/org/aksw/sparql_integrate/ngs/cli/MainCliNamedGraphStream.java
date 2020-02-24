@@ -81,12 +81,16 @@ public class MainCliNamedGraphStream {
 	
 //	public static String toString(Dataset dataset, RDFFormat format) {
 //	}
-	
-	public static String serialize(Node key, Dataset dataset, RDFFormat format) {		
+	public static String toString(Dataset dataset, RDFFormat format) {		
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		RDFDataMgr.write(baos, dataset, format);
+		return baos.toString();
+	}
+	
+	public static String serialize(Node key, Dataset dataset, RDFFormat format) {	
+		String dataStr = toString(dataset, format);
 		String keyStr = key.isURI() ? key.getURI() : key.getLiteralValue().toString();
-		String result = keyStr + " \t" + StringEscapeUtils.escapeJava(baos.toString());
+		String result = keyStr + " \t" + StringEscapeUtils.escapeJava(dataStr);
 		return result;
 	}
 	
@@ -263,15 +267,24 @@ public class MainCliNamedGraphStream {
 					Dataset tmp = mapper.apply(e.getKey());
 					return Maps.immutableEntry(tmp, e.getValue());
 				})
+				// Experiment with performing serialization already in the thread
+				// did not show much benefit
+//				.map(e -> {
+//					Dataset tmp = e.getKey();
+//					String str = toString(tmp, RDFFormat.TRIG_PRETTY);
+//					return Maps.immutableEntry(str, e.getValue());
+//				})
 				.sequential()
 				.compose(FlowableTransformerLocalOrdering.transformer(0l, i -> i + 1, Entry::getValue))
 //				.doAfterNext(System.out::println)
 				.map(Entry::getKey)
 				;
 			
+			//flow.blockingForEach(System.out::print);
+			
 			//flow.forEach(System.out::println);
 			// RDFDataMgrRx.writeDatasets(flow, new NullOutputStream(), RDFFormat.TRIG);
-			RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG);
+			RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG_PRETTY);
 			break;
 		}
 		case "sort": {
