@@ -184,6 +184,8 @@ public class MainCliNamedGraphStream {
 		CmdNgsSort cmdSort = new CmdNgsSort();
 		CmdNgsHead cmdHead = new CmdNgsHead();
 		CmdNgsMap cmdMap = new CmdNgsMap();
+		CmdNgsWc cmdWc = new CmdNgsWc();
+
 		//CmdNgsConflate cmdConflate = new CmdNgsConflate();
 
 		
@@ -193,6 +195,7 @@ public class MainCliNamedGraphStream {
 				.addCommand("sort", cmdSort)
 				.addCommand("head", cmdHead)
 				.addCommand("map", cmdMap)
+				.addCommand("wc", cmdWc)
 				.build();
 
 		jc.parse(args);
@@ -204,6 +207,16 @@ public class MainCliNamedGraphStream {
 
 		String cmd = jc.getParsedCommand();
 		switch (cmd) {
+		case "wc": {
+			Long count = createNamedGraphStreamFromArgs(cmdWc.nonOptionArgs, null, pm)
+					.count()
+					.blockingGet();
+
+			String file = Iterables.getFirst(cmdWc.nonOptionArgs, null);
+			String outStr = Long.toString(count) + (file != null ? " " + file : "");
+			System.out.println(outStr);
+			break;
+		}
 		case "head": {
 			// parse the numRecord option
 			if(cmdHead.numRecords < 0) {

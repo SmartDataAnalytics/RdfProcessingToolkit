@@ -25,6 +25,10 @@ public class CmdNgsSort {
 	@Parameter(names={"-S", "--buffer-size"})
 	public String bufferSize = null;
 
+	// TODO Integrate oshi to get physical core count by default
+	@Parameter(names={"--parallel"})
+	public int parallel = -1;
+
 	// TODO Clarify merge semantics
 	// At present it is for conflating consecutive named graphs with the same name into a single graph
 	@Parameter(names={"-m", "--merge"})
