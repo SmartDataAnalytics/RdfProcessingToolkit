@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -37,10 +38,10 @@ import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
 import org.apache.commons.io.input.CloseShieldInputStream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.jena.atlas.io.NullOutputStream;
 import org.apache.jena.atlas.web.TypedInputStream;
+import org.apache.jena.ext.com.google.common.base.Strings;
 import org.apache.jena.ext.com.google.common.collect.ImmutableSet;
-import org.apache.jena.ext.com.google.common.collect.Iterables;
+import org.apache.jena.ext.com.google.common.collect.Iterators;
 import org.apache.jena.ext.com.google.common.collect.Lists;
 import org.apache.jena.ext.com.google.common.collect.Maps;
 import org.apache.jena.ext.com.google.common.collect.Streams;
@@ -74,8 +75,7 @@ import io.reactivex.FlowableEmitter;
 import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.FlowableTransformer;
 import io.reactivex.schedulers.Schedulers;
-import jersey.repackaged.com.google.common.collect.Iterators;
-import joptsimple.internal.Strings;
+import jersey.repackaged.com.google.common.collect.Iterables;
 
 public class MainCliNamedGraphStream {
 	
@@ -257,7 +257,9 @@ public class MainCliNamedGraphStream {
 				return out;
 			};
 			
-			Flowable<Dataset> flow = createNamedGraphStreamFromArgs(cmdMap.nonOptionArgs, null, pm)
+			Consumer<List<Dataset>> writer = RDFDataMgrRx.createDatasetBatchWriter(System.out, RDFFormat.TRIG_PRETTY);
+			
+			createNamedGraphStreamFromArgs(cmdMap.nonOptionArgs, null, pm)
 				// zipWithIndex
 				.zipWith(() -> LongStream.iterate(0, i -> i + 1).iterator(), Maps::immutableEntry)
 				.parallel()
@@ -278,13 +280,16 @@ public class MainCliNamedGraphStream {
 				.compose(FlowableTransformerLocalOrdering.transformer(0l, i -> i + 1, Entry::getValue))
 //				.doAfterNext(System.out::println)
 				.map(Entry::getKey)
+				.buffer(1000)
+				//.timeout(1, TimeUnit.SECONDS)
+				.blockingForEach(writer::accept)
 				;
 			
 			//flow.blockingForEach(System.out::print);
 			
 			//flow.forEach(System.out::println);
 			// RDFDataMgrRx.writeDatasets(flow, new NullOutputStream(), RDFFormat.TRIG);
-			RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG_PRETTY);
+			//RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG_PRETTY);
 			break;
 		}
 		case "sort": {
