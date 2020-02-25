@@ -22,6 +22,9 @@ public class CmdNgsHead {
 	@Parameter(names={"-h", "--help"}, help = true)
 	public boolean help = false;
 
+	@Parameter(names={"-o", "--out-format"})
+	public String outFormat = "trig/pretty";
+
 	@Parameter(description="Non option args")
 	public List<String> nonOptionArgs = new ArrayList<>();	
 }
