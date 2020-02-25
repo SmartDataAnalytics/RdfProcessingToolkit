@@ -505,8 +505,8 @@ public class MainCliNamedGraphStream {
 			
 			Function<Dataset, Node> keyMapper;
 			
-
-			if(keyArg != null && !keyArg.isEmpty()) {
+			boolean keyDiffersFromGraph = keyArg != null && !keyArg.isEmpty();
+			if(keyDiffersFromGraph) {
 				Query rawKeyQuery = keyQueryParser.apply(keyArg);
 				QueryUtils.optimizePrefixes(rawKeyQuery);
 				
@@ -548,6 +548,10 @@ public class MainCliNamedGraphStream {
 				sortArgs.add("-h");
 			}
 			
+			if(!Strings.isNullOrEmpty(cmdSort.temporaryDirectory)) {
+				sortArgs.add("-T");
+				sortArgs.add(cmdSort.temporaryDirectory);
+			}
 			
 			if(!Strings.isNullOrEmpty(cmdSort.bufferSize)) {
 				sortArgs.add("-S");

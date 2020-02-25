@@ -25,6 +25,9 @@ public class CmdNgsSort {
 	@Parameter(names={"-S", "--buffer-size"})
 	public String bufferSize = null;
 
+	@Parameter(names={"-T", "--temporary-directory"})
+	public String temporaryDirectory = null;
+
 	// TODO Integrate oshi to get physical core count by default
 	@Parameter(names={"--parallel"})
 	public int parallel = -1;
