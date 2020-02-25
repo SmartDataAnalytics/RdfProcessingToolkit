@@ -15,9 +15,12 @@ TODO Setup a bundle github release process
 | Command | Descripion                                                                       | Status |
 |---------|----------------------------------------------------------------------------------|--------|
 | head    | Output the first n graphs                                                        | done   |
+| cat     | Output all graphs                                                                | done   |
+| probe   | Probe a file or stdin for a quad-based format                                    | done   |
 | map     | Execute a SPARQL query on every named graph and yield the set of obtained graphs | done   |
+| wc      | Count graphs or quads                                                            | done   |
 | join    | Merge triples of named graphs based on a key                                     | wip    |
-| sort    | Sort named graphs based on a key                                                 | wip    |
+| sort    | Sort named graphs based on a key                                                 | done   |
 | ...     | More to come                                                                     |        |
 
 
@@ -31,8 +34,8 @@ TODO Setup a bundle github release process
 * * `ngs head data.trig` (without useless cat)
 * Run a SPARQL query (from a file) on each graph. This is run in parallel for high efficiency.
 * * `cat data.trig | ngs map --sparql script.sparql`
-* Combine both steps
-* * `cat data.trig | ngs head | ngs map --sparql script.sparql`
+* Given some set of initial graphs, map then through a transformation, sort the resulting graphs by some key (merging consecutive ones together), sort the result randomly and take a sample of 1000
+* * `cat data.trig | ngs map --sparql script.sparql | ngs sort -m -k '?o { ?s <someProb> ?o }' | ngs sort -m -R | ngs head -n 1000`
 
 ### Rules
 
@@ -41,4 +44,38 @@ TODO Setup a bundle github release process
 * `map`: Map an input named graph to a set of output graphs. Output graphs are created using CONSTRUCT queries. Thanks to Jena's extension, CONSTRUCT { GRAPH ?g { ... } } is allowed. All explicitly generated named graphs are returned as-is. CONSTRUCT'ed data in the default graph is wrapped in a graph with the same name as the input graph.
 
 ### Performance Metrics
-* Running a single query over the whole dataset vs parallel map - TBD
+TODO Outdated values
+
+The `ngs` folder contains a small benchmark utility:
+
+```
+# Create a given number of graphs
+./ngs-create-test-data.sh 1000000 > test-data.trig
+
+# The benchmark task is to emit all named graphs containing an even number
+./ngs-benchmark.sh
+```
+
+
+* Running a single query over the whole dataset vs parallel map
+
+Notebook, 2 cores + ht
+
+even.sparql
+<pre>
+ngs-map          165.54user 6.56system 0:53.02elapsed 324%CPU
+sparql-integrate 139.77user 1.82system 0:51.12elapsed 276%CPU
+</pre>
+
+
+hash.sparql
+<pre>
+ngs-map          182.86user 7.20system 0:57.41elapsed 331%CPU
+sparql-integrate 155.86user 2.03system 0:58.42elapsed 270%CPU
+</pre>
+
+
+Server:
+
+
+
