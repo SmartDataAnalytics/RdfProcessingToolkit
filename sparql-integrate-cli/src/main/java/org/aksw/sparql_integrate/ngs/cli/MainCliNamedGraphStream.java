@@ -180,7 +180,11 @@ public class MainCliNamedGraphStream {
 		InputStream in = new ByteArrayInputStream(decoded.getBytes());
 		
 		Dataset result = DatasetFactory.create();
-		RDFDataMgr.read(result, in, lang);
+		try {
+			RDFDataMgr.read(result, in, lang);
+		} catch(Exception e) {
+			throw new RuntimeException("Failed to deserialize line: " + line);
+		}
 		return result;
 	}
 	
