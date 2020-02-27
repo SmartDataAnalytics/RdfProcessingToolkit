@@ -31,13 +31,15 @@ public class MainPlaygroundScanTrig {
 			PageManager pageManager = PageManagerForFileChannel.create(fileChannel);
 			PageNavigator nav = new PageNavigator(pageManager);
 
-			CharSequence charSequence = new CharSequenceFromSeekable(nav);
+			// The charSequence has a clone of nav so it has independent relative positioning
+			CharSequence charSequence = new CharSequenceFromSeekable(nav.clone());
 			
 			Matcher m = trigStartPattern.matcher(charSequence);
 			int matchCount = 0;
 			while(m.find() && matchCount < 5) {
+				// The matcher yields absolute byte positions from the beginning of the byte sequence
 				int start = m.start();
-				nav.nextPos(start);
+				nav.setPos(start);
 
 				long absPos = nav.getPos();
 				
