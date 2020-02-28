@@ -39,6 +39,8 @@ public class MainPlaygroundScanTrig {
 			PageNavigator nav = new PageNavigator(pageManager);
 
 			
+			boolean isFwd = true;
+
 			// Lets start from this position
 			nav.setPos(10000);
 			long absMatcherStartPos = nav.getPos();
@@ -53,7 +55,6 @@ public class MainPlaygroundScanTrig {
 			Matcher bwdMatcher = trigBwdPattern.matcher(reverseCharSequence);
 			
 			
-			boolean isFwd = false;
 			Matcher m = isFwd ? fwdMatcher : bwdMatcher;
 			
 			
@@ -77,17 +78,23 @@ public class MainPlaygroundScanTrig {
 				// The matcher yields absolute byte positions from the beginning of the byte sequence
 				int matchPos = isFwd ? start : -end + 1;
 				
-				int absPos = (int)(absMatcherStartPos + matchPos); 
+				int absPos = (int)(absMatcherStartPos + matchPos);
+				
+				// Artificially create errors
+				// absPos += 5;
+				
 				nav.setPos(absPos);
 
 				System.out.println("Attempting pos: " + absPos);
+
 				
 				PageNavigator clonedNav = nav.clone();
 				InputStream in = Channels.newInputStream(clonedNav);
-				int maxQuadCount = 100;
+				int maxQuadCount = 3;
 				long quadCount = RDFDataMgrRx.createFlowableQuads(() -> in, Lang.TRIG, null)
 					.limit(maxQuadCount)
 					.count()
+					.onErrorReturnItem(-1l)
 					.blockingGet();
 			
 				if(quadCount != 0) {
