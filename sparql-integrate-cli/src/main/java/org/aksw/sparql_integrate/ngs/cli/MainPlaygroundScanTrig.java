@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -17,6 +18,7 @@ import org.aksw.jena_sparql_api.io.binseach.PageNavigator;
 import org.aksw.jena_sparql_api.io.binseach.ReverseCharSequenceFromSeekable;
 import org.aksw.jena_sparql_api.io.binseach.Seekable;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RiotParseException;
 
@@ -114,24 +116,41 @@ public class MainPlaygroundScanTrig {
 				// displacement only increases if we actually hit a newline
 				int lineDisplacementDelta = 0;
 				Seekable lineSeeker = nav.clone().limitNext(matchPosDelta);
+				long newlineBytePos = -1;
 				while(true) {
 					lineSeeker.posToNext((byte)'\n');
 					if(lineSeeker.isPosAfterEnd()) {
 						break;
 					}
+
 					// If we haven't reached the end then
 					// posToNext has positioned us on a newline symbol.
 					// Skip past it
+					newlineBytePos = lineSeeker.getPos();
 					lineSeeker.nextPos(1);
+					
+					// TODO Deal with different line endings such as \n\r
 					++lineDisplacementDelta;
 				}
 				lineDisplacement[0] += lineDisplacementDelta;
 				
-				lineSeeker.prevPos(1);
-				lineSeeker.posToPrev((byte)'\n');
-				long linePos = lineSeeker.getPos();
+				// If we started in the middle of a line, we have to go back
+				// to a position that is before where the matcher started off
+				if(lineDisplacementDelta == 0) {
+					lineSeeker.prevPos(1);
+					lineSeeker.posToPrev((byte)'\n');
+					newlineBytePos = lineSeeker.getPos();
+				}
+				
+				// We now need to get the chars for the line
+				lineSeeker.setPos(newlineBytePos + 1);
+				String lineStr = IOUtils.toString(
+						Channels.newInputStream(lineSeeker),
+						StandardCharsets.UTF_8);
+				int colDisplacement = lineStr.length();
+				
 				// Find the column of the match in the last line
-				long colDisplacement = absPos - linePos;
+				//long colDisplacement = absPos - newlineCharPos;
 				
 				nav.setPos(absPos);
 
