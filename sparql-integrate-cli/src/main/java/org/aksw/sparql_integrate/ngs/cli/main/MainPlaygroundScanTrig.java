@@ -1,25 +1,37 @@
-package org.aksw.sparql_integrate.ngs.cli;
+package org.aksw.sparql_integrate.ngs.cli.main;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.SequenceInputStream;
+import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.io.binseach.CharSequenceFromSeekable;
 import org.aksw.jena_sparql_api.io.binseach.PageManager;
+import org.aksw.jena_sparql_api.io.binseach.PageManagerForByteBuffer;
 import org.aksw.jena_sparql_api.io.binseach.PageManagerForFileChannel;
 import org.aksw.jena_sparql_api.io.binseach.PageNavigator;
 import org.aksw.jena_sparql_api.io.binseach.ReverseCharSequenceFromSeekable;
 import org.aksw.jena_sparql_api.io.binseach.Seekable;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RiotParseException;
 
 import com.github.jsonldjava.shaded.com.google.common.primitives.Ints;
@@ -28,7 +40,68 @@ import io.reactivex.exceptions.Exceptions;
 
 public class MainPlaygroundScanTrig {
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
+		String file = "/home/raven/Projects/Eclipse/sansa-parent/sansa-rdf-parent/sansa-rdf-common/src/test/resources/";
+		file = file + "w3c_ex2-no-default-graph.trig";
+		
+		Model m = ModelFactory.createDefaultModel();
+		m.setNsPrefixes(DefaultPrefixes.prefixes);
+	    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	    RDFDataMgr.write(baos, m, RDFFormat.TURTLE_PRETTY);
+	    byte[] prefixBytes = baos.toByteArray();
+
+//	    Function<InputS>
+//	    	    Function<Seekable, Flowable<Dataset>> parser = seekable => {
+//	    	      // TODO Close the cloned seekable
+//	    	      val task = new java.util.concurrent.Callable[InputStream] () {
+//	    	        def call (): InputStream = new SequenceInputStream (
+//	    	          new ByteArrayInputStream (prefixBytes),
+//	    	          Channels.newInputStream (seekable.cloneObject) )
+//	    	      }
+//
+	    	    
+		Path path = Paths.get(file);
+		FileChannel channel = FileChannel.open(path, StandardOpenOption.READ);
+		PageManager mgr = PageManagerForFileChannel.create(channel);
+		
+		PageNavigator nav = new PageNavigator(mgr);
+//		nav.setPos(337);
+//		nav.limitNext(1004 - 337);
+		nav.limitNext(510);
+		
+	    Function<Seekable, InputStream> inSupp = seek -> new SequenceInputStream(
+				new ByteArrayInputStream(prefixBytes),
+				Channels.newInputStream(seek.clone()));
+
+	    String str = IOUtils.toString(inSupp.apply(nav), StandardCharsets.UTF_8);
+	    System.out.println(str);
+	    
+	    mgr = new PageManagerForByteBuffer(ByteBuffer.wrap(str.getBytes()));
+	    nav = new PageNavigator(mgr);
+	    nav.limitNext(prefixBytes.length + 510);
+	    Seekable x = nav;
+
+	    String str2 = IOUtils.toString(inSupp.apply(x), StandardCharsets.UTF_8);
+	    System.out.println(str2);
+
+		RDFDataMgrRx.createFlowableDatasets(() -> inSupp.apply(x),
+			Lang.TRIG, "http://www.example.org/")
+		.onErrorReturnItem(DatasetFactory.create())
+//		.filter(x -> !x.isEmpty())
+			//.blockingForEach(t -> System.out.println(t)); 
+		.blockingIterable()
+		.forEach(ds -> {
+			RDFDataMgr.write(System.err, ds, RDFFormat.TRIG_PRETTY);
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		});
+	}
+	
+	public static void main2(String[] args) throws IOException, InterruptedException {
 		// Pattern to find the start of named graphs in trig
 		Pattern trigFwdPattern = Pattern.compile("@base|@prefix|(graph)?\\s*(<[^>]*>|_:[^-\\s]+)\\s*\\{", Pattern.CASE_INSENSITIVE);
 		Pattern trigBwdPattern = Pattern.compile("esab@|xiferp@|\\{\\s*(>[^<]*<|[^-\\s]+:_)\\s*(hparg)?", Pattern.CASE_INSENSITIVE);
@@ -55,8 +128,25 @@ public class MainPlaygroundScanTrig {
 		//PageManager pageManager = new PageManagerForByteBuffer(ByteBuffer.wrap(text));
 		try(FileChannel fileChannel = FileChannel.open(path, StandardOpenOption.READ)) {
 			PageManager pageManager = PageManagerForFileChannel.create(fileChannel);
+			
+			
+//			Reference<?> r1 = ReferenceImpl.create("Test", () -> System.out.println("Yay release"), null);
+//			Reference<?> r2 = r1.aquire("r2");
+//			Reference<?> r3 = r1.aquire("r3");
+//
+//			r2.release();
+//			r3.release();
+//			r1.release();
+//			
+//			if(true) {
+//				return;
+//			}
+			
+			
 			PageNavigator nav = new PageNavigator(pageManager);
 
+			
+			
 			
 			boolean isFwd = true;
 
@@ -142,7 +232,8 @@ public class MainPlaygroundScanTrig {
 					newlineBytePos = lineSeeker.getPos();
 				}
 				
-				// We now need to get the chars for the line
+				// We now need to get the chars (NOT the bytes) of the line and count them
+				// TODO Maybe we can do better without parsing into a string
 				lineSeeker.setPos(newlineBytePos + 1);
 				String lineStr = IOUtils.toString(
 						Channels.newInputStream(lineSeeker),

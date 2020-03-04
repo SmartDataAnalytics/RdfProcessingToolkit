@@ -3,7 +3,7 @@
 #WORK_DIR=`dirname "$0"`
 
 LIB_DIR="/usr/share/lib/sparql-integrate-cli/"
-MAIN_CLASS="org.aksw.sparql_integrate.ngs.cli.MainCliNamedGraphStream"
+MAIN_CLASS="org.aksw.sparql_integrate.ngs.cli.main.MainCliNamedGraphStream"
 
 #java -cp "$LIB_DIR:$LIB_DIR/lib/*" "-Dloader.main=${MAIN_CLASS}" "org.springframework.boot.loader.PropertiesLauncher" "$@"
 java -cp "$LIB_DIR:$LIB_DIR/lib/*" "$MAIN_CLASS" "$@"

@@ -1,4 +1,4 @@
-package org.aksw.sparql_integrate.ngs.cli;
+package org.aksw.sparql_integrate.ngs.cli.main;
 
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;

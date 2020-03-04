@@ -28,3 +28,6 @@ results.tsv
 *.swp
 
 test-data.trig
+
+tmp
+

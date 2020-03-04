@@ -1,4 +1,4 @@
-package org.aksw.sparql_integrate.ngs.cli;
+package org.aksw.sparql_integrate.ngs.cli.cmd;
 
 import java.util.ArrayList;
 import java.util.List;

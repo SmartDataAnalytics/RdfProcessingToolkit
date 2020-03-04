@@ -1,4 +1,4 @@
-package org.aksw.sparql_integrate.ngs.cli;
+package org.aksw.sparql_integrate.ngs.cli.main;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -41,6 +41,13 @@ import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.transform.result_set.QueryExecutionTransformResult;
 import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgMain;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsCat;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsHead;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsMap;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsProbe;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSort;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsWc;
 import org.apache.commons.io.input.CloseShieldInputStream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -339,8 +346,10 @@ public class MainCliNamedGraphStream {
 				.build();
 
 		jc.parse(args);
+		String cmd = jc.getParsedCommand();
 
-        if (cmdMain.help) {
+
+        if (cmdMain.help || cmd == null) {
             jc.usage();
             return;
         }
@@ -350,7 +359,6 @@ public class MainCliNamedGraphStream {
 //        	return;
 //        }
 
-		String cmd = jc.getParsedCommand();
 		switch (cmd) {
 		case "probe": {
 			try(TypedInputStream tin = openInputStream(cmdProbe.nonOptionArgs, quadLangs)) {

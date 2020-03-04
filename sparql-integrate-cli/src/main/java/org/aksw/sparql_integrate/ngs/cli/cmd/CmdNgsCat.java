@@ -1,24 +1,11 @@
-package org.aksw.sparql_integrate.ngs.cli;
+package org.aksw.sparql_integrate.ngs.cli.cmd;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import com.beust.jcommander.Parameter;
 
-/**
- * List the top n named graphs
- * 
- * @author raven
- *
- */
-public class CmdNgsHead {
-	/**
-	 * sparql-pattern file
-	 * 
-	 */
-	@Parameter(names={"-n"}, description="numRecords")
-	public long numRecords = 10;
-
+public class CmdNgsCat {
 	@Parameter(names={"-h", "--help"}, help = true)
 	public boolean help = false;
 
@@ -27,4 +14,5 @@ public class CmdNgsHead {
 
 	@Parameter(description="Non option args")
 	public List<String> nonOptionArgs = new ArrayList<>();	
+
 }
