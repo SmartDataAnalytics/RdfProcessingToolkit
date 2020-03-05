@@ -79,7 +79,8 @@ public class MainCliSparqlStream {
 
 		return result;
 	}
-	
+
+		
 	public static BiConsumer<RDFConnection, SPARQLResultSink> createProcessor(
 			//CommandMain cliArgs,
 			List<String> args,

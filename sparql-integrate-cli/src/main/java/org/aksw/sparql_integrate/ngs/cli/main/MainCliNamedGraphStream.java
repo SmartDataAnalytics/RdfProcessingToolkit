@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -26,6 +27,7 @@ import java.util.stream.LongStream;
 
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.core.utils.ServiceUtils;
+import org.aksw.jena_sparql_api.io.json.RDFNodeJsonUtils;
 import org.aksw.jena_sparql_api.io.utils.SimpleProcessExecutor;
 import org.aksw.jena_sparql_api.rx.FlowableTransformerLocalOrdering;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
@@ -37,10 +39,13 @@ import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
+import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.transform.result_set.QueryExecutionTransformResult;
 import org.aksw.jena_sparql_api.utils.QueryUtils;
+import org.aksw.jena_sparql_api.utils.model.ResourceInDataset;
 import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
+import org.aksw.sparql_integrate.cli.SparqlStmtProcessor;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgMain;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsCat;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsHead;
@@ -71,6 +76,7 @@ import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
 import org.apache.jena.riot.Lang;
@@ -82,16 +88,19 @@ import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.core.Var;
+import org.apache.jena.sparql.lang.arq.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
+import com.github.davidmoten.rx2.flowable.Transformers;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.FlowableEmitter;
 import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.FlowableTransformer;
+import io.reactivex.functions.BiFunction;
 import io.reactivex.schedulers.Schedulers;
 
 public class MainCliNamedGraphStream {
@@ -176,7 +185,77 @@ public class MainCliNamedGraphStream {
 		String result = keyStr + " \t" + StringEscapeUtils.escapeJava(dataStr);
 		return result;
 	}
+
 	
+	/**
+	 * Serialize a dataset with a given set of references to resources
+	 * 
+	 * @param key
+	 * @param dataset
+	 * @param format
+	 * @param reosurces
+	 * @return
+	 */
+	public static String serialize(Node key, Dataset dataset, RDFFormat format, List<Node> nodes) {	
+		String keyStr = key.isURI() ? key.getURI() : key.getLiteralValue().toString();
+		String dataStr = toString(dataset, format);
+		//RdfJsonUtils.toJson(rdfNodes, maxDepth, flat)
+		
+		// Note that nodes are eventually double encoded; once each item, and then the whole list
+		String nodeStr = nodes.stream()
+				.map(RDFNodeJsonUtils::nodeToStr)
+				.map(StringEscapeUtils::escapeJava)
+				.collect(Collectors.joining("\t"));
+		
+		String result = keyStr + " \t" + StringEscapeUtils.escapeJava(dataStr) + "\t" + StringEscapeUtils.escapeJava(nodeStr);
+		return result;
+	}
+
+	// TODO Finish
+//	public static Entry<Dataset, List<Node>> deserialize(String line, Lang lang) {
+//		String[] parts = line.split("\t");
+//		String datasetStr = parts[1];
+//		String resourceList = parts[2];
+//		
+//		String decoded = StringEscapeUtils.unescapeJava(encoded);
+//		InputStream in = new ByteArrayInputStream(decoded.getBytes());
+//		
+//		Dataset result = DatasetFactory.create();
+//		try {
+//			RDFDataMgr.read(result, in, lang);
+//		} catch(Exception e) {
+//			throw new RuntimeException("Failed to deserialize line: " + line);
+//		}
+//		return result;
+//
+//	}
+
+	/**
+	 * Accumulate consecutive ResourceInDataset items which share the same
+	 * Dataset or underlying DatasetGraph by reference equality into an
+	 * Entry<Dataset, List<Node>>
+	 * 
+	 * @return
+	 */
+	public static FlowableTransformer<ResourceInDataset, Entry<Dataset, List<Node>>> groupResourceInDataset() {
+		return upstream -> upstream 	
+				.compose(Transformers.<ResourceInDataset>toListWhile(
+			            (list, t) -> {
+			            	boolean r = list.isEmpty();
+			            	if(!r) {
+			            		ResourceInDataset proto = list.get(0);
+			            		r = proto.getDataset() == t.getDataset() ||
+			            			proto.getDataset().asDatasetGraph() == t.getDataset().asDatasetGraph();
+			            	}
+			            	return r;
+			            }))
+			    .map(list -> {
+            		ResourceInDataset proto = list.get(0);
+            		Dataset ds = proto.getDataset();
+            		List<Node> nodes = list.stream().map(RDFNode::asNode).collect(Collectors.toList());
+            		return Maps.immutableEntry(ds, nodes);
+			    });
+	}
 	
 	public static Dataset deserialize(String line, Lang lang) {
 		int idx = line.indexOf('\t');
@@ -426,178 +505,21 @@ public class MainCliNamedGraphStream {
 			break;
 		}
 		case "map": {
-			BiConsumer<RDFConnection, SPARQLResultSink> processor =
-					MainCliSparqlStream.createProcessor(cmdMap.stmts, pm, true);					
-
-			//Sink<Quad> quadSink = SparqlStmtUtils.createSink(RDFFormat.TURTLE_PRETTY, System.err, pm);			
-			Function<Dataset, Dataset> mapper = inDs -> {
-				
-//				System.out.println("Sleeping thread " + Thread.currentThread());
-//				try { Thread.sleep(500); } catch(InterruptedException e) { }
-				
-				Dataset out = DatasetFactory.create();
-
-				List<String> names = Streams.stream(inDs.listNames()).collect(Collectors.toList());
-				if(names.size() != 1) {
-					logger.warn("Expected a single named graph, got " + names);
-					return out;
-				}
-				String name = names.get(0);
-				
-				SPARQLResultSinkQuads sink = new SPARQLResultSinkQuads(out.asDatasetGraph()::add);
-				try(RDFConnection conn = RDFConnectionFactory.connect(inDs)) {
-					processor.accept(conn, sink);
-				}
-				
-				// The input is guaranteed to be only a single named graph
-				// If any data was generated in the out's default graph,
-				// transfer it to a graph with the input name
-				Model defaultModel = out.getDefaultModel();
-				if(!defaultModel.isEmpty()) {
-					Model copy = ModelFactory.createDefaultModel();
-					copy.add(defaultModel);
-					defaultModel.removeAll();
-					//out.setDefaultModel(ModelFactory.createDefaultModel());
-					out.addNamedModel(name, copy);
-				}
-				
-				return out;
-			};
-			
-			Consumer<List<Dataset>> writer = RDFDataMgrRx.createDatasetBatchWriter(System.out, RDFFormat.TRIG_PRETTY);
-			
-			createNamedGraphStreamFromArgs(cmdMap.nonOptionArgs, null, pm)
-				// zipWithIndex
-				.zipWith(() -> LongStream.iterate(0, i -> i + 1).iterator(), Maps::immutableEntry)
-				.parallel()
-				.runOn(Schedulers.computation())
-				//.observeOn(Schedulers.computation())
-				.map(e -> {
-					Dataset tmp = mapper.apply(e.getKey());
-					return Maps.immutableEntry(tmp, e.getValue());
-				})
-				// Experiment with performing serialization already in the thread
-				// did not show much benefit
-//				.map(e -> {
-//					Dataset tmp = e.getKey();
-//					String str = toString(tmp, RDFFormat.TRIG_PRETTY);
-//					return Maps.immutableEntry(str, e.getValue());
-//				})
-				.sequential()
-				.compose(FlowableTransformerLocalOrdering.transformer(0l, i -> i + 1, Entry::getValue))
-//				.doAfterNext(System.out::println)
-				.map(Entry::getKey)
-				.buffer(1000)
-				//.timeout(1, TimeUnit.SECONDS)
-				.blockingForEach(writer::accept)
-				;
-			
-			//flow.blockingForEach(System.out::print);
-			
-			//flow.forEach(System.out::println);
-			// RDFDataMgrRx.writeDatasets(flow, new NullOutputStream(), RDFFormat.TRIG);
-			//RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG_PRETTY);
+			map(pm, cmdMap);
 			break;
 		}
 		case "sort": {
 
+			RDFFormat fmt = RDFFormat.TRIG_PRETTY;
+ 
 			SparqlQueryParser keyQueryParser = SparqlQueryParserWrapperSelectShortForm.wrap(
 					SparqlQueryParserImpl.create(pm));
 
-			// SPARQL      : SELECT ?key { ?s eg:hash ?key }
-			// Short SPARQL: ?key { ?s eg:hash ?key }
-			// LDPath      : issue: what to use as the root?
-			String keyArg = cmdSort.key;
-			
-			Function<Dataset, Node> keyMapper;
-			
-			boolean keyDiffersFromGraph = keyArg != null && !keyArg.isEmpty();
-			if(keyDiffersFromGraph) {
-				Query rawKeyQuery = keyQueryParser.apply(keyArg);
-				QueryUtils.optimizePrefixes(rawKeyQuery);
-				
-				Query keyQuery = QueryUtils.applyOpTransform(rawKeyQuery, Algebra::unionDefaultGraph);
-
-				
-				List<Var> projectVars = rawKeyQuery.getProjectVars();
-				if(projectVars.size() != 1) {
-					throw new RuntimeException("Key query must have exactly 1 result var");
-				}
-				Var keyVar = projectVars.get(0);
-
-				keyMapper = ds -> {
-					QueryExecution qe = QueryExecutionFactory.create(keyQuery, ds);
-					//QueryExecutionUtils.
-					//SparqlRx.fetch
-					List<Node> nodes = ServiceUtils.fetchList(qe, keyVar);
-					
-					Node r = Iterables.getFirst(nodes, NodeFactory.createLiteral(""));
-					return r;
-				};
-			} else {
-				keyMapper = ds -> {
-					Iterator<Node> graphNames = ds.asDatasetGraph().listGraphNodes();
-					Node r = Iterators.getNext(graphNames, NodeFactory.createLiteral(""));
-					//Node r = NodeFactory.createURI(rn);
-					return r;
-				};
-			}
-
-			List<String> sortArgs = Lists.newArrayList("/usr/bin/sort", "-t", "\t");
-			if(cmdSort.unique) {
-				sortArgs.add("-u");
-			}
-
-			if(cmdSort.randomSort) {
-				sortArgs.add("-R");
-			} else {
-				sortArgs.add("-h");
-			}
-			
-			if(!Strings.isNullOrEmpty(cmdSort.temporaryDirectory)) {
-				sortArgs.add("-T");
-				sortArgs.add(cmdSort.temporaryDirectory);
-			}
-			
-			if(!Strings.isNullOrEmpty(cmdSort.bufferSize)) {
-				sortArgs.add("-S");
-				sortArgs.add(cmdSort.bufferSize);
-			}
-			
-			if(cmdSort.parallel > 0) {
-				sortArgs.add("--parallel");
-				sortArgs.add("" + cmdSort.parallel);
-			}
-			
-			
-			RDFFormat fmt = RDFFormat.TRIG_PRETTY;
+			FlowableTransformer<Dataset, Dataset> sorter = createSystemSorter(cmdSort, keyQueryParser, fmt);
 
 			Flowable<Dataset> flow = createNamedGraphStreamFromArgs(cmdSort.nonOptionArgs, null, pm)
-				.map(ds -> {
-					Node key = keyMapper.apply(ds);
-					return Maps.immutableEntry(key, ds);
-				})
-				.map(e -> serialize(e.getKey(), e.getValue(), fmt))
-				// sort by string before tab tabs, -h human-numeric
-				.compose(systemCall(sortArgs))
-				.map(str -> deserialize(str, fmt.getLang()));
-			
-			boolean merge = cmdSort.merge;
-			if(merge) {
-				QuadEncoderMerge merger = new RDFDataMgrRx.QuadEncoderMerge();
-				Iterable<Dataset> pendingDs = () -> {
-					Dataset ds = merger.getPendingDataset();
-					Iterator<Dataset> r = ds.isEmpty()
-							? ImmutableSet.<Dataset>of().iterator()
-							: Iterators.singletonIterator(ds);
-					return r;
-				};
-				
-				flow = flow
-						.map(merger::accept)
-						.concatWith(Flowable.fromIterable(pendingDs));
-			}
-			
+					.compose(sorter);
+
 			
 			RDFDataMgrRx.writeDatasets(flow, System.out, fmt);
 			
@@ -617,6 +539,143 @@ public class MainCliNamedGraphStream {
 //		deploySubCommands.addCommand("ckan", cmDeployCkan);
 	}
 
+
+
+	public static void map(PrefixMapping pm, CmdNgsMap cmdMap)
+			throws FileNotFoundException, IOException, ParseException {
+		Flowable<Dataset> flow = mapCore(pm, cmdMap);
+		
+		Consumer<List<Dataset>> writer = RDFDataMgrRx.createDatasetBatchWriter(System.out, RDFFormat.TRIG_PRETTY);
+
+		flow
+			.buffer(1000)
+			//.timeout(1, TimeUnit.SECONDS)
+			.blockingForEach(writer::accept)
+			;
+	
+	//flow.blockingForEach(System.out::print);
+	
+	//flow.forEach(System.out::println);
+	// RDFDataMgrRx.writeDatasets(flow, new NullOutputStream(), RDFFormat.TRIG);
+	//RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG_PRETTY);
+
+	}
+
+	
+	// TODO We should add a context / function-env attribute
+	public static BiConsumer<RDFConnection, SPARQLResultSink> createProcessor(
+			Collection<SparqlStmt> stmts) {
+		return (conn, sink) -> {
+			SparqlStmtProcessor stmtProcessor = new SparqlStmtProcessor();
+		
+			for(SparqlStmt stmt : stmts) {
+				// Some SPARQL query features are not thread safe - clone them!
+				SparqlStmt cloneStmt = stmt.clone();
+				stmtProcessor.processSparqlStmt(conn, cloneStmt, sink);
+			}				
+	
+		};
+	}
+
+	
+	public static Function<Dataset, Dataset> createMapper2(Collection<SparqlStmt> stmts) {
+		BiConsumer<RDFConnection, SPARQLResultSink> processor = createProcessor(stmts);
+		Function<Dataset, Dataset> result = createMapper(processor);
+		
+		return result;
+	}
+	
+	
+	
+	public static Function<Dataset, Dataset> createMapper(
+			BiConsumer<RDFConnection, SPARQLResultSink> processor) {
+
+		//Sink<Quad> quadSink = SparqlStmtUtils.createSink(RDFFormat.TURTLE_PRETTY, System.err, pm);			
+		Function<Dataset, Dataset> result = inDs -> {
+			
+//				System.out.println("Sleeping thread " + Thread.currentThread());
+//				try { Thread.sleep(500); } catch(InterruptedException e) { }
+			
+			Dataset out = DatasetFactory.create();
+
+			List<String> names = Streams.stream(inDs.listNames()).collect(Collectors.toList());
+			if(names.size() != 1) {
+				logger.warn("Expected a single named graph, got " + names);
+				return out;
+			}
+			String name = names.get(0);
+			
+			SPARQLResultSinkQuads sink = new SPARQLResultSinkQuads(out.asDatasetGraph()::add);
+			try(RDFConnection conn = RDFConnectionFactory.connect(inDs)) {
+				processor.accept(conn, sink);
+			}
+			
+			// The input is guaranteed to be only a single named graph
+			// If any data was generated in the out's default graph,
+			// transfer it to a graph with the input name
+			Model defaultModel = out.getDefaultModel();
+			if(!defaultModel.isEmpty()) {
+				Model copy = ModelFactory.createDefaultModel();
+				copy.add(defaultModel);
+				defaultModel.removeAll();
+				//out.setDefaultModel(ModelFactory.createDefaultModel());
+				out.addNamedModel(name, copy);
+			}
+			
+			return out;
+		};
+		
+		return result;
+	}
+
+	public static <T, X> FlowableTransformer<T, X> createMapper(
+			PrefixMapping pm,
+			CmdNgsMap cmdMap,
+			Function<? super T, ? extends Dataset> getDataset,
+			BiFunction<? super T, ? super Dataset, X> setDataset) throws FileNotFoundException, IOException, ParseException {
+
+		BiConsumer<RDFConnection, SPARQLResultSink> processor =
+				MainCliSparqlStream.createProcessor(cmdMap.stmts, pm, true);					
+
+		Function<Dataset, Dataset> mapper = createMapper(processor);
+
+		return in -> in
+			.zipWith(() -> LongStream.iterate(0, i -> i + 1).iterator(), Maps::immutableEntry)
+			.parallel()
+			.runOn(Schedulers.computation())
+			//.observeOn(Schedulers.computation())
+			.map(e -> {
+				T item = e.getKey();
+				Dataset before = getDataset.apply(item);
+				Dataset after = mapper.apply(before);
+				X r = setDataset.apply(item, after);
+				return Maps.immutableEntry(r, e.getValue());
+			})
+			// Experiment with performing serialization already in the thread
+			// did not show much benefit
+	//			.map(e -> {
+	//				Dataset tmp = e.getKey();
+	//				String str = toString(tmp, RDFFormat.TRIG_PRETTY);
+	//				return Maps.immutableEntry(str, e.getValue());
+	//			})
+			.sequential()
+			.compose(FlowableTransformerLocalOrdering.transformer(0l, i -> i + 1, Entry::getValue))
+	//			.doAfterNext(System.out::println)
+			.map(Entry::getKey);
+	}
+
+	
+	public static Flowable<Dataset> mapCore(PrefixMapping pm, CmdNgsMap cmdMap)
+			throws FileNotFoundException, IOException, ParseException {
+		
+		FlowableTransformer<Dataset, Dataset> mapper = createMapper(pm, cmdMap, ds -> ds, (before, after) -> after);
+		
+		Flowable<Dataset> result = createNamedGraphStreamFromArgs(cmdMap.nonOptionArgs, null, pm)
+				.compose(mapper);
+
+		return result;
+	}
+
 	
 	public static FlowableTransformer<String, String> systemCall(List<String> args) {		
 		return upstream -> {
@@ -631,6 +690,120 @@ public class MainCliNamedGraphStream {
 	}
 
 	
+	
+	/**
+	 * 
+	 * @param cmdSort
+	 * @param keyQueryParser
+	 * @param format Serialization format when passing data to the system sort command
+	 * @return
+	 */
+	public static FlowableTransformer<Dataset, Dataset> createSystemSorter(
+			CmdNgsSort cmdSort,
+			SparqlQueryParser keyQueryParser,
+			RDFFormat fmt) {
+//
+//		SparqlQueryParser keyQueryParser = SparqlQueryParserWrapperSelectShortForm.wrap(
+//				SparqlQueryParserImpl.create(pm));
+
+		// SPARQL      : SELECT ?key { ?s eg:hash ?key }
+		// Short SPARQL: ?key { ?s eg:hash ?key }
+		// LDPath      : issue: what to use as the root?
+		String keyArg = cmdSort.key;
+		
+		Function<Dataset, Node> keyMapper;
+		
+		boolean keyDiffersFromGraph = keyArg != null && !keyArg.isEmpty();
+		if(keyDiffersFromGraph) {
+			Query rawKeyQuery = keyQueryParser.apply(keyArg);
+			QueryUtils.optimizePrefixes(rawKeyQuery);
+			
+			Query keyQuery = QueryUtils.applyOpTransform(rawKeyQuery, Algebra::unionDefaultGraph);
+
+			
+			List<Var> projectVars = rawKeyQuery.getProjectVars();
+			if(projectVars.size() != 1) {
+				throw new RuntimeException("Key query must have exactly 1 result var");
+			}
+			Var keyVar = projectVars.get(0);
+
+			keyMapper = ds -> {
+				QueryExecution qe = QueryExecutionFactory.create(keyQuery, ds);
+				List<Node> nodes = ServiceUtils.fetchList(qe, keyVar);
+				
+				Node r = Iterables.getFirst(nodes, NodeFactory.createLiteral(""));
+				return r;
+			};
+		} else {
+			keyMapper = ds -> {
+				Iterator<Node> graphNames = ds.asDatasetGraph().listGraphNodes();
+				Node r = Iterators.getNext(graphNames, NodeFactory.createLiteral(""));
+				//Node r = NodeFactory.createURI(rn);
+				return r;
+			};
+		}
+
+		List<String> sortArgs = Lists.newArrayList("/usr/bin/sort", "-t", "\t");
+		if(cmdSort.unique) {
+			sortArgs.add("-u");
+		}
+
+		if(cmdSort.randomSort) {
+			sortArgs.add("-R");
+		} else {
+			sortArgs.add("-h");
+		}
+		
+		if(!Strings.isNullOrEmpty(cmdSort.temporaryDirectory)) {
+			sortArgs.add("-T");
+			sortArgs.add(cmdSort.temporaryDirectory);
+		}
+		
+		if(!Strings.isNullOrEmpty(cmdSort.bufferSize)) {
+			sortArgs.add("-S");
+			sortArgs.add(cmdSort.bufferSize);
+		}
+		
+		if(cmdSort.parallel > 0) {
+			sortArgs.add("--parallel");
+			sortArgs.add("" + cmdSort.parallel);
+		}
+		
+		
+
+		return flow -> { 
+			Flowable<Dataset> r = flow
+				.map(ds -> {
+					Node key = keyMapper.apply(ds);
+					return Maps.immutableEntry(key, ds);
+				})
+				.map(e -> serialize(e.getKey(), e.getValue(), fmt))
+				// sort by string before tab tabs, -h human-numeric
+				.compose(systemCall(sortArgs))
+				.map(str -> deserialize(str, fmt.getLang()));
+			
+			boolean merge = cmdSort.merge;
+			if(merge) {
+				// FIXME This will break if we reuse the flow
+				QuadEncoderMerge merger = new RDFDataMgrRx.QuadEncoderMerge();
+				Iterable<Dataset> pendingDs = () -> {
+					Dataset ds = merger.getPendingDataset();
+					Iterator<Dataset> x = ds.isEmpty()
+							? ImmutableSet.<Dataset>of().iterator()
+							: Iterators.singletonIterator(ds);
+					return x;
+				};
+				
+				r = r
+						.map(merger::accept)
+						.concatWith(Flowable.fromIterable(pendingDs));
+			}
+			return r;
+		};
+		
+		//RDFDataMgrRx.writeDatasets(flow, System.out, fmt);
+		
+	}
 }
 
 
