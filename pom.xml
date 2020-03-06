@@ -116,6 +116,12 @@
 
 			<dependency>
 				<groupId>org.aksw.jena-sparql-api</groupId>
+				<artifactId>jena-sparql-api-io-core</artifactId>
+				<version>${jena-sparql-api.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.aksw.jena-sparql-api</groupId>
 				<artifactId>jena-sparql-api-json</artifactId>
 				<version>${jena-sparql-api.version}</version>
 			</dependency>

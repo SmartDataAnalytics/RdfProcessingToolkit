@@ -2,8 +2,6 @@ package org.aksw.sparql_integrate.ngs.cli.main;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,8 +24,9 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
-import org.aksw.jena_sparql_api.core.utils.ServiceUtils;
-import org.aksw.jena_sparql_api.io.json.RDFNodeJsonUtils;
+import org.aksw.jena_sparql_api.io.json.GroupedResourceInDataset;
+import org.aksw.jena_sparql_api.io.json.TypeAdapterDataset;
+import org.aksw.jena_sparql_api.io.json.TypeAdapterNode;
 import org.aksw.jena_sparql_api.io.utils.SimpleProcessExecutor;
 import org.aksw.jena_sparql_api.rx.FlowableTransformerLocalOrdering;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
@@ -72,28 +71,25 @@ import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
+import org.apache.jena.rdfconnection.SparqlQueryConnection;
 import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
-import org.apache.jena.sparql.algebra.Algebra;
-import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.lang.arq.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
-import com.github.davidmoten.rx2.flowable.Transformers;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
@@ -107,6 +103,12 @@ public class MainCliNamedGraphStream {
 
 	public static Collection<Lang> quadLangs = Arrays.asList(Lang.TRIG, Lang.NQUADS);
 
+	public static final Gson gson = new GsonBuilder()
+			.registerTypeHierarchyAdapter(Node.class, new TypeAdapterNode())
+			.registerTypeHierarchyAdapter(Dataset.class, new TypeAdapterDataset())
+			.create();
+
+	
 	/**
 	 * Probe the content of the input stream against a given set of candidate languages.
 	 * Wraps the input stream as a BufferedInputStream
@@ -173,18 +175,18 @@ public class MainCliNamedGraphStream {
 	
 //	public static String toString(Dataset dataset, RDFFormat format) {
 //	}
-	public static String toString(Dataset dataset, RDFFormat format) {		
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		RDFDataMgr.write(baos, dataset, format);
-		return baos.toString();
-	}
+//	public static String toString(Dataset dataset, RDFFormat format) {		
+//		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//		RDFDataMgr.write(baos, dataset, format);
+//		return baos.toString();
+//	}
 	
-	public static String serialize(Node key, Dataset dataset, RDFFormat format) {	
-		String dataStr = toString(dataset, format);
-		String keyStr = key.isURI() ? key.getURI() : key.getLiteralValue().toString();
-		String result = keyStr + " \t" + StringEscapeUtils.escapeJava(dataStr);
-		return result;
-	}
+//	public static String serialize(Node key, Dataset dataset, RDFFormat format) {	
+//		String dataStr = toString(dataset, format);
+//		String keyStr = key.isURI() ? key.getURI() : key.getLiteralValue().toString();
+//		String result = keyStr + " \t" + StringEscapeUtils.escapeJava(dataStr);
+//		return result;
+//	}
 
 	
 	/**
@@ -196,79 +198,46 @@ public class MainCliNamedGraphStream {
 	 * @param reosurces
 	 * @return
 	 */
-	public static String serialize(Node key, Dataset dataset, RDFFormat format, List<Node> nodes) {	
+	public static String serialize(
+			Node key,
+			Object grid) {	
 		String keyStr = key.isURI() ? key.getURI() : key.getLiteralValue().toString();
-		String dataStr = toString(dataset, format);
-		//RdfJsonUtils.toJson(rdfNodes, maxDepth, flat)
+		String dataStr = gson.toJson(grid);
 		
-		// Note that nodes are eventually double encoded; once each item, and then the whole list
-		String nodeStr = nodes.stream()
-				.map(RDFNodeJsonUtils::nodeToStr)
-				.map(StringEscapeUtils::escapeJava)
-				.collect(Collectors.joining("\t"));
-		
-		String result = keyStr + " \t" + StringEscapeUtils.escapeJava(dataStr) + "\t" + StringEscapeUtils.escapeJava(nodeStr);
+		String result = StringEscapeUtils.escapeJava(keyStr) + " \t" + StringEscapeUtils.escapeJava(dataStr);
 		return result;
 	}
 
 	// TODO Finish
-//	public static Entry<Dataset, List<Node>> deserialize(String line, Lang lang) {
+//	public static Entry<Dataset, List<Entry<String, Node>>> deserializeResourceInDataset(String line, Lang lang) {
 //		String[] parts = line.split("\t");
-//		String datasetStr = parts[1];
-//		String resourceList = parts[2];
+//		String datasetStr = StringEscapeUtils.unescapeJava(parts[1]);
+//		String resourceList = StringEscapeUtils.unescapeJava(parts[2]);
 //		
-//		String decoded = StringEscapeUtils.unescapeJava(encoded);
-//		InputStream in = new ByteArrayInputStream(decoded.getBytes());
-//		
-//		Dataset result = DatasetFactory.create();
+//		Dataset dataset = DatasetFactory.create();
 //		try {
-//			RDFDataMgr.read(result, in, lang);
+//			RDFDataMgr.read(dataset, new ByteArrayInputStream(datasetStr.getBytes()), lang);
 //		} catch(Exception e) {
 //			throw new RuntimeException("Failed to deserialize line: " + line);
 //		}
+//		
+//		List<Node> nodes = Arrays.asList(resourceList.split("\t")).stream()
+//			.map(StringEscapeUtils::unescapeJava)
+//			.map(RDFNodeJsonUtils::strToNode)
+//			.collect(Collectors.toList());
+//		
+//		Entry<Dataset, List<Node>> result = Maps.immutableEntry(dataset, nodes);
 //		return result;
-//
 //	}
-
-	/**
-	 * Accumulate consecutive ResourceInDataset items which share the same
-	 * Dataset or underlying DatasetGraph by reference equality into an
-	 * Entry<Dataset, List<Node>>
-	 * 
-	 * @return
-	 */
-	public static FlowableTransformer<ResourceInDataset, Entry<Dataset, List<Node>>> groupResourceInDataset() {
-		return upstream -> upstream 	
-				.compose(Transformers.<ResourceInDataset>toListWhile(
-			            (list, t) -> {
-			            	boolean r = list.isEmpty();
-			            	if(!r) {
-			            		ResourceInDataset proto = list.get(0);
-			            		r = proto.getDataset() == t.getDataset() ||
-			            			proto.getDataset().asDatasetGraph() == t.getDataset().asDatasetGraph();
-			            	}
-			            	return r;
-			            }))
-			    .map(list -> {
-            		ResourceInDataset proto = list.get(0);
-            		Dataset ds = proto.getDataset();
-            		List<Node> nodes = list.stream().map(RDFNode::asNode).collect(Collectors.toList());
-            		return Maps.immutableEntry(ds, nodes);
-			    });
-	}
 	
-	public static Dataset deserialize(String line, Lang lang) {
+	
+	
+	public static <T> T deserialize(String line, Class<T> clazz) {
 		int idx = line.indexOf('\t');
 		String encoded = line.substring(idx + 1);
 		String decoded = StringEscapeUtils.unescapeJava(encoded);
-		InputStream in = new ByteArrayInputStream(decoded.getBytes());
-		
-		Dataset result = DatasetFactory.create();
-		try {
-			RDFDataMgr.read(result, in, lang);
-		} catch(Exception e) {
-			throw new RuntimeException("Failed to deserialize line: " + line);
-		}
+
+		T result = gson.fromJson(decoded, clazz);
 		return result;
 	}
 	
@@ -690,6 +659,140 @@ public class MainCliNamedGraphStream {
 	}
 
 	
+	public static FlowableTransformer<ResourceInDataset, ResourceInDataset> createSystemSorter2(
+			CmdNgsSort cmdSort,
+			SparqlQueryParser keyQueryParser,
+			RDFFormat fmt) {
+	
+		Function<? super SparqlQueryConnection, Node> keyMapper = null;
+		List<String> sortArgs = createSysCall(cmdSort);
+		
+
+		return upstream ->
+			upstream
+				.compose(ResourceInDatasetOps.groupedResourceInDataset())
+				.map(group -> {
+					Dataset ds = group.getDataset();
+					Node key;
+					try(RDFConnection conn = RDFConnectionFactory.connect(ds)) {
+						key = keyMapper.apply(conn);
+					}
+					return Maps.immutableEntry(key, group);
+				})
+				.map(e -> serialize(e.getKey(), e.getValue()))
+				.compose(systemCall(sortArgs))
+				.map(line -> deserialize(line, GroupedResourceInDataset.class))
+				.flatMap(grid -> Flowable.fromIterable(ResourceInDatasetOps.ungroupResourceInDataset(grid)))
+			;
+	}
+	
+
+	// public static final UnaryRelation DISTINCT_NAMED_GRAPHS = Concept.create("GRAPH ?g { ?s ?p ?o }", "g");
+	public static final Query DISTINCT_NAMED_GRAPHS = QueryFactory.create("SELECT DISTINCT ?g { GRAPH ?g { ?s ?p ?o } }");
+
+
+
+	public static Function<? super SparqlQueryConnection, Node> createKeyMapper(
+			String keyArg,
+			Function<String, Query> queryParser,
+			Query fallback) {
+		//Function<Dataset, Node> keyMapper;
+		
+		Query effectiveKeyQuery;
+		boolean useFallback = Strings.isNullOrEmpty(keyArg);
+		if(!useFallback) {
+			effectiveKeyQuery = queryParser.apply(keyArg);
+			QueryUtils.optimizePrefixes(effectiveKeyQuery);			
+		} else {
+			effectiveKeyQuery = fallback;
+		}
+		
+		Function<? super SparqlQueryConnection, Node> result = ResultSetMappers.createNodeMapper(effectiveKeyQuery, NodeFactory.createLiteral(""));
+		return result;
+	}
+	
+	
+
+	// public static Function<? super SparqlQueryConnection, Table> createMultiKeyMapper(Query rawKeyQuery) {
+
+	
+
+
+	
+
+//	public static Function<? super SparqlQueryConnection, Table> createTupleMapper(Query rawKeyQuery) {		
+//	}
+
+	
+
+
+	
+	
+//	public static Function<Dataset, Node> createKeyMapper(Query keyQuery) {
+//		Function<Dataset, Node> keyMapper;
+//		
+//		boolean keyDiffersFromGraph = keyArg != null && !keyArg.isEmpty();
+//		if(keyDiffersFromGraph) {
+//			Query rawKeyQuery = keyQueryParser.apply(keyArg);
+//			QueryUtils.optimizePrefixes(rawKeyQuery);
+//			
+//			Query keyQuery = QueryUtils.applyOpTransform(rawKeyQuery, Algebra::unionDefaultGraph);
+//
+//			
+//			List<Var> projectVars = rawKeyQuery.getProjectVars();
+//			if(projectVars.size() != 1) {
+//				throw new RuntimeException("Key query must have exactly 1 result var");
+//			}
+//			Var keyVar = projectVars.get(0);
+//
+//			keyMapper = ds -> {
+//				QueryExecution qe = QueryExecutionFactory.create(keyQuery, ds);
+//				List<Node> nodes = ServiceUtils.fetchList(qe, keyVar);
+//				
+//				Node r = Iterables.getFirst(nodes, NodeFactory.createLiteral(""));
+//				return r;
+//			};
+//		} else {
+//			keyMapper = ds -> {
+//				Iterator<Node> graphNames = ds.asDatasetGraph().listGraphNodes();
+//				Node r = Iterators.getNext(graphNames, NodeFactory.createLiteral(""));
+//				//Node r = NodeFactory.createURI(rn);
+//				return r;
+//			};
+//		}
+//
+//	}
+	
+	
+	public static List<String> createSysCall(CmdNgsSort cmdSort) {
+		List<String> result = Lists.newArrayList("/usr/bin/sort", "-t", "\t");
+		if(cmdSort.unique) {
+			result.add("-u");
+		}
+
+		if(cmdSort.randomSort) {
+			result.add("-R");
+		} else {
+			result.add("-h");
+		}
+		
+		if(!Strings.isNullOrEmpty(cmdSort.temporaryDirectory)) {
+			result.add("-T");
+			result.add(cmdSort.temporaryDirectory);
+		}
+		
+		if(!Strings.isNullOrEmpty(cmdSort.bufferSize)) {
+			result.add("-S");
+			result.add(cmdSort.bufferSize);
+		}
+		
+		if(cmdSort.parallel > 0) {
+			result.add("--parallel");
+			result.add("" + cmdSort.parallel);
+		}
+
+		return result;
+	}
 	
 	/**
 	 * 
@@ -702,6 +805,12 @@ public class MainCliNamedGraphStream {
 			CmdNgsSort cmdSort,
 			SparqlQueryParser keyQueryParser,
 			RDFFormat fmt) {
+		String keyArg = cmdSort.key;
+
+		Function<? super SparqlQueryConnection, Node> keyMapper = createKeyMapper(keyArg, keyQueryParser, DISTINCT_NAMED_GRAPHS);
+//		keyQueryParser
+//		createKeyMapper(keyQuery)
+		
 //
 //		SparqlQueryParser keyQueryParser = SparqlQueryParserWrapperSelectShortForm.wrap(
 //				SparqlQueryParserImpl.create(pm));
@@ -709,78 +818,22 @@ public class MainCliNamedGraphStream {
 		// SPARQL      : SELECT ?key { ?s eg:hash ?key }
 		// Short SPARQL: ?key { ?s eg:hash ?key }
 		// LDPath      : issue: what to use as the root?
-		String keyArg = cmdSort.key;
-		
-		Function<Dataset, Node> keyMapper;
-		
-		boolean keyDiffersFromGraph = keyArg != null && !keyArg.isEmpty();
-		if(keyDiffersFromGraph) {
-			Query rawKeyQuery = keyQueryParser.apply(keyArg);
-			QueryUtils.optimizePrefixes(rawKeyQuery);
-			
-			Query keyQuery = QueryUtils.applyOpTransform(rawKeyQuery, Algebra::unionDefaultGraph);
 
-			
-			List<Var> projectVars = rawKeyQuery.getProjectVars();
-			if(projectVars.size() != 1) {
-				throw new RuntimeException("Key query must have exactly 1 result var");
-			}
-			Var keyVar = projectVars.get(0);
 
-			keyMapper = ds -> {
-				QueryExecution qe = QueryExecutionFactory.create(keyQuery, ds);
-				List<Node> nodes = ServiceUtils.fetchList(qe, keyVar);
-				
-				Node r = Iterables.getFirst(nodes, NodeFactory.createLiteral(""));
-				return r;
-			};
-		} else {
-			keyMapper = ds -> {
-				Iterator<Node> graphNames = ds.asDatasetGraph().listGraphNodes();
-				Node r = Iterators.getNext(graphNames, NodeFactory.createLiteral(""));
-				//Node r = NodeFactory.createURI(rn);
-				return r;
-			};
-		}
-
-		List<String> sortArgs = Lists.newArrayList("/usr/bin/sort", "-t", "\t");
-		if(cmdSort.unique) {
-			sortArgs.add("-u");
-		}
-
-		if(cmdSort.randomSort) {
-			sortArgs.add("-R");
-		} else {
-			sortArgs.add("-h");
-		}
-		
-		if(!Strings.isNullOrEmpty(cmdSort.temporaryDirectory)) {
-			sortArgs.add("-T");
-			sortArgs.add(cmdSort.temporaryDirectory);
-		}
-		
-		if(!Strings.isNullOrEmpty(cmdSort.bufferSize)) {
-			sortArgs.add("-S");
-			sortArgs.add(cmdSort.bufferSize);
-		}
-		
-		if(cmdSort.parallel > 0) {
-			sortArgs.add("--parallel");
-			sortArgs.add("" + cmdSort.parallel);
-		}
-		
-		
+		List<String> sortArgs = createSysCall(cmdSort);
 
 		return flow -> { 
 			Flowable<Dataset> r = flow
 				.map(ds -> {
-					Node key = keyMapper.apply(ds);
-					return Maps.immutableEntry(key, ds);
+					try(RDFConnection conn = RDFConnectionFactory.connect(ds)) {
+						Node key = keyMapper.apply(conn);
+						return Maps.immutableEntry(key, ds);
+					}
 				})
-				.map(e -> serialize(e.getKey(), e.getValue(), fmt))
+				.map(e -> serialize(e.getKey(), e.getValue()))
 				// sort by string before tab tabs, -h human-numeric
 				.compose(systemCall(sortArgs))
-				.map(str -> deserialize(str, fmt.getLang()));
+				.map(str -> deserialize(str, Dataset.class));
 			
 			boolean merge = cmdSort.merge;
 			if(merge) {
