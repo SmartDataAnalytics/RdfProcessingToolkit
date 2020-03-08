@@ -1,5 +1,7 @@
 # This document contains a default graph and two named graphs.
 
+# @base <http://www.example.org/> .
+@prefix :<http://www.example.org/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix dc: <http://purl.org/dc/terms/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
@@ -9,9 +11,9 @@
        _:a foaf:name "Alfa" .
        _:a foaf:mbox <mailto:alfa@work.example.org> .
 
-       _:b foaf:name "Bravo" .
-       _:b foaf:mbox <mailto:bravo@oldcorp.example.org> .
-       _:b foaf:knows _:b .
+       :alfario foaf:name "Alfario" .
+       :alfario foaf:mbox <mailto:alfario@oldcorp.example.org> .
+       :alfario foaf:knows _:b .
     }
 
 <http://example.org/bravo>
@@ -43,6 +45,9 @@
     {
        _:f foaf:name "Foxtrot" .
        _:f foaf:mbox <mailto:foxtrot@work.example.org> .
+       
+       :foxy foaf:name "Foxy" .
+       :foxy foaf:mbox <mailto:foxy@work.example.org> .
     }
 
 <http://example.org/golf>

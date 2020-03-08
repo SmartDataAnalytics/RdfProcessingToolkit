@@ -9,7 +9,9 @@ import org.aksw.jena_sparql_api.rx.SparqlRx;
 import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.apache.jena.ext.com.google.common.collect.Iterables;
 import org.apache.jena.graph.Node;
+import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
+import org.apache.jena.rdfconnection.RDFConnectionFactory;
 import org.apache.jena.rdfconnection.SparqlQueryConnection;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Table;
@@ -18,6 +20,26 @@ import org.apache.jena.sparql.engine.binding.Binding;
 
 public class ResultSetMappers {
 
+	/**
+	 * Convert a mapper that takes a SparqlQueryConnection as input into one that accepts a
+	 * Dataset instead.
+	 * 
+	 * @param <T>
+	 * @param fn
+	 * @return
+	 */
+	public static <T> Function<Dataset, T> wrapForDataset(Function<? super SparqlQueryConnection, T> fn) {
+		return dataset -> {
+			T result;
+			try(SparqlQueryConnection conn = RDFConnectionFactory.connect(dataset)) {
+				result = fn.apply(conn);
+			}
+			return result;
+		};
+	}
+
+	
+	
 	public static Function<? super SparqlQueryConnection, Table> createTableMapper(Query rawKeyQuery) {
 		Query keyQuery = QueryUtils.applyOpTransform(rawKeyQuery, Algebra::unionDefaultGraph);
 	

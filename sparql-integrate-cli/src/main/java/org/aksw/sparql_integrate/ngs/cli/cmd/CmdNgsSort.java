@@ -18,6 +18,9 @@ public class CmdNgsSort {
 
 	@Parameter(names={"-R", "--random-sort"})
 	public boolean randomSort = false;
+
+	@Parameter(names={"-r", "--reverse"})
+	public boolean reverse = false;
 	
 	@Parameter(names={"-u", "--unique"})
 	public boolean unique = false;

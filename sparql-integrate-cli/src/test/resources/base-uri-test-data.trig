@@ -1,0 +1,5 @@
+@base <http://www.example.org/base-> .
+@prefix : <http://www.example.org/prefx-> .
+
+<s> <p> <o> .
+:x :y :z .
