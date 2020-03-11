@@ -3,8 +3,10 @@ package org.aksw.sparql_integrate.ngs.cli.main;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -28,15 +30,16 @@ import com.github.davidmoten.rx2.flowable.Transformers;
 
 import io.reactivex.Flowable;
 import io.reactivex.FlowableTransformer;
+import io.reactivex.Maybe;
 
 
 
 class ConsecutiveGraphMergerMergerForResourceInDataset
 	extends ConsecutiveNamedGraphMergerCore<GroupedResourceInDataset>
 {
-	protected Map<Node, List<Node>> graphToNodes;
+	protected Map<Node, List<Node>> graphToNodes= new HashMap<>();
 
-	public GroupedResourceInDataset accept(GroupedResourceInDataset grid) {
+	public Optional<GroupedResourceInDataset> accept(GroupedResourceInDataset grid) {
 		Dataset dataset = grid.getDataset();
 		
 		for(GraphNameAndNode e : grid.getGraphNameAndNodes()) {
@@ -53,16 +56,16 @@ class ConsecutiveGraphMergerMergerForResourceInDataset
 			}
 		}
 		
-		GroupedResourceInDataset result = super.accept(dataset);
+		Optional<GroupedResourceInDataset> result = super.accept(dataset);
 		return result;
 	}
 	
 	@Override
 	protected GroupedResourceInDataset mapResult(Set<Node> readyGraphs, Dataset dataset) {
-		List<GraphNameAndNode> gans = readyGraphs.stream()
+		Set<GraphNameAndNode> gans = readyGraphs.stream()
 			.flatMap(g -> graphToNodes.getOrDefault(g, Collections.emptyList())
 					.stream().map(n -> new GraphNameAndNode(g.getURI(), n)))
-			.collect(Collectors.toList());
+			.collect(Collectors.toSet());
 		
 		for(Node node : readyGraphs) {
 			graphToNodes.remove(node);
@@ -113,7 +116,7 @@ public class ResourceInDatasetFlowOps {
 			try(SparqlQueryConnection conn = RDFConnectionFactory.connect(dataset)) {
 				Collection<List<Node>> tuples = mapper.apply(conn);
 				
-				List<GraphNameAndNode> gan = tuples.stream()
+				Set<GraphNameAndNode> gan = tuples.stream()
 					.map(tuple -> {
 						Node g = tuple.get(0);
 						Node node = tuple.get(1);
@@ -122,7 +125,7 @@ public class ResourceInDatasetFlowOps {
 						
 						return new GraphNameAndNode(graphName, node);
 					})
-					.collect(Collectors.toList());
+					.collect(Collectors.toSet());
 				
 				GroupedResourceInDataset r = new GroupedResourceInDataset(dataset, gan);
 				return r;
@@ -152,9 +155,9 @@ public class ResourceInDatasetFlowOps {
 			    .map(list -> {
 	        		ResourceInDataset proto = list.get(0);
 	        		Dataset ds = proto.getDataset();
-	        		List<GraphNameAndNode> nodes = list.stream()
+	        		Set<GraphNameAndNode> nodes = list.stream()
 	        				.map(r -> new GraphNameAndNode(r.getGraphName(), r.asNode()))
-	        				.collect(Collectors.toList());
+	        				.collect(Collectors.toSet());
 	        		
 	        		return new GroupedResourceInDataset(ds, nodes);
 			    });
@@ -214,6 +217,16 @@ public class ResourceInDatasetFlowOps {
 		List<String> sortArgs = SysCalls.createDefaultSortSysCall(cmdSort);
 
 		return sysCallSort(keyMapper, sortArgs);
+	}
+
+	public static Flowable<GroupedResourceInDataset> mergeConsecutiveResourceInDatasets(Flowable<GroupedResourceInDataset> in) {
+		// FIXME This will break if we reuse the flow
+		// The merger has to be created on subscription
+		ConsecutiveGraphMergerMergerForResourceInDataset merger = new ConsecutiveGraphMergerMergerForResourceInDataset();
+		
+		return
+			in.flatMapMaybe(x -> Maybe.fromCallable(() -> merger.accept(x).orElse(null)))
+			.concatWith(Maybe.fromCallable(() -> merger.getPendingDataset().orElse(null)));
 	}
 
 	

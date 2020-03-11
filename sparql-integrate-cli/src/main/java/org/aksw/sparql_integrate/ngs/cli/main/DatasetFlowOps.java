@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.aksw.jena_sparql_api.io.json.GroupedResourceInDataset;
 import org.aksw.jena_sparql_api.io.json.TypeAdapterDataset;
 import org.aksw.jena_sparql_api.io.json.TypeAdapterNode;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
@@ -23,6 +22,7 @@ import com.google.gson.GsonBuilder;
 
 import io.reactivex.Flowable;
 import io.reactivex.FlowableTransformer;
+import io.reactivex.Maybe;
 
 public class DatasetFlowOps {
 
@@ -76,38 +76,15 @@ public class DatasetFlowOps {
 	
 	
 	
-	public static Flowable<GroupedResourceInDataset> mergeConsecutiveResourceInDatasets(Flowable<GroupedResourceInDataset> in) {
-		// FIXME This will break if we reuse the flow
-		// The merger has to be created on subscription
-		ConsecutiveGraphMergerMergerForResourceInDataset merger = new ConsecutiveGraphMergerMergerForResourceInDataset();
-		Iterable<GroupedResourceInDataset> pendingDs = () -> {
-			GroupedResourceInDataset ds = merger.getPendingDataset();
-			Iterator<GroupedResourceInDataset> x = ds.getDataset().isEmpty()
-					? ImmutableSet.<GroupedResourceInDataset>of().iterator()
-					: Iterators.singletonIterator(ds);
-			return x;
-		};
-		
-		return
-			in.map(merger::accept)
-			.concatWith(Flowable.fromIterable(pendingDs));
-	}
-
 	public static Flowable<Dataset> mergeConsecutiveDatasets(Flowable<Dataset> in) {
 		// FIXME This will break if we reuse the flow
 		// The merger has to be created on subscription
 		ConsecutiveNamedGraphMerger merger = new RDFDataMgrRx.ConsecutiveNamedGraphMerger();
-		Iterable<Dataset> pendingDs = () -> {
-			Dataset ds = merger.getPendingDataset();
-			Iterator<Dataset> x = ds.isEmpty()
-					? ImmutableSet.<Dataset>of().iterator()
-					: Iterators.singletonIterator(ds);
-			return x;
-		};
 		
 		return
-			in.map(merger::accept)
-			.concatWith(Flowable.fromIterable(pendingDs));
+			//in.map(merger::accept)
+			in.flatMapMaybe(x -> Maybe.fromCallable(() -> merger.accept(x).orElse(null)))
+			.concatWith(Maybe.fromCallable(() -> merger.getPendingDataset().orElse(null)));
 	}
 	
 	

@@ -1,7 +1,5 @@
 package org.aksw.sparql_integrate.ngs.cli.main;
 
-import java.util.Iterator;
-
 import org.aksw.jena_sparql_api.io.json.GroupedResourceInDataset;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSort;
@@ -16,6 +14,13 @@ import org.junit.Test;
 
 
 public class TestNamedGraphStreamOperators {
+
+//	@Test
+//	public void testDatasetGraphSize() {
+//		Dataset ds = RDFDataMgr.loadDataset("ngs-nato-phonetic-alphabet-single-graph.nq");
+//		System.out.println(ds.asDatasetGraph().size());
+//		
+//	}
 
 	/**
 	 * Assert that blank nodes did not get relabeled
