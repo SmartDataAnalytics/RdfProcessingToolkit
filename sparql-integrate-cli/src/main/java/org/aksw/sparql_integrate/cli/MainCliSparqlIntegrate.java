@@ -35,11 +35,16 @@ import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
+import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
+import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
+import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtIterator;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParser;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
+import org.aksw.jena_sparql_api.stmt.SparqlUpdateParser;
+import org.aksw.jena_sparql_api.stmt.SparqlUpdateParserImpl;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.jena_sparql_api.utils.NodeUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -56,6 +61,7 @@ import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.QueryParseException;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.query.Syntax;
 import org.apache.jena.rdf.model.Model;
@@ -69,8 +75,10 @@ import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
+import org.apache.jena.sparql.ARQException;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.OpAsQuery;
+import org.apache.jena.sparql.core.Prologue;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.lang.arq.ParseException;
 import org.eclipse.jetty.server.Server;
@@ -316,15 +324,25 @@ public class MainCliSparqlIntegrate {
 				// Extended SERVICE <> keyword implementation
 				JenaExtensionFs.registerFileServiceHandler();
 
+				Prologue p = new Prologue(pm);
+				SparqlQueryParser queryParser = SparqlQueryParserWrapperSelectShortForm.wrap(
+						SparqlQueryParserImpl.create(Syntax.syntaxARQ, p));
+
+				SparqlUpdateParser updateParser = SparqlUpdateParserImpl
+						.create(Syntax.syntaxARQ, new Prologue(p));
+
+				SparqlStmtParser sparqlParser = new SparqlStmtParserImpl(queryParser, updateParser, false);
+				//SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, pm, false);
+
+				
 				// System.out.println("ARGS: " + args.getOptionNames());
 				Dataset dataset = DatasetFactory.create();
 				try(RDFConnection actualConn = RDFConnectionFactoryEx.wrapWithContext(
 						RDFConnectionFactoryEx.wrapWithQueryParser(RDFConnectionFactory.connect(dataset),
 						str -> {
-							 SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, pm, false);
-							 SparqlStmt stmt = parser.apply(str);
-							 SparqlStmt r = SparqlStmtUtils.applyNodeTransform(stmt, x -> NodeUtils.substWithLookup(x, System::getenv));							 
-							 return r;
+							SparqlStmt stmt = sparqlParser.apply(str);
+							SparqlStmt r = SparqlStmtUtils.applyNodeTransform(stmt, x -> NodeUtils.substWithLookup(x, System::getenv));							 
+							return r;
 						}))) {
 
 				
@@ -406,6 +424,9 @@ public class MainCliSparqlIntegrate {
 							} else if(RDFLanguages.isQuads(rdfLang)) {
 								Dataset tmp = DatasetFactory.create();
 								InputStream in = SparqlStmtUtils.openInputStream(filename);
+								if(in == null) {
+									throw new FileNotFoundException(filename);
+								}
 								// FIXME Validate we are really using turtle here
 								parseTrigAgainstDataset(tmp, pm, in);
 								// Copy any prefixes from the parse back to our global prefix mapping
@@ -441,12 +462,35 @@ public class MainCliSparqlIntegrate {
 							}
 						} else {
 							
-							String baseIri = cwd == null ? null : cwd.toUri().toString();
-							SparqlStmtIterator it = SparqlStmtUtils.processFile(pm, filename, baseIri);
-						
+							// Check whether the argument is an inline sparql statement
+							Iterator<SparqlStmt> it;
+							SparqlStmtIterator itWithPos = null;
 							
+							try {
+								SparqlStmt sparqlStmt = sparqlParser.apply(filename);
+								it = Collections.singletonList(sparqlStmt).iterator();
+							} catch(ARQException e) {
+								
+								// Possibly not a sparql query
+								Throwable c = e.getCause();
+								if(c instanceof QueryParseException) {
+									QueryParseException qpe = (QueryParseException)c;
+									if(qpe.getLine() > 1 || qpe.getColumn() > 1) {
+										throw new RuntimeException(e);
+									}
+								}
+
+								String baseIri = cwd == null ? null : cwd.toUri().toString();
+								it = itWithPos = SparqlStmtUtils.processFile(pm, filename, baseIri);
+							}
+								
 							while(it.hasNext()) {
-								logger.info("Processing SPARQL statement at line " + it.getLine() + ", column " + it.getColumn());
+								if(itWithPos != null) {
+									logger.info("Processing SPARQL statement at line " + itWithPos.getLine() + ", column " + itWithPos.getColumn());
+								} else {
+									logger.info("Processing inline SPARQL argument " + filename);
+								}
+
 								SparqlStmt stmt = it.next();
 								
 								 if(isUnionDefaultGraphMode) {
