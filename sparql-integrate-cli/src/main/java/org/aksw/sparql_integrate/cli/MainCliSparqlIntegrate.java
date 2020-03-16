@@ -465,23 +465,30 @@ public class MainCliSparqlIntegrate {
 							// Check whether the argument is an inline sparql statement
 							Iterator<SparqlStmt> it;
 							SparqlStmtIterator itWithPos = null;
-							
-							try {
-								SparqlStmt sparqlStmt = sparqlParser.apply(filename);
-								it = Collections.singletonList(sparqlStmt).iterator();
-							} catch(ARQException e) {
-								
-								// Possibly not a sparql query
-								Throwable c = e.getCause();
-								if(c instanceof QueryParseException) {
-									QueryParseException qpe = (QueryParseException)c;
-									if(qpe.getLine() > 1 || qpe.getColumn() > 1) {
-										throw new RuntimeException(e);
-									}
-								}
 
+							try {
 								String baseIri = cwd == null ? null : cwd.toUri().toString();
 								it = itWithPos = SparqlStmtUtils.processFile(pm, filename, baseIri);
+							} catch(IOException e) {
+
+								try {
+									SparqlStmt sparqlStmt = sparqlParser.apply(filename);
+									it = Collections.singletonList(sparqlStmt).iterator();
+								} catch(ARQException f) {
+									// Possibly not a sparql query
+									Throwable c = f.getCause();
+									if(c instanceof QueryParseException) {
+										QueryParseException qpe = (QueryParseException)c;
+										boolean mentionsEncounteredSlash = Optional.ofNullable(qpe.getMessage())
+												.orElse("").contains("Encountered: \"/\"");
+
+										if(qpe.getLine() > 1 || (!mentionsEncounteredSlash && qpe.getColumn() > 1)) {
+											throw new RuntimeException(filename + " could not be openend and failed to parse as SPARQL query", f);
+										}
+									}
+
+									throw new IOException("Could not open " + filename, e);
+								}
 							}
 								
 							while(it.hasNext()) {
