@@ -11,12 +11,14 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
+import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.rx.FlowableTransformerLocalOrdering;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
@@ -62,6 +64,7 @@ import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.lang.arq.ParseException;
+import org.apache.jena.sparql.util.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +73,7 @@ import com.beust.jcommander.JCommander;
 import io.reactivex.Flowable;
 import io.reactivex.FlowableTransformer;
 import io.reactivex.functions.BiFunction;
+import io.reactivex.schedulers.Schedulers;
 
 public class MainCliNamedGraphStream {
 
@@ -248,9 +252,12 @@ public class MainCliNamedGraphStream {
 
 
 	// TODO We should add a context / function-env attribute
+	/*
 	public static BiConsumer<RDFConnection, SPARQLResultSink> createProcessor(
-			Collection<SparqlStmt> stmts) {
-		return (conn, sink) -> {
+			Collection<SparqlStmt> stmts, Consumer<Context> contextHandler) {
+		return (rawConn, sink) -> {
+			RDFConnection conn = RDFConnectionFactoryEx.wrapWithContext(rawConn, contextHandler); 
+			
 			SparqlStmtProcessor stmtProcessor = new SparqlStmtProcessor();
 		
 			for(SparqlStmt stmt : stmts) {
@@ -261,14 +268,15 @@ public class MainCliNamedGraphStream {
 	
 		};
 	}
+	*/
 
 	
-	public static Function<Dataset, Dataset> createMapper2(Collection<SparqlStmt> stmts) {
-		BiConsumer<RDFConnection, SPARQLResultSink> processor = createProcessor(stmts);
-		Function<Dataset, Dataset> result = createMapper(processor);
-		
-		return result;
-	}
+//	public static Function<Dataset, Dataset> createMapper2(Collection<SparqlStmt> stmts) {
+//		BiConsumer<RDFConnection, SPARQLResultSink> processor = createProcessor(stmts);
+//		Function<Dataset, Dataset> result = createMapper(processor);
+//		
+//		return result;
+//	}
 	
 	
 	
@@ -314,20 +322,32 @@ public class MainCliNamedGraphStream {
 	}
 
 	public static <T, X> FlowableTransformer<T, X> createMapper(
+			Consumer<Context> contextHandler,
 			PrefixMapping pm,
 			List<String> sparqlSrcs, //CmdNgsMap cmdMap,
 			Function<? super T, ? extends Dataset> getDataset,
 			BiFunction<? super T, ? super Dataset, X> setDataset) throws FileNotFoundException, IOException, ParseException {
 
-		BiConsumer<RDFConnection, SPARQLResultSink> processor =
+		BiConsumer<RDFConnection, SPARQLResultSink> coreProcessor =
 				MainCliSparqlStream.createProcessor(sparqlSrcs, pm, true);					
 
+		
+		// Wrap the core processor with modifiers for theo context
+		BiConsumer<RDFConnection, SPARQLResultSink> processor = (coreConn, sink) -> {
+			RDFConnection c = contextHandler == null
+				? coreConn
+				: RDFConnectionFactoryEx.wrapWithContext(coreConn, contextHandler);
+
+			coreProcessor.accept(c, sink);
+		};
+		
+		
 		Function<Dataset, Dataset> mapper = createMapper(processor);
 
 		return in -> in
 			.zipWith(() -> LongStream.iterate(0, i -> i + 1).iterator(), Maps::immutableEntry)
-////parallel			.parallel()
-////parallel			.runOn(Schedulers.computation())
+			.parallel()
+			.runOn(Schedulers.computation())
 			//.observeOn(Schedulers.computation())
 			.map(e -> {
 				T item = e.getKey();
@@ -343,29 +363,29 @@ public class MainCliNamedGraphStream {
 	//				String str = toString(tmp, RDFFormat.TRIG_PRETTY);
 	//				return Maps.immutableEntry(str, e.getValue());
 	//			})
-//parallel			.sequential()
+			.sequential()
 			.compose(FlowableTransformerLocalOrdering.transformer(0l, i -> i + 1, Entry::getValue))
 	//			.doAfterNext(System.out::println)
 			.map(Entry::getKey);
 	}
 
 
-	public static FlowableTransformer<Dataset, Dataset> createMapper(String ... sparqlResources) {
+	public static FlowableTransformer<Dataset, Dataset> createMapper(Consumer<Context> contextHandler, String ... sparqlResources) {
 		FlowableTransformer<Dataset, Dataset> result;
 		try {
-			result = createMapper(DefaultPrefixes.prefixes, Arrays.asList(sparqlResources), ds -> ds, (before, after) -> after);
+			result = createMapper(contextHandler, DefaultPrefixes.prefixes, Arrays.asList(sparqlResources), ds -> ds, (before, after) -> after);
 		} catch (IOException | ParseException e) {
 			throw new RuntimeException(e);
 		}
 		return result;
 	}
 	
-	public static Flowable<Dataset> mapCore(PrefixMapping pm, CmdNgsMap cmdMap)
+	public static Flowable<Dataset> mapCore(Consumer<Context> contextHandler, PrefixMapping pm, CmdNgsMap cmdFlatMap)
 			throws FileNotFoundException, IOException, ParseException {
 		
-		FlowableTransformer<Dataset, Dataset> mapper = createMapper(pm, cmdMap.stmts, ds -> ds, (before, after) -> after);
+		FlowableTransformer<Dataset, Dataset> mapper = createMapper(contextHandler, pm, cmdFlatMap.stmts, ds -> ds, (before, after) -> after);
 		
-		Flowable<Dataset> result = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdMap.nonOptionArgs, null, pm)
+		Flowable<Dataset> result = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdFlatMap.nonOptionArgs, null, pm)
 				.compose(mapper);
 
 		return result;

@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -29,6 +30,7 @@ import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.core.SparqlService;
 import org.aksw.jena_sparql_api.json.RdfJsonUtils;
 import org.aksw.jena_sparql_api.json.SPARQLResultVisitorSelectJsonOutput;
+import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
 import org.aksw.jena_sparql_api.sparql.ext.fs.JenaExtensionFs;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
@@ -402,70 +404,90 @@ public class MainCliSparqlIntegrate {
 						cwd = null;
 					} else {
 
-						Lang rdfLang = RDFDataMgr.determineLang(filename, null, null);
-						if(rdfLang != null) {
-							if(RDFLanguages.isTriples(rdfLang)) {
-								// What to do if stream mode is active?
-								
-								
-								Model tmp = ModelFactory.createDefaultModel();
-								InputStream in = SparqlStmtUtils.openInputStream(filename);
-								// FIXME Validate we are really using turtle here
-								parseTurtleAgainstModel(tmp, pm, in);
-								// Copy any prefixes from the parse back to our global prefix mapping
-								pm.setNsPrefixes(tmp);
-							
-	//							tmp.setNsPrefixes(pm);
-	//							RDFDataMgr.read(tmp, filename);
-								
-								// FIXME control which graph to load into - by default its the default graph
-								logger.info("RDF File detected, loading into default graph");
-								actualConn.load(tmp);
-							} else if(RDFLanguages.isQuads(rdfLang)) {
-								Dataset tmp = DatasetFactory.create();
-								InputStream in = SparqlStmtUtils.openInputStream(filename);
-								if(in == null) {
-									throw new FileNotFoundException(filename);
-								}
-								// FIXME Validate we are really using turtle here
-								parseTrigAgainstDataset(tmp, pm, in);
-								// Copy any prefixes from the parse back to our global prefix mapping
-								
-								Model m = tmp.getDefaultModel();
-								if(m != null) {
-									logger.info("Loading default graph");
-									actualConn.load(m);
-									pm.setNsPrefixes(m);
-								}
+						// Has the argument been processed?
+						boolean isProcessed = false;
 
-								logger.info("Loading named graphs");
-								int i = 0;
-								Iterator<String> it = tmp.listNames();
-								while(it.hasNext()) {
-									String name = it.next();
-									m = tmp.getNamedModel(name);
+						// Try as RDF file
+						try(TypedInputStream tmpIn = RDFDataMgrEx.open(filename, Arrays.asList(Lang.TRIG, Lang.NQUADS))) {
+							InputStream in = tmpIn.getInputStream();
+							
+							String contentType = tmpIn.getContentType();
+							logger.info("Detected format: " + contentType);
+							Lang rdfLang = contentType == null ? null : RDFLanguages.contentTypeToLang(contentType);
+							
+							//Lang rdfLang = RDFDataMgr.determineLang(filename, null, null);
+							if(rdfLang != null) {
+								isProcessed = true;
+
+								if(RDFLanguages.isTriples(rdfLang)) {
+									// What to do if stream mode is active?
+									
+									
+									Model tmp = ModelFactory.createDefaultModel();
+									//InputStream in = SparqlStmtUtils.openInputStream(filename);
+									// FIXME Validate we are really using turtle here
+									parseTurtleAgainstModel(tmp, pm, in);
+									// Copy any prefixes from the parse back to our global prefix mapping
+									pm.setNsPrefixes(tmp);
+								
+		//							tmp.setNsPrefixes(pm);
+		//							RDFDataMgr.read(tmp, filename);
+									
+									// FIXME control which graph to load into - by default its the default graph
+									logger.info("RDF File detected, loading into default graph");
+									actualConn.load(tmp);
+								} else if(RDFLanguages.isQuads(rdfLang)) {
+									Dataset tmp = DatasetFactory.create();
+									// InputStream in = SparqlStmtUtils.openInputStream(filename);
+									if(in == null) {
+										throw new FileNotFoundException(filename);
+									}
+									// FIXME Validate we are really using turtle here
+									parseTrigAgainstDataset(tmp, pm, in);
+									// Copy any prefixes from the parse back to our global prefix mapping
+									
+									Model m = tmp.getDefaultModel();
 									if(m != null) {
-										++i;
-										//logger.info("Loading named graph " + name);
-										actualConn.load(name, m);
+										logger.info("Loading default graph");
+										actualConn.load(m);
 										pm.setNsPrefixes(m);
 									}
-								}
-								logger.info("Loaded " + i + " named graphs");
-							
-	//							tmp.setNsPrefixes(pm);
-	//							RDFDataMgr.read(tmp, filename);
+	
+									logger.info("Loading named graphs");
+									int i = 0;
+									Iterator<String> it = tmp.listNames();
+									while(it.hasNext()) {
+										String name = it.next();
+										m = tmp.getNamedModel(name);
+										if(m != null) {
+											++i;
+											//logger.info("Loading named graph " + name);
+											actualConn.load(name, m);
+											pm.setNsPrefixes(m);
+										}
+									}
+									logger.info("Loaded " + i + " named graphs");
 								
-								// FIXME control which graph to load into - by default its the default graph
-							} else {
-								throw new RuntimeException("Unknown lang: " + rdfLang);
+		//							tmp.setNsPrefixes(pm);
+		//							RDFDataMgr.read(tmp, filename);
+									
+									// FIXME control which graph to load into - by default its the default graph
+								} else {
+									throw new RuntimeException("Unknown lang: " + rdfLang);
+								}
+
 							}
-						} else {
+						} catch(Exception e) {
+							logger.info("Probing for type of " + filename + ": not an RDF file");
+						}
+						
+						
+						if(!isProcessed) {
 							
 							// Check whether the argument is an inline sparql statement
 							Iterator<SparqlStmt> it;
 							SparqlStmtIterator itWithPos = null;
-
+							
 							try {
 								String baseIri = cwd == null ? null : cwd.toUri().toString();
 								it = itWithPos = SparqlStmtUtils.processFile(pm, filename, baseIri);

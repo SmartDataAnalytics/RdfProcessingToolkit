@@ -6,11 +6,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
-import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
-import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsMap;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSort;
 import org.apache.jena.graph.Node;
@@ -18,10 +15,13 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.rdfconnection.SparqlQueryConnection;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.shared.PrefixMapping;
+import org.apache.jena.sparql.engine.http.Service;
 import org.apache.jena.sparql.lang.arq.ParseException;
+import org.apache.jena.sparql.util.Context;
 
 import io.reactivex.Flowable;
 import io.reactivex.FlowableTransformer;
+import joptsimple.internal.Strings;
 
 public class NamedGraphStreamOps {
 
@@ -56,7 +56,15 @@ public class NamedGraphStreamOps {
 
 	public static void map(PrefixMapping pm, CmdNgsMap cmdMap)
 			throws FileNotFoundException, IOException, ParseException {
-		Flowable<Dataset> flow = MainCliNamedGraphStream.mapCore(pm, cmdMap);
+		
+		String timeoutSpec = cmdMap.serviceTimeout;
+		Consumer<Context> contextHandler = cxt -> {
+			if(!Strings.isNullOrEmpty(timeoutSpec)) {
+				cxt.set(Service.queryTimeout, timeoutSpec);
+			}
+		};
+		
+		Flowable<Dataset> flow = MainCliNamedGraphStream.mapCore(contextHandler, pm, cmdMap);
 		
 		Consumer<List<Dataset>> writer = RDFDataMgrRx.createDatasetBatchWriter(System.out, RDFFormat.TRIG_PRETTY);
 	

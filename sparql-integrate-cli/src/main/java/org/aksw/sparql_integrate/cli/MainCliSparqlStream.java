@@ -29,7 +29,8 @@ import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
-import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.algebra.TransformUnionQuery;
+import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.DatasetGraphFactory;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.lang.arq.ParseException;
@@ -143,9 +144,10 @@ public class MainCliSparqlStream {
 				stmt = SparqlStmtUtils.optimizePrefixes(stmt);
 				
 //				 if(cliArgs.isUnionDefaultGraphMode) {
-					 stmt = SparqlStmtUtils.applyOpTransform(stmt, Algebra::unionDefaultGraph);
+					 stmt = SparqlStmtUtils.applyOpTransform(stmt, op -> Transformer
+							 .transformSkipService(new TransformUnionQuery(), op));
 //				 }
-
+					 //Algebra.unionDefaultGraph(op)
 				 stmts.add(stmt);
 			}
 

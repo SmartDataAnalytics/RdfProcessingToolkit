@@ -25,13 +25,9 @@ public class NamedGraphStreamCliUtils {
 	 * @return
 	 */
 	public static TypedInputStream open(List<String> args, Collection<Lang> probeLangs) {
-		String src;
-		if(args.isEmpty()) {
-			src = null;
-		} else {
-			String first = args.get(0);
-			src = first.equals("-") ? null : first;
-		}
+		String src = args.isEmpty()
+				? "-"
+				:args.get(0);
 	
 		TypedInputStream result = RDFDataMgrEx.open(src, probeLangs);
 		return result;
