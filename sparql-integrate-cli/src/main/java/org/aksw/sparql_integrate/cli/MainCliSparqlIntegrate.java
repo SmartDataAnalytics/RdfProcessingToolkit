@@ -30,6 +30,7 @@ import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.core.SparqlService;
 import org.aksw.jena_sparql_api.json.RdfJsonUtils;
 import org.aksw.jena_sparql_api.json.SPARQLResultVisitorSelectJsonOutput;
+import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
 import org.aksw.jena_sparql_api.sparql.ext.fs.JenaExtensionFs;
@@ -103,251 +104,253 @@ import com.google.gson.JsonArray;
 @SpringBootApplication
 public class MainCliSparqlIntegrate {
 
-	private static final Logger logger = LoggerFactory.getLogger(MainCliSparqlIntegrate.class);
+    private static final Logger logger = LoggerFactory.getLogger(MainCliSparqlIntegrate.class);
 
-	
-	public static TypedInputStream prependWithPrefixes(TypedInputStream in, PrefixMapping prefixMapping) {
-		InputStream combined = prependWithPrefixes(in.getInputStream(), prefixMapping);
-		
-		TypedInputStream result = new TypedInputStream(combined, in.getMediaType(), in.getBaseURI());
-		return result;
-		
-	}
 
-	public static InputStream prependWithPrefixes(InputStream in, PrefixMapping prefixMapping) {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		Model tmp = ModelFactory.createDefaultModel();
-		tmp.setNsPrefixes(prefixMapping);
-		RDFDataMgr.write(baos, tmp, Lang.TURTLE);
+    public static TypedInputStream prependWithPrefixes(TypedInputStream in, PrefixMapping prefixMapping) {
+        InputStream combined = prependWithPrefixes(in.getInputStream(), prefixMapping);
+
+        TypedInputStream result = new TypedInputStream(combined, in.getMediaType(), in.getBaseURI());
+        return result;
+
+    }
+
+    public static InputStream prependWithPrefixes(InputStream in, PrefixMapping prefixMapping) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Model tmp = ModelFactory.createDefaultModel();
+        tmp.setNsPrefixes(prefixMapping);
+        RDFDataMgr.write(baos, tmp, Lang.TURTLE);
 //		System.out.println("Prefix str: " + baos.toString());
-		
-		InputStream combined = new SequenceInputStream(
-				new ByteArrayInputStream(baos.toByteArray()), in);
 
-		return combined;
-	}
-	
-	public static Dataset parseTrigAgainstDataset(Dataset dataset, PrefixMapping prefixMapping, InputStream in) {
-		// Add namespaces from the spec
-		// Apparently Jena does not support parsing against
-		// namespace prefixes previously declared in the target model
-		// Therefore we serialize the prefix declarations and prepend them to the
-		// input stream of the dataset		
+        InputStream combined = new SequenceInputStream(
+                new ByteArrayInputStream(baos.toByteArray()), in);
+
+        return combined;
+    }
+
+    public static Dataset parseTrigAgainstDataset(Dataset dataset, PrefixMapping prefixMapping, InputStream in) {
+        // Add namespaces from the spec
+        // Apparently Jena does not support parsing against
+        // namespace prefixes previously declared in the target model
+        // Therefore we serialize the prefix declarations and prepend them to the
+        // input stream of the dataset
 //		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 //		Model tmp = ModelFactory.createDefaultModel();
 //		tmp.setNsPrefixes(prefixMapping);
 //		RDFDataMgr.write(baos, tmp, Lang.TURTLE);
 ////		System.out.println("Prefix str: " + baos.toString());
-//		
+//
 //		InputStream combined = new SequenceInputStream(
 //				new ByteArrayInputStream(baos.toByteArray()), in);
-//		
-		InputStream combined = prependWithPrefixes(in, prefixMapping);
-		RDFDataMgr.read(dataset, combined, Lang.TRIG);
-		
-		return dataset;
-	}
+//
+        InputStream combined = prependWithPrefixes(in, prefixMapping);
+        RDFDataMgr.read(dataset, combined, Lang.TRIG);
 
-	
-	public static Model parseTurtleAgainstModel(Model model, PrefixMapping prefixMapping, InputStream in) {
-		// Add namespaces from the spec
-		// Apparently Jena does not support parsing against
-		// namespace prefixes previously declared in the target model
-		// Therefore we serialize the prefix declarations and prepend them to the
-		// input stream of the dataset		
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		Model tmp = ModelFactory.createDefaultModel();
-		tmp.setNsPrefixes(prefixMapping);
-		RDFDataMgr.write(baos, tmp, Lang.TURTLE);
-		
-		InputStream combined = new SequenceInputStream(
-				new ByteArrayInputStream(baos.toByteArray()), in);
-		
-		RDFDataMgr.read(model, combined, Lang.TURTLE);
-		
-		return model;
-	}
-	
-	public static final String cwdKey = "cwd=";
-	public static final String cwdResetCwd = "cwd";
+        return dataset;
+    }
 
-	
-	@Configuration
-	public static class ConfigSparqlIntegrate {
 
-		@Bean
-		public ApplicationRunner applicationRunner() {
-			return args -> {
+    public static Model parseTurtleAgainstModel(Model model, PrefixMapping prefixMapping, InputStream in) {
+        // Add namespaces from the spec
+        // Apparently Jena does not support parsing against
+        // namespace prefixes previously declared in the target model
+        // Therefore we serialize the prefix declarations and prepend them to the
+        // input stream of the dataset
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Model tmp = ModelFactory.createDefaultModel();
+        tmp.setNsPrefixes(prefixMapping);
+        RDFDataMgr.write(baos, tmp, Lang.TURTLE);
 
-				Gson gson = new GsonBuilder().setPrettyPrinting().create();
-				
-				if(false)
-				{
-					Model model = RDFDataMgr.loadModel("/home/raven/Projects/limbo/git/claus-playground-dataset/04-dcat-sparql/target/release.dcat.ttl");
-					//RDFDataMgr.write(System.out, model, RDFFormat.JSONLD);
-					
-					try(QueryExecution qe = QueryExecutionFactory.create("SELECT ?ds ?dist { ?ds <http://www.w3.org/ns/dcat#distribution> ?dist }", model)) {
-						ResultSet rs = qe.execSelect();
-						JsonArray jsonElement = RdfJsonUtils.toJson(rs, 3, false);
+        InputStream combined = new SequenceInputStream(
+                new ByteArrayInputStream(baos.toByteArray()), in);
+
+        RDFDataMgr.read(model, combined, Lang.TURTLE);
+
+        return model;
+    }
+
+    public static final String cwdKey = "cwd=";
+    public static final String cwdResetCwd = "cwd";
+
+
+    @Configuration
+    public static class ConfigSparqlIntegrate {
+
+        @Bean
+        public ApplicationRunner applicationRunner() {
+            return args -> {
+
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+                if(false)
+                {
+                    Model model = RDFDataMgr.loadModel("/home/raven/Projects/limbo/git/claus-playground-dataset/04-dcat-sparql/target/release.dcat.ttl");
+                    //RDFDataMgr.write(System.out, model, RDFFormat.JSONLD);
+
+                    try(QueryExecution qe = QueryExecutionFactory.create("SELECT ?ds ?dist { ?ds <http://www.w3.org/ns/dcat#distribution> ?dist }", model)) {
+                        ResultSet rs = qe.execSelect();
+                        JsonArray jsonElement = RdfJsonUtils.toJson(rs, 3, false);
 //						while(rs.hasNext()) {
 //							JsonElement jsonElement = toJson(rs.next().get("s"), 3);
 //							String str = gson.toJson(jsonElement);
-//							
+//
 //							System.out.println(str);
 //						}
-						String str = gson.toJson(jsonElement);
-						
-						System.out.println(str);
+                        String str = gson.toJson(jsonElement);
 
-						//String str = ResultSetFormatter..asText(rs);
-						//System.out.println(str);
+                        System.out.println(str);
+
+                        //String str = ResultSetFormatter..asText(rs);
+                        //System.out.println(str);
 //						JsonLDWriter writer = new JsonLDWriter(RDFFormat.JSONLD_PRETTY);
 //						writer.wri
-					}
-					if(true) { return; };
-				}
-				
-				
-				List<String> filenames = new ArrayList<>(args.getNonOptionArgs());//args.getOptionValues("sparql");
+                    }
+                    if(true) { return; };
+                }
+
+
+                List<String> filenames = new ArrayList<>(args.getNonOptionArgs());//args.getOptionValues("sparql");
 
 
 
-				// If an out file is given, it is only overridden if the process succeeds.
-				// This allows scripts to 'update' an existing file without
-				// corrupting it if something goes wrong
-				String outFilename = Optional.ofNullable(args.getOptionValues("o"))
-						.orElse(Collections.emptyList()).stream()
-						.findFirst().orElse(null);
+                // If an out file is given, it is only overridden if the process succeeds.
+                // This allows scripts to 'update' an existing file without
+                // corrupting it if something goes wrong
+                String outFilename = Optional.ofNullable(args.getOptionValues("o"))
+                        .orElse(Collections.emptyList()).stream()
+                        .findFirst().orElse(null);
 
-				String ioFilename = Optional.ofNullable(args.getOptionValues("io"))
-						.orElse(Collections.emptyList()).stream()
-						.findFirst().orElse(null);
+                String ioFilename = Optional.ofNullable(args.getOptionValues("io"))
+                        .orElse(Collections.emptyList()).stream()
+                        .findFirst().orElse(null);
 
-				// io uses the given file also as input
-				if(ioFilename != null) {
-					if(outFilename != null) {
-						throw new RuntimeException("--o and --io are mutually exclusive");
-					}
-					
-					outFilename = ioFilename;
-					filenames.listIterator().add(outFilename);
-				}
+                // io uses the given file also as input
+                if(ioFilename != null) {
+                    if(outFilename != null) {
+                        throw new RuntimeException("--o and --io are mutually exclusive");
+                    }
 
-				
-				Path outFile;
-				Path tmpFile;
-				OutputStream operationalOut;
-				if(!Strings.isNullOrEmpty(outFilename)) {
-					outFile = Paths.get(outFilename).toAbsolutePath();
-					if(Files.exists(outFile) && !Files.isWritable(outFile)) { 
-						throw new RuntimeException("Cannot write to specified output file: " + outFile.toAbsolutePath());
-					}
-					
-					Path parent = outFile.getParent();
-					String tmpName = "." + outFile.getFileName().toString() + ".tmp";
-					tmpFile = parent.resolve(tmpName);
+                    outFilename = ioFilename;
+                    filenames.listIterator().add(outFilename);
+                }
 
-					operationalOut = Files.newOutputStream(tmpFile,
-							StandardOpenOption.CREATE,
-							StandardOpenOption.WRITE,
-							StandardOpenOption.TRUNCATE_EXISTING);
-					
-					// Register a shutdown hook to delete the temporary file
-					Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-						try {
-							operationalOut.close();
-							Files.deleteIfExists(tmpFile);
-						} catch (IOException e) {
-							throw new RuntimeException(e);
-						}
-					}));
-					
-				} else {
-					operationalOut = System.out;
-					outFile = null;
-					tmpFile = null;
-				}
-								
-				
-				SparqlStmtProcessor processor = new SparqlStmtProcessor();
-				processor.setLogTime(true);
-				processor.setShowQuery(args.containsOption("q"));
-				processor.setShowAlgebra(args.containsOption("a"));
-				
-				Collection<RDFFormat> availableOutRdfFormats = RDFWriterRegistry.registered();
-				String tmpOutFormat = Optional.ofNullable(args.getOptionValues("w"))
-						.orElse(Collections.emptyList()).stream()
-						.findFirst().orElse(null);
 
-				String optOutFormat = args.containsOption("jq")
-						? "jq"
-						: tmpOutFormat;
-				boolean jsonFlat = args.containsOption("flat");
-				int depth = Integer.valueOf(Optional.ofNullable(args.getOptionValues("depth"))
-						.orElse(Collections.emptyList()).stream()
-						.findFirst().orElse("3"));
+                Path outFile;
+                Path tmpFile;
+                OutputStream operationalOut;
+                if(!Strings.isNullOrEmpty(outFilename)) {
+                    outFile = Paths.get(outFilename).toAbsolutePath();
+                    if(Files.exists(outFile) && !Files.isWritable(outFile)) {
+                        throw new RuntimeException("Cannot write to specified output file: " + outFile.toAbsolutePath());
+                    }
 
-				PrefixMapping pm = new PrefixMappingImpl();
-				pm.setNsPrefixes(DefaultPrefixes.prefixes);
-				JenaExtensionUtil.addPrefixes(pm);
+                    Path parent = outFile.getParent();
+                    String tmpName = "." + outFile.getFileName().toString() + ".tmp";
+                    tmpFile = parent.resolve(tmpName);
 
-				JenaExtensionHttp.addPrefixes(pm);
-				
-				SPARQLResultSink sink;
-				RDFFormat outFormat = null;
-				if(optOutFormat != null) {
-					if(optOutFormat.equals("jq")) {
-						sink = new SPARQLResultVisitorSelectJsonOutput(null, depth, jsonFlat, gson);
-					} else {
-				        outFormat = availableOutRdfFormats.stream()
-				        		.filter(f -> f.toString().equalsIgnoreCase(optOutFormat))
-				        		.findFirst()
-								.orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + availableOutRdfFormats));
-				        
-						Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm);
-						sink = new SPARQLResultSinkQuads(quadSink);
-					}			        
-				} else {
-					Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm);
-					sink = new SPARQLResultSinkQuads(quadSink);
-				}
+                    operationalOut = Files.newOutputStream(tmpFile,
+                            StandardOpenOption.CREATE,
+                            StandardOpenOption.WRITE,
+                            StandardOpenOption.TRUNCATE_EXISTING);
 
-				boolean isUnionDefaultGraphMode = args.containsOption("u");
+                    // Register a shutdown hook to delete the temporary file
+                    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                        try {
+                            operationalOut.close();
+                            Files.deleteIfExists(tmpFile);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }));
+
+                } else {
+                    operationalOut = System.out;
+                    outFile = null;
+                    tmpFile = null;
+                }
+
+
+                SparqlStmtProcessor processor = new SparqlStmtProcessor();
+                processor.setLogTime(true);
+                processor.setShowQuery(args.containsOption("q"));
+                processor.setShowAlgebra(args.containsOption("a"));
+
+                Collection<RDFFormat> availableOutRdfFormats = RDFWriterRegistry.registered();
+                String tmpOutFormat = Optional.ofNullable(args.getOptionValues("w"))
+                        .orElse(Collections.emptyList()).stream()
+                        .findFirst().orElse(null);
+
+                String optOutFormat = args.containsOption("jq")
+                        ? "jq"
+                        : tmpOutFormat;
+                boolean jsonFlat = args.containsOption("flat");
+                int depth = Integer.valueOf(Optional.ofNullable(args.getOptionValues("depth"))
+                        .orElse(Collections.emptyList()).stream()
+                        .findFirst().orElse("3"));
+
+                PrefixMapping globalPrefixes = new PrefixMappingImpl();
+                globalPrefixes.setNsPrefixes(DefaultPrefixes.prefixes);
+                JenaExtensionUtil.addPrefixes(globalPrefixes);
+
+                JenaExtensionHttp.addPrefixes(globalPrefixes);
+
+
+                SPARQLResultSink sink;
+                RDFFormat outFormat = null;
+                Dataset outputDataset = DatasetFactoryEx.createInsertOrderPreservingDataset();
+                if(optOutFormat != null) {
+                    if(optOutFormat.equals("jq")) {
+                        sink = new SPARQLResultVisitorSelectJsonOutput(null, depth, jsonFlat, gson);
+                    } else {
+                        outFormat = availableOutRdfFormats.stream()
+                                .filter(f -> f.toString().equalsIgnoreCase(optOutFormat))
+                                .findFirst()
+                                .orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + availableOutRdfFormats));
+
+                        Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, globalPrefixes, outputDataset);
+                        sink = new SPARQLResultSinkQuads(quadSink);
+                    }
+                } else {
+                    Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, globalPrefixes, outputDataset);
+                    sink = new SPARQLResultSinkQuads(quadSink);
+                }
+
+                boolean isUnionDefaultGraphMode = args.containsOption("u");
 
 //				System.out.println(outFormat);
-				
-				//SPARQLResultVisitor
-				//Sink<Quad> sink = SparqlStmtUtils.createSink(outFormat, System.out);
-				
 
-				// TODO Replace with our RDFDataMgrEx 
-				
+                //SPARQLResultVisitor
+                //Sink<Quad> sink = SparqlStmtUtils.createSink(outFormat, System.out);
 
-				// Extended SERVICE <> keyword implementation
-				JenaExtensionFs.registerFileServiceHandler();
 
-				Prologue p = new Prologue(pm);
-				SparqlQueryParser queryParser = SparqlQueryParserWrapperSelectShortForm.wrap(
-						SparqlQueryParserImpl.create(Syntax.syntaxARQ, p));
+                // TODO Replace with our RDFDataMgrEx
 
-				SparqlUpdateParser updateParser = SparqlUpdateParserImpl
-						.create(Syntax.syntaxARQ, new Prologue(p));
 
-				SparqlStmtParser sparqlParser = new SparqlStmtParserImpl(queryParser, updateParser, false);
-				//SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, pm, false);
+                // Extended SERVICE <> keyword implementation
+                JenaExtensionFs.registerFileServiceHandler();
 
-				
-				// System.out.println("ARGS: " + args.getOptionNames());
-				Dataset dataset = DatasetFactory.create();
-				try(RDFConnection actualConn = RDFConnectionFactoryEx.wrapWithContext(
-						RDFConnectionFactoryEx.wrapWithQueryParser(RDFConnectionFactory.connect(dataset),
-						str -> {
-							SparqlStmt stmt = sparqlParser.apply(str);
-							SparqlStmt r = SparqlStmtUtils.applyNodeTransform(stmt, x -> NodeUtils.substWithLookup(x, System::getenv));							 
-							return r;
-						}))) {
+                Prologue p = new Prologue(globalPrefixes);
+                SparqlQueryParser queryParser = SparqlQueryParserWrapperSelectShortForm.wrap(
+                        SparqlQueryParserImpl.create(Syntax.syntaxARQ, p));
 
-				
+                SparqlUpdateParser updateParser = SparqlUpdateParserImpl
+                        .create(Syntax.syntaxARQ, new Prologue(p));
+
+                SparqlStmtParser sparqlParser = new SparqlStmtParserImpl(queryParser, updateParser, false);
+                //SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, pm, false);
+
+
+                // System.out.println("ARGS: " + args.getOptionNames());
+                Dataset dataset = DatasetFactory.create();
+                try(RDFConnection actualConn = RDFConnectionFactoryEx.wrapWithContext(
+                        RDFConnectionFactoryEx.wrapWithQueryParser(RDFConnectionFactory.connect(dataset),
+                        str -> {
+                            SparqlStmt stmt = sparqlParser.apply(str);
+                            SparqlStmt r = SparqlStmtUtils.applyNodeTransform(stmt, x -> NodeUtils.substWithLookup(x, System::getenv));
+                            return r;
+                        }))) {
+
+
 //				RDFConnection connQuery = isUnionDefaultGraphMode
 //						? RDFConnectionFactory.connect(DatasetFactory.wrap(dataset.getUnionModel()))
 //						: null;
@@ -362,305 +365,315 @@ public class MainCliSparqlIntegrate {
 //}
 //						return;
 //				}
-				
-				
-				if (filenames == null || filenames.isEmpty()) {
-					throw new RuntimeException(
-							"No SPARQL files specified.");
-				}
 
-				Stopwatch sw = Stopwatch.createStarted();
 
-				Path cwd = null;
+                if (filenames == null || filenames.isEmpty()) {
+                    throw new RuntimeException(
+                            "No SPARQL files specified.");
+                }
+
+                Stopwatch sw = Stopwatch.createStarted();
+
+                Path cwd = null;
 
 //				String streamKey = "stream";
 
-				for (String filename : filenames) {
-					logger.info("Processing argument '" + filename + "'");
-					
-					
-					
-					// Determine the current working directory
+                for (String filename : filenames) {
+                    logger.info("Processing argument '" + filename + "'");
+
+
+
+                    // Determine the current working directory
 //					System.out.println(filename);
 //					System.out.println("foo: " + SparqlStmtUtils.extractBaseIri(filename));
 
-					// Just use class path resources for pre-configured queries
+                    // Just use class path resources for pre-configured queries
 //					if(filename.equals("emit")) {
 //						processSparqlStmtWrapper(conn, new SparqlStmtQuery("CONSTRUCT WHERE { ?s ?p ?o }"), sink::send);
-//					} else 
-					if(filename.startsWith(cwdKey)) {
-						String cwdValue = filename.substring(cwdKey.length()).trim();
+//					} else
+                    if(filename.startsWith(cwdKey)) {
+                        String cwdValue = filename.substring(cwdKey.length()).trim();
 
-						if(cwd == null) {
-							cwd = Paths.get(StandardSystemProperty.USER_DIR.value());
-						}
-						
-						cwd = cwd.resolve(cwdValue);
-						logger.info("Pinned working directory to " + cwd);
-					} else if(filename.equals(cwdResetCwd)) {
-						// If cwdValue is an empty string, reset the working directory
-						logger.info("Unpinned working directory");
+                        if(cwd == null) {
+                            cwd = Paths.get(StandardSystemProperty.USER_DIR.value());
+                        }
 
-						cwd = null;
-					} else {
+                        cwd = cwd.resolve(cwdValue);
+                        logger.info("Pinned working directory to " + cwd);
+                    } else if(filename.equals(cwdResetCwd)) {
+                        // If cwdValue is an empty string, reset the working directory
+                        logger.info("Unpinned working directory");
 
-						// Has the argument been processed?
-						boolean isProcessed = false;
+                        cwd = null;
+                    } else {
 
-						// Try as RDF file
-						try(TypedInputStream tmpIn = RDFDataMgrEx.open(filename, Arrays.asList(Lang.TRIG, Lang.NQUADS))) {
-							InputStream in = tmpIn.getInputStream();
-							
-							String contentType = tmpIn.getContentType();
-							logger.info("Detected format: " + contentType);
-							Lang rdfLang = contentType == null ? null : RDFLanguages.contentTypeToLang(contentType);
-							
-							//Lang rdfLang = RDFDataMgr.determineLang(filename, null, null);
-							if(rdfLang != null) {
-								isProcessed = true;
+                        // Has the argument been processed?
+                        boolean isProcessed = false;
 
-								if(RDFLanguages.isTriples(rdfLang)) {
-									// What to do if stream mode is active?
-									
-									
-									Model tmp = ModelFactory.createDefaultModel();
-									//InputStream in = SparqlStmtUtils.openInputStream(filename);
-									// FIXME Validate we are really using turtle here
-									parseTurtleAgainstModel(tmp, pm, in);
-									// Copy any prefixes from the parse back to our global prefix mapping
-									pm.setNsPrefixes(tmp);
-								
-		//							tmp.setNsPrefixes(pm);
-		//							RDFDataMgr.read(tmp, filename);
-									
-									// FIXME control which graph to load into - by default its the default graph
-									logger.info("RDF File detected, loading into default graph");
-									actualConn.load(tmp);
-								} else if(RDFLanguages.isQuads(rdfLang)) {
-									Dataset tmp = DatasetFactory.create();
-									// InputStream in = SparqlStmtUtils.openInputStream(filename);
-									if(in == null) {
-										throw new FileNotFoundException(filename);
-									}
-									// FIXME Validate we are really using turtle here
-									parseTrigAgainstDataset(tmp, pm, in);
-									// Copy any prefixes from the parse back to our global prefix mapping
-									
-									Model m = tmp.getDefaultModel();
-									if(m != null) {
-										logger.info("Loading default graph");
-										actualConn.load(m);
-										pm.setNsPrefixes(m);
-									}
-	
-									logger.info("Loading named graphs");
-									int i = 0;
-									Iterator<String> it = tmp.listNames();
-									while(it.hasNext()) {
-										String name = it.next();
-										m = tmp.getNamedModel(name);
-										if(m != null) {
-											++i;
-											//logger.info("Loading named graph " + name);
-											actualConn.load(name, m);
-											pm.setNsPrefixes(m);
-										}
-									}
-									logger.info("Loaded " + i + " named graphs");
-								
-		//							tmp.setNsPrefixes(pm);
-		//							RDFDataMgr.read(tmp, filename);
-									
-									// FIXME control which graph to load into - by default its the default graph
-								} else {
-									throw new RuntimeException("Unknown lang: " + rdfLang);
-								}
+                        // Try as RDF file
+                        try(TypedInputStream tmpIn = RDFDataMgrEx.open(filename, Arrays.asList(Lang.TRIG, Lang.NQUADS))) {
+                            InputStream in = tmpIn.getInputStream();
 
-							}
-						} catch(Exception e) {
-							logger.info("Probing for type of " + filename + ": not an RDF file");
-						}
-						
-						
-						if(!isProcessed) {
-							
-							// Check whether the argument is an inline sparql statement
-							Iterator<SparqlStmt> it;
-							SparqlStmtIterator itWithPos = null;
-							
-							try {
-								String baseIri = cwd == null ? null : cwd.toUri().toString();
-								it = itWithPos = SparqlStmtUtils.processFile(pm, filename, baseIri);
-							} catch(IOException e) {
+                            String contentType = tmpIn.getContentType();
+                            logger.info("Detected format: " + contentType);
+                            Lang rdfLang = contentType == null ? null : RDFLanguages.contentTypeToLang(contentType);
 
-								try {
-									SparqlStmt sparqlStmt = sparqlParser.apply(filename);
-									it = Collections.singletonList(sparqlStmt).iterator();
-								} catch(ARQException f) {
-									// Possibly not a sparql query
-									Throwable c = f.getCause();
-									if(c instanceof QueryParseException) {
-										QueryParseException qpe = (QueryParseException)c;
-										boolean mentionsEncounteredSlash = Optional.ofNullable(qpe.getMessage())
-												.orElse("").contains("Encountered: \"/\"");
+                            //Lang rdfLang = RDFDataMgr.determineLang(filename, null, null);
+                            if(rdfLang != null) {
+                                isProcessed = true;
 
-										if(qpe.getLine() > 1 || (!mentionsEncounteredSlash && qpe.getColumn() > 1)) {
-											throw new RuntimeException(filename + " could not be openend and failed to parse as SPARQL query", f);
-										}
-									}
-
-									throw new IOException("Could not open " + filename, e);
-								}
-							}
-								
-							while(it.hasNext()) {
-								if(itWithPos != null) {
-									logger.info("Processing SPARQL statement at line " + itWithPos.getLine() + ", column " + itWithPos.getColumn());
-								} else {
-									logger.info("Processing inline SPARQL argument " + filename);
-								}
-
-								SparqlStmt stmt = it.next();
-								
-								 if(isUnionDefaultGraphMode) {
-									 stmt = SparqlStmtUtils.applyOpTransform(stmt, Algebra::unionDefaultGraph);
-								 }
-								 
-
-								processor.processSparqlStmt(actualConn, stmt, sink);
-							}
-						}
-					}
-				}
-				
-				sink.flush();
-				sink.close();				
-				
-				logger.info("SPARQL overall execution finished after " + sw.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
-				
-				if(outFile != null) {
-					operationalOut.flush();
-					operationalOut.close();
-					Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
-				}
-
-				// Path path = Paths.get(args[0]);
-				// //"/home/raven/Projects/Eclipse/trento-bike-racks/datasets/bikesharing/trento-bike-sharing.json");
-				// String str = ""; //new String(Files.readAllBytes(path),
-				// StandardCharsets.ISO_8859_1);
-				// System.out.println(str);
-				//
-
-				// model.setNsPrefixes(PrefixMapping.Extended);
-				// model.getResource(path.toAbsolutePath().toUri().toString()).addLiteral(RDFS.label,
-				// str);
+                                if(RDFLanguages.isTriples(rdfLang)) {
+                                    // What to do if stream mode is active?
 
 
-				
-				// QueryExecutionFactory qef = FluentQueryExecutionFactory.from(model)
-				// .config()
-				// //.withParser(sparqlStmtParser)
-				// //.withPrefixes(PrefixMapping.Extended, false)
-				// .end().create();
+                                    Model tmp = ModelFactory.createDefaultModel();
+                                    //InputStream in = SparqlStmtUtils.openInputStream(filename);
+                                    // FIXME Validate we are really using turtle here
+                                    parseTurtleAgainstModel(tmp, globalPrefixes, in);
+                                    // Copy any prefixes from the parse back to our global prefix mapping
+                                    globalPrefixes.setNsPrefixes(tmp);
 
-				if (args.containsOption("server")) {
-					SparqlService sparqlService = FluentSparqlService.from(actualConn).create();
+        //							tmp.setNsPrefixes(pm);
+        //							RDFDataMgr.read(tmp, filename);
 
-					Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
-							pm, false);// .getQueryParser();
+                                    // FIXME control which graph to load into - by default its the default graph
+                                    logger.info("RDF File detected, loading into default graph");
+                                    actualConn.load(tmp);
+                                } else if(RDFLanguages.isQuads(rdfLang)) {
+                                    Dataset tmp = DatasetFactory.create();
+                                    // InputStream in = SparqlStmtUtils.openInputStream(filename);
+                                    if(in == null) {
+                                        throw new FileNotFoundException(filename);
+                                    }
+                                    // FIXME Validate we are really using turtle here
+                                    parseTrigAgainstDataset(tmp, globalPrefixes, in);
+                                    // Copy any prefixes from the parse back to our global prefix mapping
 
-					int port = 7532;
-					Server server = FactoryBeanSparqlServer.newInstance()
-							.setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
-							.setSparqlStmtParser(sparqlStmtParser).setPort(port).create();
+                                    Model m = tmp.getDefaultModel();
+                                    if(m != null) {
+                                        logger.info("Loading default graph");
+                                        actualConn.load(m);
+                                        globalPrefixes.setNsPrefixes(m);
+                                    }
 
-					server.start();
+                                    logger.info("Loading named graphs");
+                                    int i = 0;
+                                    Iterator<String> it = tmp.listNames();
+                                    while(it.hasNext()) {
+                                        String name = it.next();
+                                        m = tmp.getNamedModel(name);
+                                        if(m != null) {
+                                            ++i;
+                                            //logger.info("Loading named graph " + name);
+                                            actualConn.load(name, m);
+                                            globalPrefixes.setNsPrefixes(m);
+                                        }
+                                    }
+                                    logger.info("Loaded " + i + " named graphs");
 
-					URI browseUri = new URI("http://localhost:" + port + "/sparql");
-					if (Desktop.isDesktopSupported()) {
-						Desktop.getDesktop().browse(browseUri);
-					} else {
-						System.err.println("SPARQL service with in-memory result dataset running at " + browseUri);
-					}
+        //							tmp.setNsPrefixes(pm);
+        //							RDFDataMgr.read(tmp, filename);
 
-					server.join();
-				}
-				}
-			};
-		}
-	}
+                                    // FIXME control which graph to load into - by default its the default graph
+                                } else {
+                                    throw new RuntimeException("Unknown lang: " + rdfLang);
+                                }
+
+                            }
+                        } catch(Exception e) {
+                            logger.info("Probing for type of " + filename + ": not an RDF file");
+                        }
+
+
+                        if(!isProcessed) {
+
+                            // Check whether the argument is an inline sparql statement
+                            Iterator<SparqlStmt> it;
+                            SparqlStmtIterator itWithPos = null;
+
+                            try {
+                                String baseIri = cwd == null ? null : cwd.toUri().toString();
+                                it = itWithPos = SparqlStmtUtils.processFile(globalPrefixes, filename, baseIri);
+                            } catch(IOException e) {
+
+                                try {
+                                    SparqlStmt sparqlStmt = sparqlParser.apply(filename);
+                                    it = Collections.singletonList(sparqlStmt).iterator();
+                                } catch(ARQException f) {
+                                    // Possibly not a sparql query
+                                    Throwable c = f.getCause();
+                                    if(c instanceof QueryParseException) {
+                                        QueryParseException qpe = (QueryParseException)c;
+                                        boolean mentionsEncounteredSlash = Optional.ofNullable(qpe.getMessage())
+                                                .orElse("").contains("Encountered: \"/\"");
+
+                                        if(qpe.getLine() > 1 || (!mentionsEncounteredSlash && qpe.getColumn() > 1)) {
+                                            throw new RuntimeException(filename + " could not be openend and failed to parse as SPARQL query", f);
+                                        }
+                                    }
+
+                                    throw new IOException("Could not open " + filename, e);
+                                }
+                            }
+
+                            while(it.hasNext()) {
+                                if(itWithPos != null) {
+                                    logger.info("Processing SPARQL statement at line " + itWithPos.getLine() + ", column " + itWithPos.getColumn());
+                                } else {
+                                    logger.info("Processing inline SPARQL argument " + filename);
+                                }
+
+                                SparqlStmt stmt = it.next();
+
+                                PrefixMapping stmtPrefixes = stmt.isQuery()
+                                            ? stmt.getQuery().getPrefixMapping()
+                                            : stmt.isUpdateRequest()
+                                                ? stmt.getUpdateRequest().getPrefixMapping()
+                                                : null;
+
+                                if(stmtPrefixes != null) {
+                                    globalPrefixes.setNsPrefixes(stmtPrefixes);
+                                }
+
+                                if(isUnionDefaultGraphMode) {
+                                    stmt = SparqlStmtUtils.applyOpTransform(stmt, Algebra::unionDefaultGraph);
+                                }
+
+
+                                processor.processSparqlStmt(actualConn, stmt, sink);
+                            }
+                        }
+                    }
+                }
+
+                sink.flush();
+                sink.close();
+
+                logger.info("SPARQL overall execution finished after " + sw.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
+
+                if(outFile != null) {
+                    operationalOut.flush();
+                    operationalOut.close();
+                    Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                // Path path = Paths.get(args[0]);
+                // //"/home/raven/Projects/Eclipse/trento-bike-racks/datasets/bikesharing/trento-bike-sharing.json");
+                // String str = ""; //new String(Files.readAllBytes(path),
+                // StandardCharsets.ISO_8859_1);
+                // System.out.println(str);
+                //
+
+                // model.setNsPrefixes(PrefixMapping.Extended);
+                // model.getResource(path.toAbsolutePath().toUri().toString()).addLiteral(RDFS.label,
+                // str);
+
+
+
+                // QueryExecutionFactory qef = FluentQueryExecutionFactory.from(model)
+                // .config()
+                // //.withParser(sparqlStmtParser)
+                // //.withPrefixes(PrefixMapping.Extended, false)
+                // .end().create();
+
+                if (args.containsOption("server")) {
+                    SparqlService sparqlService = FluentSparqlService.from(actualConn).create();
+
+                    Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
+                            globalPrefixes, false);// .getQueryParser();
+
+                    int port = 7532;
+                    Server server = FactoryBeanSparqlServer.newInstance()
+                            .setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
+                            .setSparqlStmtParser(sparqlStmtParser).setPort(port).create();
+
+                    server.start();
+
+                    URI browseUri = new URI("http://localhost:" + port + "/sparql");
+                    if (Desktop.isDesktopSupported()) {
+                        Desktop.getDesktop().browse(browseUri);
+                    } else {
+                        System.err.println("SPARQL service with in-memory result dataset running at " + browseUri);
+                    }
+
+                    server.join();
+                }
+                }
+            };
+        }
+    }
 
 //	public static void processSparqlStmtWrapper(RDFConnection conn, SparqlStmt stmt, boolean showAlgebra, SPARQLResultVisitor sink) {
 //		Stopwatch sw2 = Stopwatch.createStarted();
 //		processSparqlStmt(conn, stmt, showAlgebra, sink);
 //		logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
 //	}
-	
-	// TODO Maybe show algebra is better for trace logging?
-	
-	
 
-	public static void init() {
-		
-		// Disable creation of a derby.log file ; triggered by the GeoSPARQL module
-		System.setProperty("derby.stream.error.field", "org.aksw.sparql_integrate.cli.DerbyUtil.DEV_NULL");
-		
-		// Init geosparql module
-		GeoSPARQLConfig.setupNoIndex();
+    // TODO Maybe show algebra is better for trace logging?
 
-		// Retain blank node labels
-		// Note, that it is not sufficient to enable only input or output bnode labels
-		ARQ.enableBlankNodeResultLabels();
-		
-		// Jena (at least up to 3.11.0) handles pseudo iris for blank nodes on the parser level
-		// {@link org.apache.jena.sparql.lang.ParserBase}
-		// This means, that blank nodes in SERVICE clauses would not be passed on as such
-		ARQ.setFalse(ARQ.constantBNodeLabels);
-		
-		JenaExtensionHttp.register(() -> HttpClientBuilder.create().build());		
-	}
 
-	public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
-		init();
-				
-		if(false) {
-			// https://issues.apache.org/jira/browse/JENA-1843
-			Query expected = QueryFactory.create("SELECT * { ?s ?p ?o BIND(?s AS ?x) BIND(?x AS ?y) }");
-			Query actual = OpAsQuery.asQuery(Algebra.compile(expected));
-			System.out.println(expected);
-			System.out.println(actual);
-		}
 
-		if(false) {
-			// https://issues.apache.org/jira/browse/JENA-1844
-			Query expected = QueryFactory.create("SELECT * { ?s ?p ?o BIND(?s AS ?x) } ORDER BY ?s");
-			Query actual = OpAsQuery.asQuery(Algebra.compile(expected));
-			System.out.println(expected);
-			System.out.println(actual);
-		}
-		
-		if(false) {
-			// https://issues.apache.org/jira/browse/JENA-1848
-			System.out.println("Benchmarking trig loading/writing");
-			Stopwatch sw = Stopwatch.createStarted();
-			Dataset ds = RDFDataMgr.loadDataset("../ngs/test-data.trig");
-			System.out.println("Loaded " + Iterators.size(ds.listNames()) + " graphs in in " + sw.elapsed(TimeUnit.SECONDS) + " seconds");
-			sw.reset().start();
-			RDFDataMgr.write(new NullOutputStream(), ds, RDFFormat.TRIG_PRETTY);
-			System.out.println("Writing time in seconds: " + sw.elapsed(TimeUnit.SECONDS));
-		}
+    public static void init() {
 
-		if(false) {
-			return;
-		}
+        // Disable creation of a derby.log file ; triggered by the GeoSPARQL module
+        System.setProperty("derby.stream.error.field", "org.aksw.sparql_integrate.cli.DerbyUtil.DEV_NULL");
 
-		
-		// ARQ.setTrue(ARQ.inputGraphBNodeLabels); // Only this gives in the output bnode labels such as b2
-		
-		// Only this gives in the output bnode labels such as e6fb382e90ae1d44f42275492ab4c907
-		// This means, that input blank nodes were renamed
-		// ARQ.setTrue(ARQ.outputGraphBNodeLabels);
-		
+        // Init geosparql module
+        GeoSPARQLConfig.setupNoIndex();
+
+        // Retain blank node labels
+        // Note, that it is not sufficient to enable only input or output bnode labels
+        ARQ.enableBlankNodeResultLabels();
+
+        // Jena (at least up to 3.11.0) handles pseudo iris for blank nodes on the parser level
+        // {@link org.apache.jena.sparql.lang.ParserBase}
+        // This means, that blank nodes in SERVICE clauses would not be passed on as such
+        ARQ.setFalse(ARQ.constantBNodeLabels);
+
+        JenaExtensionHttp.register(() -> HttpClientBuilder.create().build());
+    }
+
+    public static void main(String[] args) throws URISyntaxException, FileNotFoundException, IOException, ParseException {
+        init();
+
+        if(false) {
+            // https://issues.apache.org/jira/browse/JENA-1843
+            Query expected = QueryFactory.create("SELECT * { ?s ?p ?o BIND(?s AS ?x) BIND(?x AS ?y) }");
+            Query actual = OpAsQuery.asQuery(Algebra.compile(expected));
+            System.out.println(expected);
+            System.out.println(actual);
+        }
+
+        if(false) {
+            // https://issues.apache.org/jira/browse/JENA-1844
+            Query expected = QueryFactory.create("SELECT * { ?s ?p ?o BIND(?s AS ?x) } ORDER BY ?s");
+            Query actual = OpAsQuery.asQuery(Algebra.compile(expected));
+            System.out.println(expected);
+            System.out.println(actual);
+        }
+
+        if(false) {
+            // https://issues.apache.org/jira/browse/JENA-1848
+            System.out.println("Benchmarking trig loading/writing");
+            Stopwatch sw = Stopwatch.createStarted();
+            Dataset ds = RDFDataMgr.loadDataset("../ngs/test-data.trig");
+            System.out.println("Loaded " + Iterators.size(ds.listNames()) + " graphs in in " + sw.elapsed(TimeUnit.SECONDS) + " seconds");
+            sw.reset().start();
+            RDFDataMgr.write(new NullOutputStream(), ds, RDFFormat.TRIG_PRETTY);
+            System.out.println("Writing time in seconds: " + sw.elapsed(TimeUnit.SECONDS));
+        }
+
+        if(false) {
+            return;
+        }
+
+
+        // ARQ.setTrue(ARQ.inputGraphBNodeLabels); // Only this gives in the output bnode labels such as b2
+
+        // Only this gives in the output bnode labels such as e6fb382e90ae1d44f42275492ab4c907
+        // This means, that input blank nodes were renamed
+        // ARQ.setTrue(ARQ.outputGraphBNodeLabels);
+
 
 //		if(true) {
 //			try(RDFConnection conn = RDFConnectionFactory.connect("http://localhost:8890/sparql")) {
@@ -687,12 +700,12 @@ public class MainCliSparqlIntegrate {
 ////			String file = "/home/raven/tmp/test.txt";
 //			String str = Files.lines(Paths.get(file), Charset.forName("cesu-8")).collect(Collectors.joining("\n"));
 //			System.out.println(str);
-//			
+//
 //			return;
 //			//Model m = RDFDataMgr.loadModel("/home/raven/tmp/strange-dbpedia-data.nt");
 //			//RDFDataMgr.write(System.out, m, RDFFormat.TURTLE_PRETTY);
 //		}
-		
+
 //		Function<String, SparqlStmt> parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, true);
 //		parser.apply("INSERT { ?s ?p ?o } WHERE { <env://TEST> ?p ? o . {SELECT ?x {)
 
@@ -702,26 +715,26 @@ public class MainCliSparqlIntegrate {
 //			System.out.println(stmt);
 //			return;
 //		}
-		
+
 //		if(true) {
 //			System.out.println(new URI("http://foo.bar/baz/bak//").resolve(".."));//.normalize());
 //			return;
 //		}
-		
 
-		// RDFConnection conn = RDFConnectionFactory.connect(DatasetFactory.create());
-		// System.out.println(ResultSetFormatter.asText(conn.query("SELECT * {
-		// BIND('test' AS ?s) }").execSelect()));
-		// System.out.println(ResultSetFormatter.asText(conn.query("SELECT * { {}
-		// BIND('test' AS ?s) }").execSelect()));
 
-		try (ConfigurableApplicationContext ctx = new SpringApplicationBuilder().sources(ConfigSparqlIntegrate.class)
-				.bannerMode(Banner.Mode.OFF)
-				// If true, Desktop.isDesktopSupported() will return false, meaning we can't
-				// launch a browser
-				.headless(false).web(false).run(args)) {
+        // RDFConnection conn = RDFConnectionFactory.connect(DatasetFactory.create());
+        // System.out.println(ResultSetFormatter.asText(conn.query("SELECT * {
+        // BIND('test' AS ?s) }").execSelect()));
+        // System.out.println(ResultSetFormatter.asText(conn.query("SELECT * { {}
+        // BIND('test' AS ?s) }").execSelect()));
 
-		}
-	}
-	
+        try (ConfigurableApplicationContext ctx = new SpringApplicationBuilder().sources(ConfigSparqlIntegrate.class)
+                .bannerMode(Banner.Mode.OFF)
+                // If true, Desktop.isDesktopSupported() will return false, meaning we can't
+                // launch a browser
+                .headless(false).web(false).run(args)) {
+
+        }
+    }
+
 }

@@ -6,7 +6,7 @@
 
 	<groupId>org.aksw.sparql-integrate</groupId>
 	<artifactId>sparql-integrate-parent</artifactId>
-	<version>1.0.2-SNAPSHOT</version>
+	<version>1.0.3-SNAPSHOT</version>
 
 	<packaging>pom</packaging>
 
@@ -57,10 +57,10 @@
 
 	<properties>
 		<jena.version>3.14.0</jena.version>
-		<jena-sparql-api.subversion>1-SNAPSHOT</jena-sparql-api.subversion>
+		<jena-sparql-api.subversion>2-SNAPSHOT</jena-sparql-api.subversion>
 
 		<jena-sparql-api.version>${jena.version}-${jena-sparql-api.subversion}</jena-sparql-api.version>
-		<!-- <jena-sparql-api.version>3.14.0-1-SNAPSHOT</jena-sparql-api.version> -->
+<!--		<jena-sparql-api.version>3.14.0-2-SNAPSHOT</jena-sparql-api.version> -->
 
 		<spring-boot.version>1.5.8.RELEASE</spring-boot.version>
 

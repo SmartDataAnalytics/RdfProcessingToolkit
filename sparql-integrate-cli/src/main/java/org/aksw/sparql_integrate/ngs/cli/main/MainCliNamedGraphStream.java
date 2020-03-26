@@ -322,11 +322,11 @@ public class MainCliNamedGraphStream {
 	}
 
 	public static <T, X> FlowableTransformer<T, X> createMapper(
-			Consumer<Context> contextHandler,
 			PrefixMapping pm,
 			List<String> sparqlSrcs, //CmdNgsMap cmdMap,
 			Function<? super T, ? extends Dataset> getDataset,
-			BiFunction<? super T, ? super Dataset, X> setDataset) throws FileNotFoundException, IOException, ParseException {
+			BiFunction<? super T, ? super Dataset, X> setDataset,
+			Consumer<Context> contextHandler) throws FileNotFoundException, IOException, ParseException {
 
 		BiConsumer<RDFConnection, SPARQLResultSink> coreProcessor =
 				MainCliSparqlStream.createProcessor(sparqlSrcs, pm, true);					
@@ -373,7 +373,7 @@ public class MainCliNamedGraphStream {
 	public static FlowableTransformer<Dataset, Dataset> createMapper(Consumer<Context> contextHandler, String ... sparqlResources) {
 		FlowableTransformer<Dataset, Dataset> result;
 		try {
-			result = createMapper(contextHandler, DefaultPrefixes.prefixes, Arrays.asList(sparqlResources), ds -> ds, (before, after) -> after);
+			result = createMapper(DefaultPrefixes.prefixes, Arrays.asList(sparqlResources), ds -> ds, (before, after) -> after, contextHandler);
 		} catch (IOException | ParseException e) {
 			throw new RuntimeException(e);
 		}
@@ -383,7 +383,7 @@ public class MainCliNamedGraphStream {
 	public static Flowable<Dataset> mapCore(Consumer<Context> contextHandler, PrefixMapping pm, CmdNgsMap cmdFlatMap)
 			throws FileNotFoundException, IOException, ParseException {
 		
-		FlowableTransformer<Dataset, Dataset> mapper = createMapper(contextHandler, pm, cmdFlatMap.stmts, ds -> ds, (before, after) -> after);
+		FlowableTransformer<Dataset, Dataset> mapper = createMapper(pm, cmdFlatMap.stmts, ds -> ds, (before, after) -> after, contextHandler);
 		
 		Flowable<Dataset> result = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdFlatMap.nonOptionArgs, null, pm)
 				.compose(mapper);

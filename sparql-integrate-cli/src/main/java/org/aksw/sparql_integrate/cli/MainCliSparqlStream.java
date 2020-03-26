@@ -12,6 +12,7 @@ import java.util.function.BiConsumer;
 
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.json.SPARQLResultVisitorSelectJsonOutput;
+import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
@@ -58,6 +59,7 @@ public class MainCliSparqlStream {
 		Collection<RDFFormat> availableOutRdfFormats = RDFWriterRegistry.registered();
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
+		Dataset outDataset = DatasetFactoryEx.createInsertOrderPreservingDataset();
 		RDFFormat outFormat = null;
 		if(optOutFormat != null) {
 			if(optOutFormat.equals("jq")) {
@@ -70,11 +72,11 @@ public class MainCliSparqlStream {
 		        		.findFirst()
 						.orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + availableOutRdfFormats));
 		        
-				Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm);
+				Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm, outDataset);
 				result = new SPARQLResultSinkQuads(quadSink);
 			}			        
 		} else {
-			Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm);
+			Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm, outDataset);
 			result = new SPARQLResultSinkQuads(quadSink);
 		}
 

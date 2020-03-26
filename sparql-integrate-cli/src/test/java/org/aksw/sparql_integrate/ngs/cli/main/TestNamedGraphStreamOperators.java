@@ -1,25 +1,71 @@
 package org.aksw.sparql_integrate.ngs.cli.main;
 
-import java.util.AbstractMap.SimpleEntry;
-import java.util.UUID;
-import java.util.stream.IntStream;
-import java.util.stream.LongStream;
+import java.util.Iterator;
 
 import org.aksw.jena_sparql_api.io.json.GroupedResourceInDataset;
+import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
+import org.aksw.jena_sparql_api.rx.DatasetGraphQuadsImpl;
+import org.aksw.jena_sparql_api.rx.QuadTableFromNestedMaps;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
+import org.aksw.jena_sparql_api.rx.TripleTableFromQuadTable;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSort;
 import org.apache.jena.graph.NodeFactory;
+import org.apache.jena.graph.Triple;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.core.mem.DatasetGraphInMemory;
+import org.apache.jena.sparql.core.mem.QuadTable;
+import org.apache.jena.sparql.core.mem.TripleTable;
 import org.junit.Assert;
 import org.junit.Test;
-
-import io.reactivex.Flowable;
 
 
 public class TestNamedGraphStreamOperators {
 
+	@Test
+	public void testInsertOrderRetainingGraph() {
+		Dataset ds = RDFDataMgr.loadDataset("ngs-nato-phonetic-alphabet.trig");
+
+		try(QueryExecution qe = QueryExecutionFactory.create("CONSTRUCT { ?s ?p ?o } { GRAPH ?g { ?s <http://xmlns.com/foaf/0.1/name> ?l ; ?p ?o } } ORDER BY ?l ?s ?p ?o", ds)) {
+			
+
+			if(false) {
+				Iterator<Triple> it = qe.execConstructTriples();
+				while(it.hasNext()) {
+					System.out.println(it.next());
+				}
+			} else {
+				
+				Dataset dsx = DatasetFactoryEx.createInsertOrderPreservingDataset();
+				//Dataset dsx = DatasetFactory.wrap(new DatasetGraphQuadsImpl(new QuadTableLinkedHashMap()));
+				Model tgt = dsx.getDefaultModel();
+				
+				tgt.setNsPrefix("foo", "http://foo.bar/");
+				
+				// Model tgt = ModelFactory.createModelForGraph(m); //GraphFactory.createDataBagGraph(ThresholdPolicyFactory.never()));
+				qe.execConstruct(tgt);
+				tgt.listStatements().mapWith(Statement::asTriple).forEachRemaining(System.out::println);
+
+				System.out.println("Output:");
+				RDFDataMgr.write(System.out, dsx, RDFFormat.TRIG_PRETTY);
+			}
+			
+			
+			//ResulTSetFormqe.execSelect();
+		}
+		
+	}
+	
+	
 //    @Test
 //    public void testRaceCondition() {
 //        Stream.generate(() -> QueryFactory.create("SELECT * { BIND(SHA256('foo') AS ?bar) }"))
