@@ -1,7 +1,5 @@
 package org.aksw.sparql_integrate.ngs.cli.main;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.function.Consumer;
@@ -17,11 +15,13 @@ import org.apache.jena.rdfconnection.SparqlQueryConnection;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.engine.http.Service;
-import org.apache.jena.sparql.lang.arq.ParseException;
 import org.apache.jena.sparql.util.Context;
 
 import io.reactivex.Flowable;
 import io.reactivex.FlowableTransformer;
+import io.reactivex.Maybe;
+import io.reactivex.Scheduler;
+import io.reactivex.schedulers.Schedulers;
 import joptsimple.internal.Strings;
 
 public class NamedGraphStreamOps {
@@ -67,15 +67,24 @@ public class NamedGraphStreamOps {
 
         Flowable<Dataset> flow = MainCliNamedGraphStream.mapCore(contextHandler, pm, cmdMap);
 
-        RDFDataMgrRx.writeDatasets(flow, out, RDFFormat.TRIG_PRETTY);
+//        RDFDataMgrRx.writeDatasets(flow, out, RDFFormat.TRIG_PRETTY);
 
-//        Consumer<List<Dataset>> writer = RDFDataMgrRx.createDatasetBatchWriter(out, RDFFormat.TRIG_PRETTY);
+        Consumer<List<Dataset>> writer = RDFDataMgrRx.createDatasetBatchWriter(out, RDFFormat.TRIG_PRETTY);
 //
-//        flow
-//            .buffer(1)
-//            //.timeout(1, TimeUnit.SECONDS)
-//            .blockingForEach(writer::accept)
-//            ;
+        Flowable<Throwable> tmp = flow
+            .buffer(1)
+            //.timeout(1, TimeUnit.SECONDS)
+            .flatMapMaybe(item -> {
+                writer.accept(item);
+                return Maybe.<Throwable>empty();
+            })
+            .onErrorReturn(t -> t);
+
+        Throwable e = tmp.singleElement().blockingGet();
+        if(e != null) {
+            throw new RuntimeException(e);
+        }
+
 
     //flow.blockingForEach(System.out::print);
 

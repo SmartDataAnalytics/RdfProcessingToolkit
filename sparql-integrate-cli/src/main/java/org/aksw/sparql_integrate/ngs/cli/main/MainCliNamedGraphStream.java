@@ -68,6 +68,8 @@ import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.lang.arq.ParseException;
 import org.apache.jena.sparql.util.Context;
+import org.apache.poi.ss.formula.functions.T;
+import org.locationtech.jts.awt.PointShapeFactory.X;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,7 +112,7 @@ public class MainCliNamedGraphStream {
     public static void main(String[] args) throws Exception {
         try {
             mainCore(args);
-        } catch(Exception e) {
+        } catch(Throwable e) {
             //String str = ExceptionUtils.getRootCauseMessage(e);
             String str = ExceptionUtils.getStackTrace(e);
             if(str.toLowerCase().contains("broken pipe")) {
@@ -365,8 +367,8 @@ public class MainCliNamedGraphStream {
 
         return in -> in
             .zipWith(() -> LongStream.iterate(0, i -> i + 1).iterator(), Maps::immutableEntry)
-            //.parallel(Runtime.getRuntime().availableProcessors(), 8) // Prefetch only few items
-            //.runOn(Schedulers.io())
+            .parallel() //Runtime.getRuntime().availableProcessors(), 8) // Prefetch only few items
+            .runOn(Schedulers.io())
             //.observeOn(Schedulers.computation())
             .map(e -> {
                 T item = e.getKey();
@@ -382,7 +384,7 @@ public class MainCliNamedGraphStream {
     //				String str = toString(tmp, RDFFormat.TRIG_PRETTY);
     //				return Maps.immutableEntry(str, e.getValue());
     //			})
-            //.sequential()
+            .sequential()
             .compose(FlowableTransformerLocalOrdering.transformer(0l, i -> i + 1, (a, b) -> a - b, Entry::getValue))
             //.sorted((a, b) -> Objects.compare(a.getValue(), b.getValue(), Ordering.natural().re))
             // .sequential()
