@@ -2,6 +2,7 @@ package org.aksw.sparql_integrate.ngs.cli.main;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -25,61 +26,63 @@ import joptsimple.internal.Strings;
 
 public class NamedGraphStreamOps {
 
-	/**
-		 * 
-		 * @param cmdSort
-		 * @param keyQueryParser
-		 * @param format Serialization format when passing data to the system sort command
-		 * @return
-		 */
-		public static FlowableTransformer<Dataset, Dataset> createSystemSorter(
-				CmdNgsSort cmdSort,
-				SparqlQueryParser keyQueryParser) {
-			String keyArg = cmdSort.key;
-			
-			Function<? super SparqlQueryConnection, Node> keyMapper = MainCliNamedGraphStream.createKeyMapper(keyArg, keyQueryParser, MainCliNamedGraphStream.DISTINCT_NAMED_GRAPHS);
-			
-	
+    /**
+         *
+         * @param cmdSort
+         * @param keyQueryParser
+         * @param format Serialization format when passing data to the system sort command
+         * @return
+         */
+        public static FlowableTransformer<Dataset, Dataset> createSystemSorter(
+                CmdNgsSort cmdSort,
+                SparqlQueryParser keyQueryParser) {
+            String keyArg = cmdSort.key;
+
+            Function<? super SparqlQueryConnection, Node> keyMapper = MainCliNamedGraphStream.createKeyMapper(keyArg, keyQueryParser, MainCliNamedGraphStream.DISTINCT_NAMED_GRAPHS);
+
+
 //			keyQueryParser = keyQueryParser != null
 //					? keyQueryParser
 //					: SparqlQueryParserWrapperSelectShortForm.wrap(SparqlQueryParserImpl.create(DefaultPrefixes.prefixes));
-	
-			// SPARQL      : SELECT ?key { ?s eg:hash ?key }
-			// Short SPARQL: ?key { ?s eg:hash ?key }
-			// LDPath      : issue: what to use as the root?
-	
-	
-			List<String> sortArgs = SysCalls.createDefaultSortSysCall(cmdSort);
-	
-			return DatasetFlowOps.sysCallSort(keyMapper, sortArgs, cmdSort.merge);
-		}
 
-	public static void map(PrefixMapping pm, CmdNgsMap cmdMap)
-			throws FileNotFoundException, IOException, ParseException {
-		
-		String timeoutSpec = cmdMap.serviceTimeout;
-		Consumer<Context> contextHandler = cxt -> {
-			if(!Strings.isNullOrEmpty(timeoutSpec)) {
-				cxt.set(Service.queryTimeout, timeoutSpec);
-			}
-		};
-		
-		Flowable<Dataset> flow = MainCliNamedGraphStream.mapCore(contextHandler, pm, cmdMap);
-		
-		Consumer<List<Dataset>> writer = RDFDataMgrRx.createDatasetBatchWriter(System.out, RDFFormat.TRIG_PRETTY);
-	
-		flow
-			.buffer(1000)
-			//.timeout(1, TimeUnit.SECONDS)
-			.blockingForEach(writer::accept)
-			;
-	
-	//flow.blockingForEach(System.out::print);
-	
-	//flow.forEach(System.out::println);
-	// RDFDataMgrRx.writeDatasets(flow, new NullOutputStream(), RDFFormat.TRIG);
-	//RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG_PRETTY);
-	
-	}
+            // SPARQL      : SELECT ?key { ?s eg:hash ?key }
+            // Short SPARQL: ?key { ?s eg:hash ?key }
+            // LDPath      : issue: what to use as the root?
+
+
+            List<String> sortArgs = SysCalls.createDefaultSortSysCall(cmdSort);
+
+            return DatasetFlowOps.sysCallSort(keyMapper, sortArgs, cmdSort.merge);
+        }
+
+    public static void map(PrefixMapping pm, CmdNgsMap cmdMap, OutputStream out)
+            throws Exception {
+
+        String timeoutSpec = cmdMap.serviceTimeout;
+        Consumer<Context> contextHandler = cxt -> {
+            if(!Strings.isNullOrEmpty(timeoutSpec)) {
+                cxt.set(Service.queryTimeout, timeoutSpec);
+            }
+        };
+
+        Flowable<Dataset> flow = MainCliNamedGraphStream.mapCore(contextHandler, pm, cmdMap);
+
+        Consumer<List<Dataset>> writer = RDFDataMgrRx.createDatasetBatchWriter(out, RDFFormat.TRIG_PRETTY);
+
+        // RDFDataMgrRx.writeDatasets(flow, out, RDFFormat.TRIG_PRETTY);
+
+        flow
+            .buffer(1)
+            //.timeout(1, TimeUnit.SECONDS)
+            .blockingForEach(writer::accept)
+            ;
+
+    //flow.blockingForEach(System.out::print);
+
+    //flow.forEach(System.out::println);
+    // RDFDataMgrRx.writeDatasets(flow, new NullOutputStream(), RDFFormat.TRIG);
+    //RDFDataMgrRx.writeDatasets(flow, System.out, RDFFormat.TRIG_PRETTY);
+
+    }
 
 }

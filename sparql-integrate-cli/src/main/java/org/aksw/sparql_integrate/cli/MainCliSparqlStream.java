@@ -216,7 +216,7 @@ public class MainCliSparqlStream {
 
 		// TODO Reuse code from sparql integrate
 		
-		MainCliSparqlIntegrate.init();
+		MainCliSparqlIntegrate.configureGlobalSettings();
 		
 		PrefixMapping pm = new PrefixMappingImpl();
 		pm.setNsPrefixes(DefaultPrefixes.prefixes);
