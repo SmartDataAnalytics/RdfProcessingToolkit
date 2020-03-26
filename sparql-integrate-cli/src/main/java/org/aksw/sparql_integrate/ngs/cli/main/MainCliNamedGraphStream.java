@@ -365,8 +365,8 @@ public class MainCliNamedGraphStream {
 
         return in -> in
             .zipWith(() -> LongStream.iterate(0, i -> i + 1).iterator(), Maps::immutableEntry)
-            .parallel(Runtime.getRuntime().availableProcessors(), 8) // Prefetch only few items
-            .runOn(Schedulers.io())
+            //.parallel(Runtime.getRuntime().availableProcessors(), 8) // Prefetch only few items
+            //.runOn(Schedulers.io())
             //.observeOn(Schedulers.computation())
             .map(e -> {
                 T item = e.getKey();
@@ -382,7 +382,7 @@ public class MainCliNamedGraphStream {
     //				String str = toString(tmp, RDFFormat.TRIG_PRETTY);
     //				return Maps.immutableEntry(str, e.getValue());
     //			})
-            .sequential()
+            //.sequential()
             .compose(FlowableTransformerLocalOrdering.transformer(0l, i -> i + 1, (a, b) -> a - b, Entry::getValue))
             //.sorted((a, b) -> Objects.compare(a.getValue(), b.getValue(), Ordering.natural().re))
             // .sequential()

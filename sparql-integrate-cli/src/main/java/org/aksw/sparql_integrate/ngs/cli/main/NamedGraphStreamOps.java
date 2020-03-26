@@ -67,15 +67,15 @@ public class NamedGraphStreamOps {
 
         Flowable<Dataset> flow = MainCliNamedGraphStream.mapCore(contextHandler, pm, cmdMap);
 
-        Consumer<List<Dataset>> writer = RDFDataMgrRx.createDatasetBatchWriter(out, RDFFormat.TRIG_PRETTY);
+        RDFDataMgrRx.writeDatasets(flow, out, RDFFormat.TRIG_PRETTY);
 
-        // RDFDataMgrRx.writeDatasets(flow, out, RDFFormat.TRIG_PRETTY);
-
-        flow
-            .buffer(1)
-            //.timeout(1, TimeUnit.SECONDS)
-            .blockingForEach(writer::accept)
-            ;
+//        Consumer<List<Dataset>> writer = RDFDataMgrRx.createDatasetBatchWriter(out, RDFFormat.TRIG_PRETTY);
+//
+//        flow
+//            .buffer(1)
+//            //.timeout(1, TimeUnit.SECONDS)
+//            .blockingForEach(writer::accept)
+//            ;
 
     //flow.blockingForEach(System.out::print);
 
