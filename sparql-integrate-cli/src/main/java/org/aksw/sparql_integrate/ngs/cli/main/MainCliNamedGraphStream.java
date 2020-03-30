@@ -325,15 +325,21 @@ public class MainCliNamedGraphStream {
             }
 
             // The input is guaranteed to be only a single named graph
+
+            // Old approach:
             // If any data was generated in the out's default graph,
             // transfer it to a graph with the input name
-            Model defaultModel = out.getDefaultModel();
-            if(!defaultModel.isEmpty()) {
-                Model copy = ModelFactory.createDefaultModel();
-                copy.add(defaultModel);
-                defaultModel.removeAll();
-                //out.setDefaultModel(ModelFactory.createDefaultModel());
-                out.addNamedModel(name, copy);
+            // Issue with old approach: We can not map quads back to triples that easiliy
+            boolean defaultGraphToInputGraph = false;
+            if(defaultGraphToInputGraph) {
+                Model defaultModel = out.getDefaultModel();
+                if(!defaultModel.isEmpty()) {
+                    Model copy = ModelFactory.createDefaultModel();
+                    copy.add(defaultModel);
+                    defaultModel.removeAll();
+                    //out.setDefaultModel(ModelFactory.createDefaultModel());
+                    out.addNamedModel(name, copy);
+                }
             }
 
             return out;
