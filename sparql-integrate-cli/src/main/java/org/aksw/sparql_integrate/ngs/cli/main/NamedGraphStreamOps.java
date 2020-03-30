@@ -19,9 +19,6 @@ import org.apache.jena.sparql.util.Context;
 
 import io.reactivex.Flowable;
 import io.reactivex.FlowableTransformer;
-import io.reactivex.Maybe;
-import io.reactivex.Scheduler;
-import io.reactivex.schedulers.Schedulers;
 import joptsimple.internal.Strings;
 
 public class NamedGraphStreamOps {
@@ -69,16 +66,11 @@ public class NamedGraphStreamOps {
 
 //        RDFDataMgrRx.writeDatasets(flow, out, RDFFormat.TRIG_PRETTY);
 
-        Consumer<List<Dataset>> writer = RDFDataMgrRx.createDatasetBatchWriter(out, RDFFormat.TRIG_PRETTY);
 //
         Flowable<Throwable> tmp = flow
             .buffer(1)
-            //.timeout(1, TimeUnit.SECONDS)
-            .flatMapMaybe(item -> {
-                writer.accept(item);
-                return Maybe.<Throwable>empty();
-            })
-            .onErrorReturn(t -> t);
+            .compose(RDFDataMgrRx.createDatasetBatchWriter(out, RDFFormat.TRIG_PRETTY));
+
 
         Throwable e = tmp.singleElement().blockingGet();
         if(e != null) {
