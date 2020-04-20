@@ -21,14 +21,17 @@ For the reference of supported SPARQL function extensions, please refer to the d
 
 
 ## Install Latest Release
+Installing as root will perform global install in the folders `/usr/local/share/sparql-integrate` and `/usr/local/bin`.
+For non-root users, the folders are `~/Downloads/sparql-integrate` and `~/bin`.
+Run `setup-latest-release.sh uninstall` to conveniently remove downloaded and generated files.
 
 * via curl
 
-    `sh -c "$(curl -fsSL https://raw.githubusercontent.com/SmartDataAnalytics/SparqlIntegrate/develop/setup-latest-release.sh)"`
+    `bash -c "$(curl -fsSL https://raw.githubusercontent.com/SmartDataAnalytics/SparqlIntegrate/develop/setup-latest-release.sh)"`
 
 * via wget
 
-    `sh -c "$(wget -O- https://raw.githubusercontent.com/SmartDataAnalytics/SparqlIntegrate/develop/setup-latest-release.sh)"`
+    `bash -c "$(wget -O- https://raw.githubusercontent.com/SmartDataAnalytics/SparqlIntegrate/develop/setup-latest-release.sh)"`
 
 ## Usage Example
 
