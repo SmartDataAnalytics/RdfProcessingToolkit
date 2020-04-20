@@ -20,6 +20,16 @@ This will auto-register all configuration-free extensions. Some extensions, such
 For the reference of supported SPARQL function extensions, please refer to the documentation of the [jena-sparql-api sparql extensions module](https://github.com/SmartDataAnalytics/jena-sparql-api/tree/master/jena-sparql-api-sparql-ext). 
 
 
+## Install Latest Release
+
+* via curl
+
+    `sh -c "$(curl -fsSL https://raw.githubusercontent.com/SmartDataAnalytics/SparqlIntegrate/develop/setup-latest-release.sh)"`
+
+* via wget
+
+    `sh -c "$(wget -O- https://raw.githubusercontent.com/SmartDataAnalytics/SparqlIntegrate/develop/setup-latest-release.sh)"`
+
 ## Usage Example
 
 The most convenient way to use this tool is to build this java project and make it available via a command line argument.

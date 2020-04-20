@@ -3,8 +3,9 @@
 #
 # Simple self-contained un-/install script for creating multiple commands from a single jar bundle
 # cmdToClass is the 'dataset' of shell command to java class mappings
-# By defalt, commands will be created under /usr/local/share/$pkgName/bin and then symlinked to /usr/local/bin
+# As root, commands will be created under /usr/local/share/$pkgName/bin and then symlinked to /usr/local/bin
 # Uninstalling removes any command from /usr/local/bin that also exists in /usr/local/share/$pkgName/bin
+# For non-root users the folders are ~/Downloads/$pkgName and ~/bin
 #
 # Usage:
 # Installation is run by providing no additional argument:
@@ -25,8 +26,13 @@ declare -a cmdToClass
 cmdToClass[0]="sparql-integrate sparqlintegrate"
 cmdToClass[1]="ngs"
 
-jarFolder="/usr/local/share/$pkgName"
-binFolder="/usr/local/bin"
+if [ "$USER" = "root" ]; then
+  jarFolder="/usr/local/share/$pkgName"
+  binFolder="/usr/local/bin"
+else
+  jarFolder="$HOME/Downloads/$pkgName"
+  binFolder="$HOME/bin"
+fi
 
 # tmpBinFolder must be relative to jarFolder
 tmpBinFolder="$jarFolder/bin"
