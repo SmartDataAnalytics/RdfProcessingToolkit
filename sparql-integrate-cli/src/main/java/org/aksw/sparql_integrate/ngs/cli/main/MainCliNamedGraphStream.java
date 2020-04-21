@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
@@ -32,6 +33,8 @@ import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
+import org.aksw.jena_sparql_api.stmt.SparqlStmt;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
 import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgMain;
@@ -40,6 +43,7 @@ import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsHead;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsMap;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsProbe;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSort;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsUntil;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsWc;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -55,6 +59,8 @@ import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
@@ -68,8 +74,6 @@ import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.lang.arq.ParseException;
 import org.apache.jena.sparql.util.Context;
-import org.apache.poi.ss.formula.functions.T;
-import org.locationtech.jts.awt.PointShapeFactory.X;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,6 +138,7 @@ public class MainCliNamedGraphStream {
         CmdNgMain cmdMain = new CmdNgMain();
         CmdNgsSort cmdSort = new CmdNgsSort();
         CmdNgsHead cmdHead = new CmdNgsHead();
+        CmdNgsUntil cmdUntil = new CmdNgsUntil();
         CmdNgsCat cmdCat = new CmdNgsCat();
         CmdNgsMap cmdMap = new CmdNgsMap();
         CmdNgsWc cmdWc = new CmdNgsWc();
@@ -147,6 +152,7 @@ public class MainCliNamedGraphStream {
                 .addObject(cmdMain)
                 .addCommand("sort", cmdSort)
                 .addCommand("head", cmdHead)
+                .addCommand("until", cmdUntil)
                 .addCommand("cat", cmdCat)
                 .addCommand("map", cmdMap)
                 .addCommand("wc", cmdWc)
@@ -236,6 +242,21 @@ public class MainCliNamedGraphStream {
 
             break;
         }
+        case "until": {
+            RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdUntil.outFormat);
+
+            Function<String, SparqlStmt> stmtParser = SparqlStmtParserImpl.create(DefaultPrefixes.prefixes);
+            SparqlStmt stmt = stmtParser.apply(cmdUntil.sparqlCondition);
+            Query query = stmt.getQuery();
+
+            Predicate<Dataset> condition = createPredicate(query);
+
+            Flowable<Dataset> flow = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdHead.nonOptionArgs, null, pm)
+                    .takeUntil(condition::test);
+
+            RDFDataMgrRx.writeDatasets(flow, out, outFormat);
+            break;
+        }
         case "map": {
             NamedGraphStreamOps.map(pm, cmdMap, out);
             break;
@@ -299,7 +320,16 @@ public class MainCliNamedGraphStream {
 //		return result;
 //	}
 
-
+    public static Predicate<Dataset> createPredicate(Query query) {
+        return dataset -> {
+            boolean result;
+            // TODO Allow select / construct forms
+            try(QueryExecution qe = QueryExecutionFactory.create(query, dataset)) {
+                result = qe.execAsk();
+            }
+            return result;
+        };
+    }
 
     public static Function<Dataset, Dataset> createMapper(
             BiConsumer<RDFConnection, SPARQLResultSink> processor) {
