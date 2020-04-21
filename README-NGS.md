@@ -18,6 +18,8 @@ TODO Setup a bundle github release process
 | cat     | Output all graphs                                                                | done   |
 | probe   | Probe a file or stdin for a quad-based format                                    | done   |
 | map     | Execute a SPARQL query on every named graph and yield the set of obtained graphs | done   |
+| until   | Yield graphs up to and including the first one that satisfies a condition        | done   |
+| while   | Yield graphs as long as they satisfy a condition                                 | done   |
 | wc      | Count graphs or quads                                                            | done   |
 | join    | Merge triples of named graphs based on a key                                     | wip    |
 | sort    | Sort named graphs based on a key                                                 | done   |

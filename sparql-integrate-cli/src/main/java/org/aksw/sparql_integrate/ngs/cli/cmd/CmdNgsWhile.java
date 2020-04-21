@@ -12,8 +12,8 @@ import com.beust.jcommander.Parameters;
  * @author raven
  *
  */
-@Parameters(commandDescription="Yield items up to and including the first one that satisfies the condition")
-public class CmdNgsUntil {
+@Parameters(commandDescription="Yield items up to but excluding the one that satisfies the condition")
+public class CmdNgsWhile {
     /**
      * sparql-pattern file
      *

@@ -45,6 +45,7 @@ import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsProbe;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSort;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsUntil;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsWc;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsWhile;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -138,6 +139,7 @@ public class MainCliNamedGraphStream {
         CmdNgMain cmdMain = new CmdNgMain();
         CmdNgsSort cmdSort = new CmdNgsSort();
         CmdNgsHead cmdHead = new CmdNgsHead();
+        CmdNgsWhile cmdWhile = new CmdNgsWhile();
         CmdNgsUntil cmdUntil = new CmdNgsUntil();
         CmdNgsCat cmdCat = new CmdNgsCat();
         CmdNgsMap cmdMap = new CmdNgsMap();
@@ -153,6 +155,7 @@ public class MainCliNamedGraphStream {
                 .addCommand("sort", cmdSort)
                 .addCommand("head", cmdHead)
                 .addCommand("until", cmdUntil)
+                .addCommand("while", cmdWhile)
                 .addCommand("cat", cmdCat)
                 .addCommand("map", cmdMap)
                 .addCommand("wc", cmdWc)
@@ -242,6 +245,21 @@ public class MainCliNamedGraphStream {
 
             break;
         }
+        case "while": {
+            RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdWhile.outFormat);
+
+            Function<String, SparqlStmt> stmtParser = SparqlStmtParserImpl.create(DefaultPrefixes.prefixes);
+            SparqlStmt stmt = stmtParser.apply(cmdWhile.sparqlCondition);
+            Query query = stmt.getQuery();
+
+            Predicate<Dataset> condition = createPredicate(query);
+
+            Flowable<Dataset> flow = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdWhile.nonOptionArgs, null, pm)
+                    .takeWhile(condition::test);
+
+            RDFDataMgrRx.writeDatasets(flow, out, outFormat);
+            break;
+        }
         case "until": {
             RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdUntil.outFormat);
 
@@ -251,7 +269,7 @@ public class MainCliNamedGraphStream {
 
             Predicate<Dataset> condition = createPredicate(query);
 
-            Flowable<Dataset> flow = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdHead.nonOptionArgs, null, pm)
+            Flowable<Dataset> flow = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdUntil.nonOptionArgs, null, pm)
                     .takeUntil(condition::test);
 
             RDFDataMgrRx.writeDatasets(flow, out, outFormat);
