@@ -51,8 +51,8 @@ import org.aksw.jena_sparql_api.stmt.SparqlUpdateParser;
 import org.aksw.jena_sparql_api.stmt.SparqlUpdateParserImpl;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.jena_sparql_api.utils.NodeUtils;
+import org.aksw.sparql_integrate.ngs.cli.main.ExceptionUtils;
 import org.apache.commons.io.output.CloseShieldOutputStream;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.atlas.lib.Sink;
 import org.apache.jena.atlas.web.TypedInputStream;
@@ -603,13 +603,7 @@ public class MainCliSparqlIntegrate {
                 try {
                     run(args);
                 } catch(Exception e) {
-                    String str = ExceptionUtils.getRootCauseMessage(e);
-
-                    if(str.toLowerCase().contains("broken pipe")) {
-                        // Silently ignore
-                    } else {
-                        throw new RuntimeException(e);
-                    }
+                    ExceptionUtils.rethrowIfNotBrokenPipe(e);
                 }
             };
         }
