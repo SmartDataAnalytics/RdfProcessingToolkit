@@ -49,7 +49,15 @@ public class NamedGraphStreamOps {
 
             List<String> sortArgs = SysCalls.createDefaultSortSysCall(cmdSort);
 
-            return DatasetFlowOps.sysCallSort(keyMapper, sortArgs, cmdSort.merge);
+            FlowableTransformer<Dataset, Dataset> sorter = DatasetFlowOps.sysCallSort(keyMapper, sortArgs);
+
+            FlowableTransformer<Dataset, Dataset> result = !cmdSort.merge
+                    ? sorter
+                    : upstream ->
+                        upstream
+                            .compose(sorter)
+                            .compose(s -> DatasetFlowOps.mergeConsecutiveDatasets(s));
+            return result;
         }
 
     public static void map(PrefixMapping pm, CmdNgsMap cmdMap, OutputStream out)
