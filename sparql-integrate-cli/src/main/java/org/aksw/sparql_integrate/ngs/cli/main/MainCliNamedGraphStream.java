@@ -23,6 +23,7 @@ import java.util.stream.LongStream;
 
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
+import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
 import org.aksw.jena_sparql_api.rx.FlowableTransformerLocalOrdering;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
@@ -43,6 +44,7 @@ import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsHead;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsMap;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsProbe;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSort;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSubjects;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsUntil;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsWc;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsWhile;
@@ -57,6 +59,7 @@ import org.apache.jena.ext.com.google.common.collect.Maps;
 import org.apache.jena.ext.com.google.common.collect.Streams;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
@@ -88,7 +91,7 @@ import io.reactivex.schedulers.Schedulers;
 public class MainCliNamedGraphStream {
 
     public static Collection<Lang> quadLangs = Arrays.asList(Lang.TRIG, Lang.NQUADS);
-
+    //public static Collection<Lang> tripleLangs = Arrays.asList(Lang.TURTLE, Lang.NTRIPLES, Lang.RDFXML);
 
     static final Logger logger = LoggerFactory.getLogger(MainCliNamedGraphStream.class);
 
@@ -145,6 +148,7 @@ public class MainCliNamedGraphStream {
         CmdNgsMap cmdMap = new CmdNgsMap();
         CmdNgsWc cmdWc = new CmdNgsWc();
         CmdNgsProbe cmdProbe = new CmdNgsProbe();
+        CmdNgsSubjects cmdSubjects = new CmdNgsSubjects();
 
         //CmdNgsConflate cmdConflate = new CmdNgsConflate();
 
@@ -152,6 +156,7 @@ public class MainCliNamedGraphStream {
         // CommandCommit commit = new CommandCommit();
         JCommander jc = JCommander.newBuilder()
                 .addObject(cmdMain)
+                .addCommand("subjects", cmdSubjects)
                 .addCommand("sort", cmdSort)
                 .addCommand("head", cmdHead)
                 .addCommand("until", cmdUntil)
@@ -180,6 +185,20 @@ public class MainCliNamedGraphStream {
         OutputStream out = new CloseShieldOutputStream(new FileOutputStream(FileDescriptor.out));
 
         switch (cmd) {
+        case "subjects": {
+            List<Lang> tripleLangs = RDFLanguagesEx.getTripleLangs();
+            RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdSubjects.outFormat);
+
+
+            TypedInputStream tmp = NamedGraphStreamCliUtils.open(cmdSubjects.nonOptionArgs, tripleLangs);
+            MainCliNamedGraphStream.logger.info("Detected format: " + tmp.getContentType());
+
+            Flowable<Dataset> flow = RDFDataMgrRx.createFlowableTriples(() -> tmp)
+                    .compose(NamedGraphStreamOps.groupConsecutiveTriplesByComponent(Triple::getSubject, DatasetFactoryEx::createInsertOrderPreservingDataset));
+
+            RDFDataMgrRx.writeDatasets(flow, out, outFormat);
+            break;
+        }
         case "probe": {
             try(TypedInputStream tin = NamedGraphStreamCliUtils.open(cmdProbe.nonOptionArgs, quadLangs)) {
 //				Collection<Lang> quadLangs = RDFLanguages.getRegisteredLanguages()
