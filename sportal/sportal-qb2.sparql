@@ -1,0 +1,12 @@
+CONSTRUCT {
+#  <env://D>
+  <http://my.data/sot>
+    void:classes ?x
+} WHERE {
+  { SELECT (COUNT(DISTINCT ?o) AS ?x) {
+    SERVICE <file:///home/raven/tmp/sorttest/sorted.nt?binsearch=true> {
+      ?s a ?o
+    }
+  } }
+}
+

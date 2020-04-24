@@ -1,0 +1,21 @@
+PREFIX v: <http://rdfs.org/ns/void#>
+PREFIX s: <http://www.example.org/sportal#>
+
+CONSTRUCT {
+  <http://my.data/set>
+    v:propertyPartition [
+      v:property ?p ;
+      s:objectTypes [
+        s:objectClass ?oType ;
+        s:distinctMembers ?x
+      ]
+    ]
+}
+WHERE {
+  { SELECT (COUNT(?o) AS ?x) ?p ?oType WHERE {
+    SERVICE <file:///home/raven/tmp/sorttest/sorted.nt?binsearch=true> {
+      ?s ?p ?o . ?o a ?oType .
+    }
+  } GROUP BY ?p ?oType }
+}
+
