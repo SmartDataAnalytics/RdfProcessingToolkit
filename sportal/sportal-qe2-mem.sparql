@@ -13,11 +13,6 @@ CONSTRUCT {
 }
 WHERE {
   { SELECT (COUNT(?o) AS ?x) ?p {
-#    SERVICE <env://S> {
-    SERVICE <file:///home/raven/tmp/sorttest/sorted.nt?binsearch=true> {
-#   SERVICE <file:///home/raven/tmp/sorttest/dnb-all_lds_20200213.sorted.nt?binsearch=true> {
-#      ?s ?p ?o ; a ?c
       ?s a ?c ; ?p ?o
-    }
   } GROUP BY ?c ?p }
 }

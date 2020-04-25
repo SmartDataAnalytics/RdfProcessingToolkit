@@ -3,6 +3,7 @@ package org.aksw.sparql_integrate.ngs.cli.main;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -38,6 +39,7 @@ public class NamedGraphStreamOps {
                     : "x-literal:// " + StringUtils.urlEncode(node.getLiteralLexicalForm());
         return result;
     }
+
 
     /**
      * Typical use case is to group a sequence of consecutive triples by subject
