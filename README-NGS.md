@@ -12,19 +12,21 @@ TODO Setup a bundle github release process
 
 ### Implementation status
 
-| Command  | Descripion                                                                       | Status |
-|----------|----------------------------------------------------------------------------------|--------|
-| head     | Output the first n graphs                                                        | done   |
-| cat      | Output all graphs                                                                | done   |
-| probe    | Probe a file or stdin for a quad-based format                                    | done   |
-| map      | Execute a SPARQL query on every named graph and yield the set of obtained graphs | done   |
-| until    | Yield graphs up to and including the first one that satisfies a condition        | done   |
-| while    | Yield graphs as long as they satisfy a condition                                 | done   |
-| wc       | Count graphs or quads                                                            | done   |
-| join     | Merge triples of named graphs based on a key                                     | wip    |
-| sort     | Sort named graphs based on a key                                                 | done   |
-| subjects | Group a stream of triples by subject to yield a stream of named graphs           | done   |
-| ...      | More to come                                                                     |        |
+| Command    | Descripion                                                                       | Status |
+|------------|----------------------------------------------------------------------------------|--------|
+| head       | Output the first n graphs                                                        | done   |
+| cat        | Output all graphs                                                                | done   |
+| probe      | Probe a file or stdin for a quad-based format                                    | done   |
+| map        | Execute a SPARQL query on every named graph and yield the set of obtained graphs | done   |
+| until      | Yield graphs up to and including the first one that satisfies a condition        | done   |
+| while      | Yield graphs as long as they satisfy a condition                                 | done   |
+| wc         | Count graphs or quads                                                            | done   |
+| join       | Merge triples of named graphs based on a key                                     | wip    |
+| sort       | Sort named graphs based on a key                                                 | done   |
+| subjects   | Group a stream of triples by subject to yield a stream of named graphs           | done   |
+| filterKeep | Only yield graphs for which an ASK query yields true                             | wip    |
+| filterDrop | Omit graphs from output when an ASK query yields true                            | wip    |
+| ...        | More to come                                                                     |        |
 
 
 
