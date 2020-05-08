@@ -1,6 +1,6 @@
 ## Named Graph Streams (NGS)
 
-The command line swiss army knife for efficient processing of collections of named graphs using standard turtle syntaxes (n-quads, trig).
+The command line swiss army knife for efficient processing of collections of named graphs using standard quad-based RDF syntaxes (n-quads, trig).
 The tool suite is akin to well know shell scripting tools, such as head, tail, join, sort (including sort --merge), etc.
 
 Named graphs can be used to denote data records, i.e. sets of triples that form a logical unit for the task at hand.
