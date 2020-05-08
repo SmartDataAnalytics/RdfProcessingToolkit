@@ -39,7 +39,7 @@ TODO Setup a bundle github release process
 * * `ngs head data.trig` (without useless cat)
 * Run a SPARQL query (from a file) on each graph. This is run in parallel for high efficiency.
 * * `cat data.trig | ngs map --sparql script.sparql`
-* Given some set of initial graphs, map then through a transformation, sort the resulting graphs by some key (merging consecutive ones together), sort the result randomly and take a sample of 1000
+* Given some set of initial graphs, map them through a transformation, sort the resulting graphs by some key (merging consecutive ones together), sort the result randomly and take a sample of 1000
 * * `cat data.trig | ngs map --sparql script.sparql | ngs sort -m -k '?o { ?s <someProb> ?o }' | ngs sort -m -R | ngs head -n 1000`
 
 ### Rules
