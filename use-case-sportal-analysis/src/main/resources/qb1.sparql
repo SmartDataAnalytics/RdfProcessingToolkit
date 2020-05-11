@@ -1,0 +1,5 @@
+CONSTRUCT {
+  <D> v:triples ?x
+} {
+  SELECT (COUNT(*) AS ?x) WHERE { ?s ?p ?o }
+}

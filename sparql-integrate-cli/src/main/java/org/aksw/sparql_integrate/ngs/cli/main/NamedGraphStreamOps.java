@@ -3,7 +3,6 @@ package org.aksw.sparql_integrate.ngs.cli.main;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -25,8 +24,8 @@ import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.engine.http.Service;
 import org.apache.jena.sparql.util.Context;
 
-import io.reactivex.Flowable;
-import io.reactivex.FlowableTransformer;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.FlowableTransformer;
 import joptsimple.internal.Strings;
 
 public class NamedGraphStreamOps {

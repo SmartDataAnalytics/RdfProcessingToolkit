@@ -1,0 +1,3 @@
+CONSTRUCT {
+  <D> v:propertyPartition [ v:property ?p ; s:objectTypes [ s:objectClass ?oType ; s:distinctMembers ?x ] ]
+} { SELECT (COUNT(?o) AS ?x) ?p ?oType WHERE { ?s ?p ?o . ?o a ?oType . } GROUP BY ?p ?oType }

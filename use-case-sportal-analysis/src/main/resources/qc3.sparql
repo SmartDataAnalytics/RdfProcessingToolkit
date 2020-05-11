@@ -1,0 +1,1 @@
+CONSTRUCT { <D> v:classPartition [ v:class ?c ; v:classes ?x ] }WHERE { SELECT (COUNT(DISTINCT ?d) AS ?x) ?c WHERE { ?s a ?c , ?d } GROUP BY ?c }

@@ -1,0 +1,6 @@
+CONSTRUCT {
+  <D> e:distinctRDFNodes ?x
+}
+{
+  SELECT (COUNT(DISTINCT ?n ) AS ?x) { { ?n ?p ?o } UNION { ?s ?n ?o } UNION { ?s ?p ?n } }
+}

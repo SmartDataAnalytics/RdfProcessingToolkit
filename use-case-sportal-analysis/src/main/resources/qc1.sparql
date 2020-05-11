@@ -1,0 +1,1 @@
+CONSTRUCT { <D> v:classPartition [ v:class ?c ] } WHERE { ?s a ?c }

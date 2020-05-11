@@ -83,10 +83,10 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 
-import io.reactivex.Flowable;
-import io.reactivex.FlowableTransformer;
-import io.reactivex.functions.BiFunction;
-import io.reactivex.schedulers.Schedulers;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.FlowableTransformer;
+import io.reactivex.rxjava3.functions.BiFunction;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 public class MainCliNamedGraphStream {
 
@@ -258,7 +258,7 @@ public class MainCliNamedGraphStream {
             }
 
             Flowable<Dataset> flow = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdHead.nonOptionArgs, null, pm)
-                .limit(cmdHead.numRecords);
+                .take(cmdHead.numRecords);
 
             RDFDataMgrRx.writeDatasets(flow, out, outFormat);
 

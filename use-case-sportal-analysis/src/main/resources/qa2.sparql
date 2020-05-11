@@ -1,0 +1,3 @@
+SELECT (COUNT(*) as ?c) {
+  SELECT * WHERE { ?s ?p ?o } LIMIT 1
+}

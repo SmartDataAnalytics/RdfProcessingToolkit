@@ -22,6 +22,8 @@
 
 		<module>sparql-integrate-bundle</module>
 		<module>sparql-integrate-dummy</module>
+
+		<module>use-case-sportal-analysis</module>
 	</modules>
 
 	<issueManagement>
@@ -60,7 +62,7 @@
 		<jena-sparql-api.subversion>2-SNAPSHOT</jena-sparql-api.subversion>
 
 		<jena-sparql-api.version>${jena.version}-${jena-sparql-api.subversion}</jena-sparql-api.version>
-<!--		<jena-sparql-api.version>3.14.0-2-SNAPSHOT</jena-sparql-api.version> -->
+		<!-- <jena-sparql-api.version>3.14.0-2-SNAPSHOT</jena-sparql-api.version> -->
 
 		<spring-boot.version>1.5.8.RELEASE</spring-boot.version>
 
@@ -77,6 +79,18 @@
 
 	<dependencyManagement>
 		<dependencies>
+
+			<dependency>
+				<groupId>org.aksw.jena-sparql-api</groupId>
+				<artifactId>jena-sparql-api-rx</artifactId>
+				<version>${jena-sparql-api.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.aksw.jena-sparql-api</groupId>
+				<artifactId>jena-sparql-api-algebra</artifactId>
+				<version>${jena-sparql-api.version}</version>
+			</dependency>
 
 			<dependency>
 				<groupId>org.aksw.sparql-integrate</groupId>

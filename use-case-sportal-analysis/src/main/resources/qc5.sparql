@@ -1,0 +1,9 @@
+CONSTRUCT {
+  <D>
+    v:classPartition [
+      v:class ?c ;
+      v:distinctSubjects ?x
+    ]
+} {
+  SELECT (COUNT(DISTINCT ?s) AS ?x) ?c WHERE { ?s a ?c } GROUP BY ?c
+}

@@ -1,0 +1,3 @@
+CONSTRUCT { <D> e:distinctIRIReferenceObjects ?x } {
+  SELECT (COUNT(DISTINCT ?o ) AS ?x) { ?s ?p ?o  FILTER(isIri(?o)) }
+}

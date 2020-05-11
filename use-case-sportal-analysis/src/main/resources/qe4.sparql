@@ -1,0 +1,1 @@
+CONSTRUCT {  <D> v:classPartition [ v:class ?c ;v:propertyPartition [ v:distinctObjects ?x ; v:property ?p ] ] }WHERE { SELECT (COUNT(DISTINCT ?o) AS ?x) ?c ?p WHERE { ?s a ?c ; ?p ?o } GROUP BY ?c ?p }

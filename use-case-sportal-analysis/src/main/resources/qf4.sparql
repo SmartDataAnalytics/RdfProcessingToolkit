@@ -1,0 +1,1 @@
+CONSTRUCT { <D> e:distinctLiterals ?x }WHERE { SELECT (COUNT(DISTINCT ?o ) AS ?x) WHERE { ?s ?p ?o  FILTER(isLiteral(?o))} }

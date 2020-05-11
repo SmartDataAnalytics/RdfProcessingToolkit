@@ -14,13 +14,15 @@ import org.apache.jena.ext.com.google.common.collect.Maps;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdfconnection.SparqlQueryConnection;
+import org.apache.poi.ss.formula.functions.T;
+import org.checkerframework.checker.units.qual.K;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import io.reactivex.Flowable;
-import io.reactivex.FlowableTransformer;
-import io.reactivex.Maybe;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.FlowableTransformer;
+import io.reactivex.rxjava3.core.Maybe;
 
 public class DatasetFlowOps {
 
