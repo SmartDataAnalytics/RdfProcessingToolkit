@@ -1,6 +1,6 @@
 ## Named Graph Streams (NGS)
 
-The command line swiss army knife for efficient processing of collections of named graphs using standard turtle syntaxes (n-quads, trig).
+The command line swiss army knife for efficient processing of collections of named graphs using standard quad-based RDF syntaxes (n-quads, trig).
 The tool suite is akin to well know shell scripting tools, such as head, tail, join, sort (including sort --merge), etc.
 
 Named graphs can be used to denote data records, i.e. sets of triples that form a logical unit for the task at hand.
@@ -12,19 +12,21 @@ TODO Setup a bundle github release process
 
 ### Implementation status
 
-| Command  | Descripion                                                                       | Status |
-|----------|----------------------------------------------------------------------------------|--------|
-| head     | Output the first n graphs                                                        | done   |
-| cat      | Output all graphs                                                                | done   |
-| probe    | Probe a file or stdin for a quad-based format                                    | done   |
-| map      | Execute a SPARQL query on every named graph and yield the set of obtained graphs | done   |
-| until    | Yield graphs up to and including the first one that satisfies a condition        | done   |
-| while    | Yield graphs as long as they satisfy a condition                                 | done   |
-| wc       | Count graphs or quads                                                            | done   |
-| join     | Merge triples of named graphs based on a key                                     | wip    |
-| sort     | Sort named graphs based on a key                                                 | done   |
-| subjects | Group a stream of triples by subject to yield a stream of named graphs           | done   |
-| ...      | More to come                                                                     |        |
+| Command    | Descripion                                                                       | Status |
+|------------|----------------------------------------------------------------------------------|--------|
+| head       | Output the first n graphs                                                        | done   |
+| cat        | Output all graphs                                                                | done   |
+| probe      | Probe a file or stdin for a quad-based format                                    | done   |
+| map        | Execute a SPARQL query on every named graph and yield the set of obtained graphs | done   |
+| until      | Yield graphs up to and including the first one that satisfies a condition        | done   |
+| while      | Yield graphs as long as they satisfy a condition                                 | done   |
+| wc         | Count graphs or quads                                                            | done   |
+| join       | Merge triples of named graphs based on a key                                     | wip    |
+| sort       | Sort named graphs based on a key                                                 | done   |
+| subjects   | Group a stream of triples by subject to yield a stream of named graphs           | done   |
+| filterKeep | Only yield graphs for which an ASK query yields true                             | wip    |
+| filterDrop | Omit graphs from output when an ASK query yields true                            | wip    |
+| ...        | More to come                                                                     |        |
 
 
 
@@ -37,7 +39,7 @@ TODO Setup a bundle github release process
 * * `ngs head data.trig` (without useless cat)
 * Run a SPARQL query (from a file) on each graph. This is run in parallel for high efficiency.
 * * `cat data.trig | ngs map --sparql script.sparql`
-* Given some set of initial graphs, map then through a transformation, sort the resulting graphs by some key (merging consecutive ones together), sort the result randomly and take a sample of 1000
+* Given some set of initial graphs, map them through a transformation, sort the resulting graphs by some key (merging consecutive ones together), sort the result randomly and take a sample of 1000
 * * `cat data.trig | ngs map --sparql script.sparql | ngs sort -m -k '?o { ?s <someProb> ?o }' | ngs sort -m -R | ngs head -n 1000`
 
 ### Rules
