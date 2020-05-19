@@ -39,22 +39,6 @@ import org.jgrapht.graph.DefaultGraphType;
 
 import com.google.common.graph.Traverser;
 
-/*
-Manually cleaned output: (exclusions: "qf6", "qf7", "qf8")
-  qa2.sparql [qa2.sparql, qd3.sparql, qd1.sparql, qd2.sparql, qb5.sparql, qb4.sparql, qd4.sparql, qb3.sparql, qa1.sparql, qb1.sparql] # ?s ?p ?o
-    qf3.sparql [qf3.sparql] # FILTER(isIri(?o))
-    qf2.sparql [qf2.sparql] # FILTER(isBlank(?s))
-    qb2.sparql [qb2.sparql, qc5.sparql, qc1.sparql] # FILTER(?p = rdf:type)
-      qc3.sparql [qc3.sparql] # ?s ?p ?d FILTER(?p = rdf:type)
-      qf10.sparql [qf10.sparql] # ?o ?y ?z FILTER(?y = rdf:type)
-      qc6.sparql [qc6.sparql, qc4.sparql, qc2.sparql, qe2.sparql, qe4.sparql, qe1.sparql, qe3.sparql, qf9.sparql] # ?s ?y ?z FILTER(?y = rdf:type)
-      qc3.sparql [qc3.sparql] # Duplicate with different iso (looks ok, but candidate for verification)
-    qf10.sparql [qf10.sparql] # Duplicate; based on constraining ?s ?p ?o FILTER(?p = rdf:type) first and then adding ?s ?y ?z
-    qf4.sparql [qf4.sparql] # FILTER(isLiteral(?o)
-    qc6.sparql [qc6.sparql, qc4.sparql, qc2.sparql, qe2.sparql, qe4.sparql, qe1.sparql, qe3.sparql, qf9.sparql] # Duplicate ?s ?y ?z FILTER(?p = rdf:type)
-    qf1.sparql [qf1.sparql] # FILTER(isIri(?s))
-    qf5.sparql [qf5.sparql] # FILTER(isBlank(?o))
- */
 public class MainCliSportalAnalysis {
 
     public static Map<Path, Query> loadQueries(Path startPath) throws IOException {
