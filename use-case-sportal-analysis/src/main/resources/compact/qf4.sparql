@@ -1,7 +1,7 @@
-PREFIX e: <http://rdfs.org/ns/void#>
+PREFIX s: <http://rdfs.org/ns/void#>
 
 CONSTRUCT {
-  <env://D> e:distinctLiterals ?x
+  <env://D> s:distinctLiterals ?x
 }
 {
   SELECT (COUNT(DISTINCT ?o) AS ?x) {

@@ -1,5 +1,5 @@
 PREFIX v: <http://rdfs.org/ns/void#>
-PREFIX e: <http://rdfs.org/ns/void#>
+PREFIX s: <http://rdfs.org/ns/void#>
 
 CONSTRUCT {
   <env://D>

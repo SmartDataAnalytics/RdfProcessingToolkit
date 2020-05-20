@@ -1,7 +1,7 @@
-PREFIX e: <http://rdfs.org/ns/void#>
+PREFIX s: <http://rdfs.org/ns/void#>
 
 CONSTRUCT {
-  <env://D> e:distinctIRIReferenceObjects ?x
+  <env://D> s:distinctIRIReferenceObjects ?x
 } {
   SELECT (COUNT(DISTINCT ?o ) AS ?x) { ?s ?p ?o  FILTER(isIri(?o)) }
 }

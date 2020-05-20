@@ -1,7 +1,7 @@
-PREFIX e: <http://rdfs.org/ns/void#>
+PREFIX s: <http://rdfs.org/ns/void#>
 
 CONSTRUCT {
-  <env://D> e:distinctBlankNodeSubjects ?x
+  <env://D> s:distinctBlankNodeSubjects ?x
 }
 {
   SELECT (COUNT(DISTINCT ?s) AS ?x) {
