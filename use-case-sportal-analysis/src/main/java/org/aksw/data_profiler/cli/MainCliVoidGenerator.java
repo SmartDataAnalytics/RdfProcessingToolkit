@@ -486,16 +486,19 @@ public class MainCliVoidGenerator
 
         allNodes.connect();
 
-        ConnectableFlowable<Binding> pathJoin = pl1
-                .flatMap(QueryFlowOps.createMapperForJoin(graph, new Triple(Vars.o, RDF.Nodes.type, Vars.t))::apply).share()
-                .publish();
+        boolean includePathJoin = false;
+        if(includePathJoin) {
+            ConnectableFlowable<Binding> pathJoin = pl1
+                    .flatMap(QueryFlowOps.createMapperForJoin(graph, new Triple(Vars.o, RDF.Nodes.type, Vars.t))::apply).share()
+                    .publish();
 
-        pathJoin.compose(QueryFlowOps.transformerFromQuery(
-                "SELECT (IRI(CONCAT('pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?o) AS ?x) ?p ?t {} GROUP BY ?p ?t"))
-                .subscribe(idToAcc.get("qf10")::accumulate);
+            pathJoin.compose(QueryFlowOps.transformerFromQuery(
+                    "SELECT (IRI(CONCAT('pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?o) AS ?x) ?p ?t {} GROUP BY ?p ?t"))
+                    .subscribe(idToAcc.get("qf10")::accumulate);
 
+            pathJoin.connect();
+        }
 
-        pathJoin.connect();
 
 
         // Start the whole process
