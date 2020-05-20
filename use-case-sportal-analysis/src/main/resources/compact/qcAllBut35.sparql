@@ -13,7 +13,7 @@ CONSTRUCT {
 {
   {
     SELECT
-      (IRI(CONCAT('cp://', ENCODE_FOR_URI(STR(?o)))) AS ?k)
+      (IRI(CONCAT('cp://', ENCODE_FOR_URI(STR(?t)))) AS ?k)
       (COUNT(?s) AS ?x)
       (COUNT(DISTINCT ?p) AS ?b)
       (COUNT(DISTINCT ?o) AS ?c)

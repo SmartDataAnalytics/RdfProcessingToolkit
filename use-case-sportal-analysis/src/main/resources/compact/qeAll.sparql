@@ -13,26 +13,23 @@ CONSTRUCT {
   ?l
     v:property ?p ;
     v:triples ?x ;
-    v:distinctSubjects ?a
+    v:distinctSubjects ?a ;
     v:distinctObjects ?c
 }
 {
+  SELECT
+    (IRI(CONCAT('cp://', ENCODE_FOR_URI(STR(?t)))) AS ?k)
+    (IRI(CONCAT(STR(?k), '-', ENCODE_FOR_URI(STR(?p)))) AS ?l)
+    ?t
+    ?p
+    (COUNT(?s) AS ?x)
+    (COUNT(DISTINCT ?s) AS ?a)
+    (COUNT(DISTINCT ?o) AS ?c)
   {
-    SELECT
-      SELECT
-        (IRI(CONCAT('cp://', ENCODE_FOR_URI(STR(?t)))) AS ?k)
-        (IRI(CONCAT(STR(?k), '-', ENCODE_FOR_URI(STR(?p)))) AS ?l)
-        ?t
-        ?p
-        (COUNT(?s) AS ?x)
-        (COUNT(DISTINCT ?s) AS ?a)
-        (COUNT(DISTINCT ?o) AS ?c)
-    {
-      ?s
-        a ?t ;
-        ?p ?o
-    }
-    GROUP BY ?t ?p
+    ?s
+      a ?t ;
+      ?p ?o
   }
+  GROUP BY ?t ?p
 }
 

@@ -7,7 +7,7 @@ CONSTRUCT {
   ?l
     v:property ?p ;
     v:triples ?x ;
-    v:distinctSubjects ?a
+    v:distinctSubjects ?a ;
     v:distinctObjects ?c
 }
 {
