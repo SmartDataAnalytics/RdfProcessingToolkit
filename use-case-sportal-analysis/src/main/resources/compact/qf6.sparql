@@ -1,0 +1,8 @@
+PREFIX e: <http://rdfs.org/ns/void#>
+
+CONSTRUCT {
+  <env://D> e:distinctBlankNodes ?x
+}
+{
+  SELECT (COUNT(DISTINCT ?b ) AS ?x)WHERE { { ?s ?p ?b } UNION { ?b ?p ?o } FILTER(isBlank(?b)) }
+}

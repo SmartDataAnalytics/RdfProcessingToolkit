@@ -1,0 +1,25 @@
+PREFIX v: <http://rdfs.org/ns/void#>
+
+CONSTRUCT {
+  <env://D>
+    v:propertyPartition ?l .
+
+  ?l
+    v:property ?p ;
+    v:triples ?x ;
+    v:distinctSubjects ?a
+    v:distinctObjects ?c
+}
+{
+  {
+    SELECT ?p
+      (IRI(CONCAT('pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l)
+      (COUNT(?o) AS ?x)
+      (COUNT(DISTINCT ?s) AS ?a)
+      (COUNT(DISTINCT ?o) AS ?c)
+    {
+      ?s ?p ?o
+    }
+    GROUP BY ?p
+  }
+}

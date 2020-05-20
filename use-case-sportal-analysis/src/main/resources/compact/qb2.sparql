@@ -1,0 +1,11 @@
+PREFIX v: <http://rdfs.org/ns/void#>
+
+CONSTRUCT {
+  <env://D> v:classes ?x
+} {
+  SELECT
+    (COUNT(DISTINCT ?o) AS ?x)
+  {
+    ?s a ?o
+  }
+}
