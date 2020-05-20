@@ -1,4 +1,4 @@
-package org.aksw.sportal_analysis.main;
+package org.aksw.data_profiler.cli;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;

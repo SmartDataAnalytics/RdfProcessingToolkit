@@ -1,4 +1,4 @@
-package org.aksw.sportal_analysis.main;
+package org.aksw.data_profiler.cli;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Supplier;
 
+import org.aksw.jena_sparql_api.io.binseach.GraphFromSubjectCache;
 import org.aksw.jena_sparql_api.io.lib.SpecialGraphs;
 import org.aksw.jena_sparql_api.mapper.AccSinkTriples;
 import org.aksw.jena_sparql_api.rx.SparqlRx;
@@ -99,7 +100,7 @@ class MySinkTriplesToGraph
 }
 
 @Command(name = "example", mixinStandardHelpOptions = true, version = "Picocli example 4.0")
-public class JoinStream
+public class MainCliVoidGenerator
     implements Runnable {
 
     /**
@@ -130,7 +131,7 @@ public class JoinStream
     }
 
     public void doRun() throws Exception {
-        System.out.println("Files: " + inputFile);
+//        System.out.println("Files: " + inputFile);
 
         String fileName = inputFile.getFileName().toString();
 
@@ -141,8 +142,9 @@ public class JoinStream
             inGraph = SpecialGraphs.fromSortedNtriplesFile(inputFile);
         }
 
+        inGraph = new GraphFromSubjectCache(inGraph);
 
-        boolean copyToMemGraph = true;
+        boolean copyToMemGraph = false;
 
         if(copyToMemGraph) {
             Graph tmp = GraphFactory.createDefaultGraph();
@@ -157,17 +159,17 @@ public class JoinStream
 
         Supplier<MySinkTriplesToGraph> sinkToGraphSupp = () -> new MySinkTriplesToGraph(GraphFactory.createDefaultGraph());
 
-        RxWorkflow<AccSinkTriples<MySinkTriplesToGraph>> workflow = generateDataProfileForVoid(sinkToGraphSupp, inGraph);
-        //RxWorkflow<AccSinkTriples<SinkTripleOutput>> workflow = generateDataProfileForVoid(sinkSupp, inGraph);
+//        RxWorkflow<AccSinkTriples<MySinkTriplesToGraph>> workflow = generateDataProfileForVoid(sinkToGraphSupp, inGraph);
+        RxWorkflow<AccSinkTriples<SinkTripleOutput>> workflow = generateDataProfileForVoid(sinkSupp, inGraph);
         workflow.getRootFlowable().connect();
 
 
-        for(Entry<String, AccSinkTriples<MySinkTriplesToGraph>> e : workflow.getSinks().entrySet()) {
-            System.out.println(e.getKey());
-            Graph g = e.getValue().getValue().getGraph();
-            Model mm = ModelFactory.createModelForGraph(g);
-            RDFDataMgr.write(System.out, mm, RDFFormat.TURTLE_PRETTY);
-        }
+//        for(Entry<String, AccSinkTriples<MySinkTriplesToGraph>> e : workflow.getSinks().entrySet()) {
+//            System.out.println(e.getKey());
+//            Graph g = e.getValue().getValue().getGraph();
+//            Model mm = ModelFactory.createModelForGraph(g);
+//            RDFDataMgr.write(System.out, mm, RDFFormat.TURTLE_PRETTY);
+//        }
 
         sink.flush();
         sink.close();
@@ -182,7 +184,7 @@ public class JoinStream
     }
 
     public static void main(String[] args) {
-         int exitCode = new CommandLine(new JoinStream()).execute(args);
+         int exitCode = new CommandLine(new MainCliVoidGenerator()).execute(args);
          System.exit(exitCode);
     }
 
@@ -411,7 +413,7 @@ public class JoinStream
 
         pl11x.compose(QueryFlowOps.transformerFromQuery(
                 "SELECT ?k ?t (COUNT(?s) AS ?x) (COUNT(DISTINCT ?p) AS ?b) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?k ?t"))
-        .doOnNext(x -> System.out.println("Saw: " + x))
+//        .doOnNext(x -> System.out.println("Saw: " + x))
                 .subscribe(idToAcc.get("qcAllBut35")::accumulate);
 
         pl11x.compose(QueryFlowOps.transformerFromQuery(
