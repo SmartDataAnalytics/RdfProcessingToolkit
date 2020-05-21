@@ -2,55 +2,49 @@ package org.aksw.data_profiler.cli;
 
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.function.Supplier;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.aksw.jena_sparql_api.io.binseach.GraphFromSubjectCache;
 import org.aksw.jena_sparql_api.io.lib.SpecialGraphs;
-import org.aksw.jena_sparql_api.mapper.AccSinkTriples;
 import org.aksw.jena_sparql_api.rx.SparqlRx;
 import org.aksw.jena_sparql_api.rx.query_flow.QueryFlowOps;
 import org.aksw.jena_sparql_api.utils.Vars;
-import org.apache.jena.atlas.lib.Sink;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.GraphUtil;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
-import org.apache.jena.query.Dataset;
-import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.query.ResultSetFactory;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.riot.RDFDataMgr;
-import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.lang.SinkTriplesToGraph;
 import org.apache.jena.riot.out.SinkTripleOutput;
 import org.apache.jena.sparql.algebra.Table;
 import org.apache.jena.sparql.algebra.table.TableN;
 import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.DatasetGraphFactory;
-import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
 import org.apache.jena.sparql.graph.GraphFactory;
 import org.apache.jena.sparql.syntax.Template;
 import org.apache.jena.vocabulary.RDF;
-import org.apache.jena.vocabulary.RDFS;
 import org.apache.jena.vocabulary.VOID;
+
+import com.google.common.base.Stopwatch;
 
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.flowables.ConnectableFlowable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 
@@ -63,26 +57,20 @@ import picocli.CommandLine.Parameters;
  */
 class RxWorkflow<T> {
     protected ConnectableFlowable<?> rootFlowable;
-    protected Map<String, Flowable<?>> tasks;
-    protected Map<String, T> sinks;
+    protected Map<String, Flowable<T>> tasks;
 
-    public RxWorkflow(ConnectableFlowable<?> rootFlowable, Map<String, Flowable<?>> tasks, Map<String, T> sinks) {
+    public RxWorkflow(ConnectableFlowable<?> rootFlowable, Map<String, Flowable<T>> tasks) {
         super();
         this.rootFlowable = rootFlowable;
         this.tasks = tasks;
-        this.sinks = sinks;
     }
 
     public ConnectableFlowable<?> getRootFlowable() {
         return rootFlowable;
     }
 
-    public Map<String, Flowable<?>> getTasks() {
+    public Map<String, Flowable<T>> getTasks() {
         return tasks;
-    }
-
-    public Map<String, T> getSinks() {
-        return sinks;
     }
 }
 
@@ -121,13 +109,28 @@ public class MainCliVoidGenerator
     @Parameters(arity = "1", paramLabel = "FILE", description = "File(s) to process.")
     private Path inputFile;
 
+    @Option(names="--no-star", arity = "0..1", description = "Disable star pattern queries")
+    protected boolean noStar = false;
+
+    @Option(names="--no-path", arity = "0..1", description = "Disable path pattern queries")
+    protected boolean noPath = false;
+
+//    @Option(names="--no-single", arity = "0..1", description = "Disable singl pattern queries")
+//    protected boolean noSingle = false;
+
+    public static final Query spoQuery = QueryFactory.create("SELECT * { ?s ?p ?o }");
+
+
     @Override
     public void run() {
+        Stopwatch sw = Stopwatch.createStarted();
+
         try {
             doRun();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        System.err.println("Done after " + sw.elapsed(TimeUnit.MILLISECONDS) * 0.001 + " seconds");
     }
 
     public void doRun() throws Exception {
@@ -152,16 +155,70 @@ public class MainCliVoidGenerator
             inGraph = tmp;
         }
 
+        boolean debugJoin = false;
+        if(debugJoin) {
+            Stopwatch sw = Stopwatch.createStarted();
+            Graph ffs = inGraph;
+            long cnt = SparqlRx.execSelectRaw(() -> QueryExecutionFactory.create(spoQuery, DatasetGraphFactory.wrap(ffs)))
+                    .flatMap(QueryFlowOps.createMapperForJoin(ffs, new Triple(Vars.s, RDF.Nodes.type, Vars.t))::apply)
+                    .count()
+                    .blockingGet();
+
+            System.out.println("Count: " + cnt + " " + sw.elapsed(TimeUnit.MILLISECONDS) * 0.001);
+            System.out.println(((GraphFromSubjectCache)inGraph).getSubjectCache().stats());
+            return;
+        }
+
         // Graph outGraph = GraphFactory.createDefaultGraph();
         // SinkTriplesToGraph sink = new SinkTriplesToGraph(false, outGraph);
         SinkTripleOutput sink = new SinkTripleOutput(System.out, null, null);
-        Supplier<SinkTripleOutput> sinkSupp = () -> sink;
+        //Supplier<SinkTripleOutput> sinkSupp = () -> sink;
 
-        Supplier<MySinkTriplesToGraph> sinkToGraphSupp = () -> new MySinkTriplesToGraph(GraphFactory.createDefaultGraph());
+        //Supplier<MySinkTriplesToGraph> sinkToGraphSupp = () -> new MySinkTriplesToGraph(GraphFactory.createDefaultGraph());
 
 //        RxWorkflow<AccSinkTriples<MySinkTriplesToGraph>> workflow = generateDataProfileForVoid(sinkToGraphSupp, inGraph);
-        RxWorkflow<AccSinkTriples<SinkTripleOutput>> workflow = generateDataProfileForVoid(sinkSupp, inGraph);
+        RxWorkflow<Triple> workflow = generateDataProfileForVoid(inGraph, !noStar, !noPath);
+
+            //.subscribe(x -> System.err.println("DONE EVENT FIRED"));
+        System.err.println("Active tasks: " + workflow.getTasks().keySet());
+
+        // First: Subscribe to the tasks
+//        Flowable<Flowable<?>> tasks = Flowable.fromIterable(Iterables.concat(Collections.singleton(workflow.getRootFlowable()), workflow.getTasks().values()));
+        //.flatMap(task -> task.observeOn(Schedulers.computation()))
+        //.map(x -> System.err.println("DONE EVENT FIRED"))
+        //Single<Long> waitForTasks =
+//        Flowable<Flowable<Triple>> tasks = Flowable.fromIterable(workflow.getTasks().values());
+        //Iterable<Triple> triples = tasks
+        //tasks
+            //.flatMap(task -> task.observeOn(Schedulers.computation()))
+            //.flatMap(task -> task.subscribeOn(Schedulers.computation()))
+            //(task -> task.observeOn(Schedulers.computation()).ignoreElements())
+
+//        .count();
+        Flowable<Triple> task = Flowable.fromIterable(workflow.getTasks().values())
+                .flatMap(x -> x);
+
+        CompletableFuture<?> future = new CompletableFuture<>();
+        task.subscribe(sink::send, e -> {}, () -> future.complete(null));
+
+        System.err.println("Subscribed to tasks");
+
+        // Second: Start the root flowable
+        System.err.println("Connecting to root flow");
         workflow.getRootFlowable().connect();
+        System.err.println("Connected to root flow; waiting for future to resolve");
+
+        future.get();
+
+        // Wait for tasks to complete
+//        for(Triple t : triples) {
+//            sink.send(t);
+//        }
+
+        sink.flush();
+
+//        System.err.println("Finished tasks: " + tasksFinished);
+        //.blockingGet()
 
 
 //        for(Entry<String, AccSinkTriples<MySinkTriplesToGraph>> e : workflow.getSinks().entrySet()) {
@@ -171,8 +228,12 @@ public class MainCliVoidGenerator
 //            RDFDataMgr.write(System.out, mm, RDFFormat.TURTLE_PRETTY);
 //        }
 
-        sink.flush();
         sink.close();
+
+        if(inGraph instanceof GraphFromSubjectCache) {
+            System.err.println("Cache stats: " + ((GraphFromSubjectCache)inGraph).getSubjectCache().stats());
+        }
+
 //        Model m = ModelFactory.createModelForGraph(outGraph);
 //        RDFDataMgr.write(System.out, dataset, lang);
 
@@ -189,8 +250,12 @@ public class MainCliVoidGenerator
     }
 
 
-    public static <T extends Sink<Triple>> RxWorkflow<AccSinkTriples<T>> generateDataProfileForVoid(Supplier<T> sinkSupp, Graph graph) throws Exception {
+    public static RxWorkflow<Triple> generateDataProfileForVoid(
+            Graph graph,
+            boolean enableStarJoin,
+            boolean enablePathJoin) throws Exception {
 
+        Map<String, Flowable<Triple>> tasks = new HashMap<>();
 
         // FlowableTransformer<Binding, Binding> accGroupBy =
         // QueryFlowOps.transformerFromQuery(QueryFactory.create("SELECT (COUNT(*) + 1
@@ -223,18 +288,17 @@ public class MainCliVoidGenerator
 //        for(String graphId : graphIds) {
 //            idToGraph.put(graphId, GraphFactory.createDefaultGraph());
 //        }
-
-
-
-        Map<String, AccSinkTriples<T>> idToAcc = new LinkedHashMap<>();
         Node D = NodeFactory.createURI("env://D");
 
-        idToAcc.put("qbAllBut2",
-                new AccSinkTriples<>(sinkSupp.get(), new Template(BasicPattern.wrap(Arrays.asList(
+        Map<String, Template> idToTemplate = new LinkedHashMap<>();
+        idToTemplate.put("qbAllBut2", new Template(BasicPattern.wrap(Arrays.asList(
                         new Triple(D, VOID.triples.asNode(), Vars.x),
                         new Triple(D, VOID.distinctSubjects.asNode(), Vars.a),
                         new Triple(D, VOID.properties.asNode(), Vars.b),
-                        new Triple(D, VOID.distinctObjects.asNode(), Vars.c))))));
+                        new Triple(D, VOID.distinctObjects.asNode(), Vars.c)))));
+
+
+        // Map<String, AccSinkTriples<T>> idToAcc = new LinkedHashMap<>();
 
 //        idToAccGraph.put("qb1", new AccGraph(new Template(BasicPattern.wrap(Arrays.asList(
 //                new Triple(D, VOID.triples.asNode(), Vars.x))))));
@@ -248,8 +312,9 @@ public class MainCliVoidGenerator
 //        idToAccGraph.put("qb5", new AccGraph(new Template(BasicPattern.wrap(Arrays.asList(
 //                new Triple(D, VOID.distinctObjects.asNode(), Vars.x))))));
 
-        idToAcc.put("qb2", new AccSinkTriples<>(sinkSupp.get(),
-                new Template(BasicPattern.wrap(Arrays.asList(new Triple(D, VOID.classes.asNode(), Vars.x))))));
+
+        idToTemplate.put("qb2", new Template(BasicPattern.wrap(Arrays.asList(
+                new Triple(D, VOID.classes.asNode(), Vars.x)))));
 
 //        idToAccGraph.put("qd1", new AccGraph(new Template(BasicPattern.wrap(Arrays.asList(
 //                new Triple(D, VOID.propertyPartition.asNode(), b),
@@ -260,96 +325,89 @@ public class MainCliVoidGenerator
 //                new Triple(b, VOID.property.asNode(), Vars.p),
 //                new Triple(b, VOID.triples.asNode(), Vars.x))))));
 //
-        idToAcc.put("qcAllBut35",
-                new AccSinkTriples<>(sinkSupp.get(), new Template(
+        idToTemplate.put("qcAllBut35", new Template(
                         BasicPattern.wrap(Arrays.asList(
                                 new Triple(D, VOID.classPartition.asNode(), Vars.k),
                                 new Triple(Vars.k, VOID._class.asNode(), Vars.t),
                                 new Triple(Vars.k, VOID.triples.asNode(), Vars.x),
                                 new Triple(Vars.k, VOID.properties.asNode(), Vars.b),
-                                new Triple(Vars.k, VOID.distinctObjects.asNode(), Vars.c))))));
+                                new Triple(Vars.k, VOID.distinctObjects.asNode(), Vars.c)))));
 
-        idToAcc.put("qc3",
-                new AccSinkTriples<>(sinkSupp.get(), new Template(BasicPattern.wrap(Arrays.asList(
+        idToTemplate.put("qc3", new Template(BasicPattern.wrap(Arrays.asList(
                         new Triple(D, VOID.classPartition.asNode(), Vars.k),
-                        new Triple(Vars.k, VOID.classes.asNode(), Vars.c))))));
+                        new Triple(Vars.k, VOID.classes.asNode(), Vars.c)))));
 
-        idToAcc.put("qc5",
-                new AccSinkTriples<>(sinkSupp.get(), new Template(BasicPattern.wrap(Arrays.asList(
+//        new AccSinkTriples<>(sinkSupp.get(),
+        idToTemplate.put("qc5", new Template(BasicPattern.wrap(Arrays.asList(
                         new Triple(D, VOID.classPartition.asNode(), Vars.k),
-                        new Triple(Vars.k, VOID.distinctSubjects.asNode(), Vars.a))))));
+                        new Triple(Vars.k, VOID.distinctSubjects.asNode(), Vars.a)))));
 
-        idToAcc.put("qdAll",
-                new AccSinkTriples<>(sinkSupp.get(), new Template(BasicPattern.wrap(Arrays.asList(
+        idToTemplate.put("qdAll", new Template(BasicPattern.wrap(Arrays.asList(
                         new Triple(D, VOID.propertyPartition.asNode(), Vars.l),
                         new Triple(Vars.l, VOID.property.asNode(), Vars.p),
                         new Triple(Vars.l, VOID.triples.asNode(), Vars.x),
                         new Triple(Vars.l, VOID.distinctSubjects.asNode(), Vars.a),
-                        new Triple(Vars.l, VOID.distinctObjects.asNode(), Vars.c))))));
+                        new Triple(Vars.l, VOID.distinctObjects.asNode(), Vars.c)))));
 
-        idToAcc.put("qeAll",
-                new AccSinkTriples<>(sinkSupp.get(), new Template(BasicPattern.wrap(Arrays.asList(
+        idToTemplate.put("qeAll",  new Template(BasicPattern.wrap(Arrays.asList(
                         new Triple(Vars.k, VOID.propertyPartition.asNode(), Vars.l),
                         new Triple(Vars.l, VOID.property.asNode(), Vars.p),
                         new Triple(Vars.l, VOID.triples.asNode(), Vars.x),
                         new Triple(Vars.l, VOID.distinctSubjects.asNode(), Vars.a),
-                        new Triple(Vars.l, VOID.distinctObjects.asNode(), Vars.c))))));
+                        new Triple(Vars.l, VOID.distinctObjects.asNode(), Vars.c)))));
 
-        idToAcc.put("qf1", new AccSinkTriples<>(sinkSupp.get(),
-                new Template(BasicPattern.wrap(Arrays.asList(new Triple(D, distinctIRIReferenceSubjects, Vars.x))))));
+        idToTemplate.put("qf1", new Template(BasicPattern.wrap(Arrays.asList(
+                new Triple(D, distinctIRIReferenceSubjects, Vars.x)))));
 
-        idToAcc.put("qf2", new AccSinkTriples<>(sinkSupp.get(),
-                new Template(BasicPattern.wrap(Arrays.asList(new Triple(D, distinctBlankNodeSubjects, Vars.x))))));
+        idToTemplate.put("qf2", new Template(BasicPattern.wrap(Arrays.asList(
+                new Triple(D, distinctBlankNodeSubjects, Vars.x)))));
 
-        idToAcc.put("qf3", new AccSinkTriples<>(sinkSupp.get(),
-                new Template(BasicPattern.wrap(Arrays.asList(new Triple(D, distinctIRIReferenceObjects, Vars.x))))));
+        idToTemplate.put("qf3", new Template(BasicPattern.wrap(Arrays.asList(
+                new Triple(D, distinctIRIReferenceObjects, Vars.x)))));
 
-        idToAcc.put("qf4", new AccSinkTriples<>(sinkSupp.get(),
-                new Template(BasicPattern.wrap(Arrays.asList(new Triple(D, distinctLiterals, Vars.x))))));
+        idToTemplate.put("qf4", new Template(BasicPattern.wrap(Arrays.asList(
+                new Triple(D, distinctLiterals, Vars.x)))));
 
-        idToAcc.put("qf5", new AccSinkTriples<>(sinkSupp.get(),
-                new Template(BasicPattern.wrap(Arrays.asList(new Triple(D, distinctBlankNodeObjects, Vars.x))))));
+        idToTemplate.put("qf5", new Template(BasicPattern.wrap(Arrays.asList(
+                new Triple(D, distinctBlankNodeObjects, Vars.x)))));
 
-        idToAcc.put("qf6", new AccSinkTriples<>(sinkSupp.get(),
-                new Template(BasicPattern.wrap(Arrays.asList(new Triple(D, distinctBlankNodes, Vars.x))))));
+        idToTemplate.put("qf6", new Template(BasicPattern.wrap(Arrays.asList(
+                new Triple(D, distinctBlankNodes, Vars.x)))));
 
-        idToAcc.put("qf7", new AccSinkTriples<>(sinkSupp.get(),
-                new Template(BasicPattern.wrap(Arrays.asList(new Triple(D, distinctIRIReferences, Vars.x))))));
+        idToTemplate.put("qf7", new Template(BasicPattern.wrap(Arrays.asList(
+                new Triple(D, distinctIRIReferences, Vars.x)))));
 
-        idToAcc.put("qf8", new AccSinkTriples<>(sinkSupp.get(),
-                new Template(BasicPattern.wrap(Arrays.asList(new Triple(D, distinctRDFNodes, Vars.x))))));
+        idToTemplate.put("qf8",new Template(BasicPattern.wrap(
+                Arrays.asList(new Triple(D, distinctRDFNodes, Vars.x)))));
 
-        idToAcc.put("qf9", new AccSinkTriples<>(sinkSupp.get(), new Template(
+        idToTemplate.put("qf9", new Template(
                         BasicPattern.wrap(Arrays.asList(
                                 new Triple(D, VOID.propertyPartition.asNode(), Vars.l),
                                 new Triple(Vars.l, subjectTypes, Vars.k),
                                 new Triple(Vars.k, subjectClass, Vars.t),
-                                new Triple(Vars.k, distinctMembers, Vars.x))))));
+                                new Triple(Vars.k, distinctMembers, Vars.x)))));
 
 
-        idToAcc.put("qf10", new AccSinkTriples<>(sinkSupp.get(),
-                new Template(
-                        BasicPattern.wrap(Arrays.asList(
+        idToTemplate.put("qf10", new Template(BasicPattern.wrap(Arrays.asList(
                                 new Triple(D, VOID.propertyPartition.asNode(), Vars.l),
                                 new Triple(Vars.l, objectTypes, Vars.k),
                                 new Triple(Vars.k, objectClass, Vars.t),
-                                new Triple(Vars.k, distinctMembers, Vars.x))))));
+                                new Triple(Vars.k, distinctMembers, Vars.x)))));
 
 //        idToAccGraph.put("qf9", new AccGraph(new Template(BasicPattern.wrap(Arrays.asList(
 //                new Triple(D, distinctRDFNodes, Vars.a)
 //                )))));
 
-        Dataset ds = DatasetFactory.create();
-        ds.asDatasetGraph().add(Quad.defaultGraphIRI, RDF.Nodes.type, RDF.Nodes.type, RDF.Nodes.type);
-        ds.asDatasetGraph().add(Quad.defaultGraphIRI, RDF.Nodes.type, RDFS.Nodes.label,
-                NodeFactory.createLiteral("test"));
+//        Dataset ds = DatasetFactory.create();
+//        ds.asDatasetGraph().add(Quad.defaultGraphIRI, RDF.Nodes.type, RDF.Nodes.type, RDF.Nodes.type);
+//        ds.asDatasetGraph().add(Quad.defaultGraphIRI, RDF.Nodes.type, RDFS.Nodes.label,
+//                NodeFactory.createLiteral("test"));
 
         // Graph graph = ds.getDefaultModel().getGraph();
 
         // SparqlQueryConnection conn = RDFConnectionFactory.connect(ds);
 
         // Query rootQuery = QueryFactory.create("SELECT * { ?s ?p ?o }");
-        Query spoQuery = QueryFactory.create("SELECT * { ?s ?p ?o }");
 
         Flowable<Binding> root = SparqlRx.execSelectRaw(() -> QueryExecutionFactory.create(spoQuery, DatasetGraphFactory.wrap(graph))); //rootQuery, () -> conn);
 
@@ -363,16 +421,19 @@ public class MainCliVoidGenerator
 //            System.exit(0);
 //        }
 
-        Flowable<Binding> l1 = root.share();
-        ConnectableFlowable<Binding> pl1 = l1.publish();
+        // Flowable<Binding> l1 = root.share();//.subscribeOn(Schedulers.computation());
+        ConnectableFlowable<Binding> pl1 = root
+                //.subscribeOn(Schedulers.io())
+                // .doOnNext(x -> System.err.println("From root: " + x))
+                .publish();
 
         // publisher.subscribe(y -> System.out.println("Listener 1" + y));
         // Flowable<Binding> counter = publisher.compose(accGroupBy);
 
         // Take one triple of spo
-        ConnectableFlowable<Binding> pl1one = pl1.take(1l).share().publish();
 
         if(false) {
+            ConnectableFlowable<Binding> pl1one = pl1.take(1l).share().publish();
             pl1one.subscribe(idToTable.get("qa1")::addBinding);
             pl1one.compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(*) AS ?c) {}"))
                     .subscribe(idToTable.get("qa2")::addBinding);
@@ -384,51 +445,68 @@ public class MainCliVoidGenerator
 //        pl1.compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}")).subscribe(idToAccGraph.get("qb4")::accumulate);
 //        pl1.compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?o) AS ?x) {}")).subscribe(idToAccGraph.get("qb5")::accumulate);
 
-        pl1.compose(QueryFlowOps.transformerFromQuery(
+        tasks.computeIfAbsent("qbAllBut2", key -> pl1
+//                .doOnNext(x -> System.err.println("got here: " + x))
+                .observeOn(Schedulers.computation())
+//                .subscribeOn(Schedulers.computation())
+                .compose(QueryFlowOps.transformerFromQuery(
                 "SELECT (COUNT(?s) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?p) AS ?b) (COUNT(DISTINCT ?o) AS ?c) WHERE {}"))
-                .subscribe(idToAcc.get("qbAllBut2")::accumulate);
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+
 
         // Turn {?s ?p ?o} into {?s a ?t}
-        ConnectableFlowable<Binding> pl11 = l1
-                .filter(x -> QueryFlowOps
-                        .createFilter(execCxt, "?p = <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>").test(x))
+        ConnectableFlowable<Binding> pl11 = pl1
+//                .subscribeOn(Schedulers.computation())
+                .observeOn(Schedulers.computation())
+                .filter(QueryFlowOps
+                        .createFilter(execCxt, "?p = <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>")::test)
                 .compose(QueryFlowOps.transformerFromQuery(
                         "SELECT (IRI(CONCAT('cp://', ENCODE_FOR_URI(STR(?o)))) AS ?k) ?s (?o AS ?t) {}"))
                 .share().publish();
+//        if(false) {
 
         // pl11.subscribe(x -> System.out.println("PEEK: " + x));
         // (D classes ?x)
-        pl11.compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?t) AS ?x) {}"))
-                .subscribe(idToAcc.get("qb2")::accumulate);
+        tasks.computeIfAbsent("qb2", key -> pl11
+//                .subscribeOn(Schedulers.computation())
+                .observeOn(Schedulers.computation())
+                .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?t) AS ?x) {}"))
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
         // single pattern for qcx: qc1, qc5 - the rest are star-joins
         // (D classPartition ?k) (?k distinctSubjects ?a)
-        pl11.compose(QueryFlowOps.transformerFromQuery("SELECT ?k ?t (COUNT(DISTINCT ?s) AS ?a) {} GROUP BY ?k ?t"))
-                .subscribe(idToAcc.get("qc5")::accumulate);
-
-        // qcAllBut35
-        ConnectableFlowable<Binding> pl11x = pl11
-                .flatMap(QueryFlowOps.createMapperForJoin(graph, new Triple(Vars.s, Vars.p, Vars.o))::apply).share()
-                .publish();
-
-        pl11x.compose(QueryFlowOps.transformerFromQuery(
-                "SELECT ?k ?t (COUNT(?s) AS ?x) (COUNT(DISTINCT ?p) AS ?b) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?k ?t"))
-//        .doOnNext(x -> System.out.println("Saw: " + x))
-                .subscribe(idToAcc.get("qcAllBut35")::accumulate);
-
-        pl11x.compose(QueryFlowOps.transformerFromQuery(
-                "SELECT ?k ?p (IRI(CONCAT(STR(?k), '-', ENCODE_FOR_URI(STR(?p)))) AS ?l) (COUNT(?s) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?k ?p"))
-                .subscribe(idToAcc.get("qeAll")::accumulate);
-
-        pl11x.flatMap(QueryFlowOps.createMapperForJoin(graph, new Triple(Vars.s, RDF.Nodes.type, Vars.o))::apply)
+        tasks.computeIfAbsent("qc5", key -> pl11
+//                .subscribeOn(Schedulers.computation())
+                .observeOn(Schedulers.computation())
+                .compose(QueryFlowOps.transformerFromQuery("SELECT ?k ?t (COUNT(DISTINCT ?s) AS ?a) {} GROUP BY ?k ?t"))
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+//}
+        if(enableStarJoin) {
+            // join of ?s a ?t with ?s a ?o
+            tasks.computeIfAbsent("qc3", key -> pl11.flatMap(QueryFlowOps.createMapperForJoin(graph, new Triple(Vars.s, RDF.Nodes.type, Vars.o))::apply)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT ?k ?t (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?k ?t"))
-                .subscribe(idToAcc.get("qc3")::accumulate);
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
-        pl11x.compose(QueryFlowOps.transformerFromQuery(
-                "SELECT ?t (IRI(CONCAT('pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?s) AS ?x) {} GROUP BY ?p ?t"))
-                .subscribe(idToAcc.get("qf9")::accumulate);
+            // qcAllBut35
+            ConnectableFlowable<Binding> pl11x = pl11
+                    .flatMap(QueryFlowOps.createMapperForJoin(graph, new Triple(Vars.s, Vars.p, Vars.o))::apply).share()
+                    .publish();
 
-        pl11x.connect();
+            tasks.computeIfAbsent("qcAllBut35", key -> pl11x.compose(QueryFlowOps.transformerFromQuery(
+                    "SELECT ?k ?t (COUNT(?s) AS ?x) (COUNT(DISTINCT ?p) AS ?b) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?k ?t"))
+    //        .doOnNext(x -> System.out.println("Saw: " + x))
+                    .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+
+            tasks.computeIfAbsent("qeAll", key -> pl11x.compose(QueryFlowOps.transformerFromQuery(
+                    "SELECT ?k ?p (IRI(CONCAT(STR(?k), '-', ENCODE_FOR_URI(STR(?p)))) AS ?l) (COUNT(?s) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?k ?p"))
+                    .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+
+            tasks.computeIfAbsent("qf9", key -> pl11x.compose(QueryFlowOps.transformerFromQuery(
+                    "SELECT ?t (IRI(CONCAT('pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?s) AS ?x) {} GROUP BY ?p ?t"))
+                    .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+
+            pl11x.connect();
+        }
 
         pl11.connect();
 //        CONSTRUCT { <D> v:classes ?x } {
@@ -439,66 +517,79 @@ public class MainCliVoidGenerator
 
         // qd1 subsumed by qd2
         // pl1.subscribe(idToAccGraph.get("qd1")::accumulate);
-        pl1.compose(QueryFlowOps.transformerFromQuery(
+
+        tasks.computeIfAbsent("qdAll", key -> pl1
+                .observeOn(Schedulers.computation())
+                .compose(QueryFlowOps.transformerFromQuery(
                 "SELECT ?p (IRI(CONCAT('pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (COUNT(?o) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?p"))
-                .subscribe(idToAcc.get("qdAll")::accumulate);
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
 
-        pl1.filter(QueryFlowOps.createFilter(execCxt, "isIri(?s)")::test)
+        tasks.computeIfAbsent("qf1", key -> pl1
+                .observeOn(Schedulers.computation())
+                .filter(QueryFlowOps.createFilter(execCxt, "isIri(?s)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
-                .subscribe(idToAcc.get("qf1")::accumulate);
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
-        pl1.filter(QueryFlowOps.createFilter(execCxt, "isBlank(?s)")::test)
+        tasks.computeIfAbsent("qf2", key -> pl1
+                .observeOn(Schedulers.computation())
+                .filter(QueryFlowOps.createFilter(execCxt, "isBlank(?s)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
-                .subscribe(idToAcc.get("qf2")::accumulate);
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
-        pl1.filter(QueryFlowOps.createFilter(execCxt, "isIri(?o)")::test)
+        tasks.computeIfAbsent("qf3", key -> pl1
+                .observeOn(Schedulers.computation())
+                .filter(QueryFlowOps.createFilter(execCxt, "isIri(?o)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?o) AS ?x) {}"))
-                .subscribe(idToAcc.get("qf3")::accumulate);
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
-        pl1.filter(QueryFlowOps.createFilter(execCxt, "isLiteral(?o)")::test)
+        tasks.computeIfAbsent("qf4", key -> pl1
+                .observeOn(Schedulers.computation())
+                .filter(QueryFlowOps.createFilter(execCxt, "isLiteral(?o)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?o) AS ?x) {}"))
-                .subscribe(idToAcc.get("qf4")::accumulate);
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
-        pl1.filter(QueryFlowOps.createFilter(execCxt, "isBlank(?o)")::test)
+        tasks.computeIfAbsent("qf5", key -> pl1
+                .observeOn(Schedulers.computation())
+                .filter(QueryFlowOps.createFilter(execCxt, "isBlank(?o)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?o) AS ?x) {}"))
-                .subscribe(idToAcc.get("qf5")::accumulate);
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+//        if(false) {
 
         // All nodes flow (expressed with bindings of ?s)
         ConnectableFlowable<Binding> allNodes = pl1
+                .observeOn(Schedulers.computation())
                 .flatMap(t -> Flowable.just(BindingFactory.binding(Vars.s, t.get(Vars.s)),
                         BindingFactory.binding(Vars.s, t.get(Vars.p)), BindingFactory.binding(Vars.s, t.get(Vars.o))))
 //            .doOnNext(peek -> System.out.println("Peek: " + peek))
                 .share().publish();
 
-        allNodes.filter(QueryFlowOps.createFilter(execCxt, "isBlank(?s)")::test)
+        tasks.computeIfAbsent("qf6", key -> allNodes.filter(QueryFlowOps.createFilter(execCxt, "isBlank(?s)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
-                .subscribe(idToAcc.get("qf6")::accumulate);
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
-        allNodes.filter(QueryFlowOps.createFilter(execCxt, "isIri(?s)")::test)
+        tasks.computeIfAbsent("qf7", key -> allNodes.filter(QueryFlowOps.createFilter(execCxt, "isIri(?s)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
-                .subscribe(idToAcc.get("qf7")::accumulate);
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
-        allNodes.compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
-                .subscribe(idToAcc.get("qf8")::accumulate);
+        tasks.computeIfAbsent("qf8", key -> allNodes.compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
 
 
         allNodes.connect();
 
-        boolean includePathJoin = false;
-        if(includePathJoin) {
+        if(enablePathJoin) {
             ConnectableFlowable<Binding> pathJoin = pl1
                     .flatMap(QueryFlowOps.createMapperForJoin(graph, new Triple(Vars.o, RDF.Nodes.type, Vars.t))::apply).share()
                     .publish();
 
-            pathJoin.compose(QueryFlowOps.transformerFromQuery(
+            tasks.computeIfAbsent("qf10", key -> pathJoin.compose(QueryFlowOps.transformerFromQuery(
                     "SELECT (IRI(CONCAT('pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?o) AS ?x) ?p ?t {} GROUP BY ?p ?t"))
-                    .subscribe(idToAcc.get("qf10")::accumulate);
+                    .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
             pathJoin.connect();
         }
-
 
 
         // Start the whole process
@@ -522,24 +613,8 @@ public class MainCliVoidGenerator
 //            RDFDataMgr.write(System.out, m, RDFFormat.TURTLE_PRETTY);
 //        }
 
-        Map<String, Flowable<?>> tasks = Collections.emptyMap();
-        RxWorkflow<AccSinkTriples<T>> result = new RxWorkflow<>(pl1, tasks, idToAcc);
+        RxWorkflow<Triple> result = new RxWorkflow<>(pl1, tasks);
 
         return result;
-//        counter.subscribe(count -> System.out.println("Counter saw: " + count));
-//
-//        publisher.subscribe(y -> System.out.println("Listener 2" + y));
-//
-//
-//
-//
-
-        // x.conn
-
-        // root.share()
-
-        // Flowable.
-        // root.doOnNext(onNext);
-
     }
 }
