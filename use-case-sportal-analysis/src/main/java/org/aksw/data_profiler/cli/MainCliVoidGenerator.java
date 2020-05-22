@@ -422,9 +422,17 @@ public class MainCliVoidGenerator
 //        }
 
         // Flowable<Binding> l1 = root.share();//.subscribeOn(Schedulers.computation());
+        Stopwatch sw = Stopwatch.createStarted();
+        int i[] = {0};
+        int throughputUpdateInterval = 100000;
         ConnectableFlowable<Binding> pl1 = root
-                //.subscribeOn(Schedulers.io())
-                // .doOnNext(x -> System.err.println("From root: " + x))
+                .subscribeOn(Schedulers.io())
+                .doOnNext(x -> {
+                    ++i[0];
+                    if(i[0] % throughputUpdateInterval == 0) {
+                        System.err.println("Throughput of triples/second since start: " + i[0] / (sw.elapsed(TimeUnit.MILLISECONDS) * 0.001f) + " (update interval = " + throughputUpdateInterval + ")");
+                    }
+                })
                 .publish();
 
         // publisher.subscribe(y -> System.out.println("Listener 1" + y));
