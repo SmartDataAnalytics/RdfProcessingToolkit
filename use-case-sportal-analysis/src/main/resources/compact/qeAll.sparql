@@ -18,6 +18,12 @@ CONSTRUCT {
   SELECT
     (IRI(CONCAT('x-cp://', ENCODE_FOR_URI(STR(?t)))) AS ?k)
     (IRI(CONCAT(STR(?k), '-', ENCODE_FOR_URI(STR(?p)))) AS ?l)
+    ?t
+    ?p
+    ?x
+    ?a
+    ?b
+    ?c
   {
     SELECT
       ?t

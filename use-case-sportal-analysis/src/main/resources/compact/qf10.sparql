@@ -15,14 +15,15 @@ CONSTRUCT {
 }
 {
   SELECT
-    (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l)
-    (IRI(CONCAT('x-ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k)
-    (COUNT(?o) AS ?x)
-    ?p
-    ?t
+      (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l)
+      (IRI(CONCAT('x-ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k)
+      ?p ?t ?x
   {
-    ?s ?p ?o .
-    ?o a ?t
+    SELECT ?p ?t (COUNT(?o) AS ?x)
+    {
+      ?s ?p ?o .
+      ?o a ?t
+    }
+    GROUP BY ?p ?t
   }
-  GROUP BY ?p ?t
 }
