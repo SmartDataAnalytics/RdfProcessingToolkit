@@ -469,7 +469,7 @@ public class MainCliVoidGenerator
                 .filter(QueryFlowOps
                         .createFilter(execCxt, "?p = <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>")::test)
                 .compose(QueryFlowOps.transformerFromQuery(
-                        "SELECT (IRI(CONCAT('cp://', ENCODE_FOR_URI(STR(?o)))) AS ?k) ?s (?o AS ?t) {}"))
+                        "SELECT (IRI(CONCAT('x-cp://', ENCODE_FOR_URI(STR(?o)))) AS ?k) ?s (?o AS ?t) {}"))
                 .share().publish();
 //        if(false) {
 
@@ -510,7 +510,7 @@ public class MainCliVoidGenerator
                     .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
             tasks.computeIfAbsent("qf9", key -> pl11x.compose(QueryFlowOps.transformerFromQuery(
-                    "SELECT ?t (IRI(CONCAT('pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?s) AS ?x) {} GROUP BY ?p ?t"))
+                    "SELECT ?t (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('x-ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?s) AS ?x) {} GROUP BY ?p ?t"))
                     .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
             pl11x.connect();
@@ -529,7 +529,7 @@ public class MainCliVoidGenerator
         tasks.computeIfAbsent("qdAll", key -> pl1
                 .observeOn(Schedulers.computation())
                 .compose(QueryFlowOps.transformerFromQuery(
-                "SELECT ?p (IRI(CONCAT('pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (COUNT(?o) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?p"))
+                "SELECT ?p (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (COUNT(?o) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?p"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
 
@@ -593,7 +593,7 @@ public class MainCliVoidGenerator
                     .publish();
 
             tasks.computeIfAbsent("qf10", key -> pathJoin.compose(QueryFlowOps.transformerFromQuery(
-                    "SELECT (IRI(CONCAT('pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?o) AS ?x) ?p ?t {} GROUP BY ?p ?t"))
+                    "SELECT (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('x-ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?o) AS ?x) ?p ?t {} GROUP BY ?p ?t"))
                     .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
             pathJoin.connect();
