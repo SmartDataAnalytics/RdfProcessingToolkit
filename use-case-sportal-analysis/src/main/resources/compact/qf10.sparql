@@ -15,8 +15,8 @@ CONSTRUCT {
 }
 {
   SELECT
-    (IRI(CONCAT('pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l)
-    (IRI(CONCAT('ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k)
+    (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l)
+    (IRI(CONCAT('x-ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k)
     (COUNT(?o) AS ?x)
     ?p
     ?t
