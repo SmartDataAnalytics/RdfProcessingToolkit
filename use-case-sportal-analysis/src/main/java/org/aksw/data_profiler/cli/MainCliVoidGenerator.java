@@ -126,8 +126,8 @@ public class MainCliVoidGenerator
 
     @Option(names="--parallel", arity = "0..1", description = "Number of *worker* processors to use")
     protected int parallel = Math.max(Runtime.getRuntime().availableProcessors() - 1, 1);
-    
-    
+
+
 //    @Option(names="--no-single", arity = "0..1", description = "Disable singl pattern queries")
 //    protected boolean noSingle = false;
 
@@ -218,7 +218,11 @@ public class MainCliVoidGenerator
 
 //        RxWorkflow<AccSinkTriples<MySinkTriplesToGraph>> workflow = generateDataProfileForVoid(sinkToGraphSupp, inGraph);
         System.err.println("Worker thread pool size: " + parallel);
-        RxWorkflow<Triple> workflow = generateDataProfileForVoid(inGraph, parallel, !noStar, !noPath);
+
+        Executor executor = Executors.newFixedThreadPool(parallel);
+        Scheduler workerScheduler = Schedulers.from(executor);
+
+        RxWorkflow<Triple> workflow = generateDataProfileForVoid(inGraph, workerScheduler, !noStar, !noPath);
 
             //.subscribe(x -> System.err.println("DONE EVENT FIRED"));
         System.err.println("Active tasks: " + workflow.getTasks().keySet());
@@ -236,10 +240,10 @@ public class MainCliVoidGenerator
             //(task -> task.observeOn(workerScheduler).ignoreElements())
 
 //        .count();
-        
+
         Flowable<Triple> task = Flowable.fromIterable(workflow.getTasks().values())
-                .flatMap(x -> x);
-//                .flatMap(x -> x.observeOn(workerScheduler));
+//                .flatMap(x -> x);
+                .flatMap(x -> x.observeOn(workerScheduler));
 
 //        List<CompletableFuture<?>> futures = new ArrayList<>();
 //        for(Entry<String, Flowable<Triple>> e : workflow.getTasks().entrySet()) {
@@ -308,15 +312,13 @@ public class MainCliVoidGenerator
 
     public static RxWorkflow<Triple> generateDataProfileForVoid(
             Graph graph,
-            int threadPoolSize,
+            Scheduler workerScheduler,
             boolean enableStarJoin,
             boolean enablePathJoin) throws Exception {
 
         Map<String, Flowable<Triple>> tasks = new HashMap<>();
 
-        
-        Executor executor = Executors.newFixedThreadPool(threadPoolSize);
-		Scheduler workerScheduler = Schedulers.from(executor);
+
         // FlowableTransformer<Binding, Binding> accGroupBy =
         // QueryFlowOps.transformerFromQuery(QueryFactory.create("SELECT (COUNT(*) + 1
         // AS ?c) { }"));
@@ -501,12 +503,12 @@ public class MainCliVoidGenerator
                 .doOnNext(x -> {
                     ++i[0];
                     if(i[0] % throughputUpdateInterval == 0) {
-                    	if(!sw.isRunning()) {
-                    		sw.start();
-                    		i[0] = 0;
-                    	} else {
-                    		System.err.println("Throughput of triples/second since start: " + i[0] / (sw.elapsed(TimeUnit.MILLISECONDS) * 0.001f) + " (update interval = " + throughputUpdateInterval + ")");
-                    	}
+                        if(!sw.isRunning()) {
+                            sw.start();
+                            i[0] = 0;
+                        } else {
+                            System.err.println("Throughput of triples/second since start: " + i[0] / (sw.elapsed(TimeUnit.MILLISECONDS) * 0.001f) + " (update interval = " + throughputUpdateInterval + ")");
+                        }
                     }
                 })
 //                .observeOn(workerScheduler)
@@ -569,7 +571,7 @@ public class MainCliVoidGenerator
 //                .doOnNext(x -> System.out.println(key + " on thread " + Thread.currentThread()))
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?t) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply))
-        	    ;
+                ;
 
         // single pattern for qcx: qc1, qc5 - the rest are star-joins
         // (D classPartition ?k) (?k distinctSubjects ?a)
@@ -581,7 +583,7 @@ public class MainCliVoidGenerator
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 //}
 
-	if(enableStarJoin) {
+    if(enableStarJoin) {
             // join of ?s a ?t with ?s a ?o
             tasks.computeIfAbsent("qc3", key -> pl11.flatMap(QueryFlowOps.createMapperForJoin(graph, new Triple(Vars.s, RDF.Nodes.type, Vars.o))::apply)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT ?k ?t (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?k ?t"))
@@ -636,7 +638,7 @@ if(true) {
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply)
 //        		.map(x -> new Triple(RDF.Nodes.type, RDF.Nodes.type, RDF.Nodes.type))
-        	);
+            );
 
 }
 
@@ -648,9 +650,9 @@ if(true) {
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply)
 //        		.map(x -> new Triple(RDF.Nodes.type, RDF.Nodes.type, RDF.Nodes.type))
-        	);
+            );
 }
-        
+
 if(true) {
 
         tasks.computeIfAbsent("qf3", key -> pl1
