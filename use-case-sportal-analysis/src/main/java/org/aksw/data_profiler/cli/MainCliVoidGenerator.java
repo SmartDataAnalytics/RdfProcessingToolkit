@@ -1,13 +1,13 @@
 package org.aksw.data_profiler.cli;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.aksw.jena_sparql_api.io.binseach.GraphFromSubjectCache;
@@ -46,7 +46,9 @@ import org.apache.jena.vocabulary.VOID;
 
 import com.google.common.base.Stopwatch;
 
+import io.reactivex.rxjava3.annotations.NonNull;
 import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Scheduler;
 import io.reactivex.rxjava3.flowables.ConnectableFlowable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import picocli.CommandLine;
@@ -122,6 +124,10 @@ public class MainCliVoidGenerator
     @Option(names="--no-path", arity = "0..1", description = "Disable path pattern queries")
     protected boolean noPath = false;
 
+    @Option(names="--parallel", arity = "0..1", description = "Number of *worker* processors to use")
+    protected int parallel = Math.max(Runtime.getRuntime().availableProcessors() - 1, 1);
+    
+    
 //    @Option(names="--no-single", arity = "0..1", description = "Disable singl pattern queries")
 //    protected boolean noSingle = false;
 
@@ -153,7 +159,7 @@ public class MainCliVoidGenerator
             int i[] = {0};
             int throughputUpdateInterval = 100000;
             RDFDataMgrRx.createFlowableTriples(inputFile.toAbsolutePath().toString(), Lang.NTRIPLES, null)
-                    //.subscribeOn(Schedulers.io())
+                    // .subscribeOn(Schedulers.io())
                     .doOnNext(x -> {
                         //System.out.println(NodeFmtLib.str(x));
                         ++i[0];
@@ -211,37 +217,42 @@ public class MainCliVoidGenerator
         //Supplier<MySinkTriplesToGraph> sinkToGraphSupp = () -> new MySinkTriplesToGraph(GraphFactory.createDefaultGraph());
 
 //        RxWorkflow<AccSinkTriples<MySinkTriplesToGraph>> workflow = generateDataProfileForVoid(sinkToGraphSupp, inGraph);
-        RxWorkflow<Triple> workflow = generateDataProfileForVoid(inGraph, !noStar, !noPath);
+        System.err.println("Worker thread pool size: " + parallel);
+        RxWorkflow<Triple> workflow = generateDataProfileForVoid(inGraph, parallel, !noStar, !noPath);
 
             //.subscribe(x -> System.err.println("DONE EVENT FIRED"));
         System.err.println("Active tasks: " + workflow.getTasks().keySet());
 
         // First: Subscribe to the tasks
 //        Flowable<Flowable<?>> tasks = Flowable.fromIterable(Iterables.concat(Collections.singleton(workflow.getRootFlowable()), workflow.getTasks().values()));
-        //.flatMap(task -> task.observeOn(Schedulers.computation()))
+        //.flatMap(task -> task.observeOn(workerScheduler))
         //.map(x -> System.err.println("DONE EVENT FIRED"))
         //Single<Long> waitForTasks =
 //        Flowable<Flowable<Triple>> tasks = Flowable.fromIterable(workflow.getTasks().values());
         //Iterable<Triple> triples = tasks
         //tasks
-            //.flatMap(task -> task.observeOn(Schedulers.computation()))
-            //.flatMap(task -> task.subscribeOn(Schedulers.computation()))
-            //(task -> task.observeOn(Schedulers.computation()).ignoreElements())
+            //.flatMap(task -> task.observeOn(workerScheduler))
+            //.flatMap(task -> task.subscribeOn(workerScheduler))
+            //(task -> task.observeOn(workerScheduler).ignoreElements())
 
 //        .count();
+        
         Flowable<Triple> task = Flowable.fromIterable(workflow.getTasks().values())
-//                .flatMap(x -> x);
-                .flatMap(x -> x.observeOn(Schedulers.computation()));
+                .flatMap(x -> x);
+//                .flatMap(x -> x.observeOn(workerScheduler));
 
 //        List<CompletableFuture<?>> futures = new ArrayList<>();
-//        for(Flowable<Triple> task : workflow.getTasks().values()) {
-//            CompletableFuture<?> future = new CompletableFuture<>();
-//            task.observeOn(Schedulers.computation()).subscribe(sink::send, e -> {}, () -> future.complete(null));
+//        for(Entry<String, Flowable<Triple>> e : workflow.getTasks().entrySet()) {
+//            String key = e.getKey();
+//            Flowable<Triple> task = e.getValue();
+//        	CompletableFuture<?> future = new CompletableFuture<>();
+//            task
+//            	.observeOn(workerScheduler)
+//            	.doOnNext(item -> System.out.println("Seen " + key + " on thread " + Thread.currentThread()))
+//            	.subscribe(sink::send, err -> {}, () -> future.complete(null));
 //            futures.add(future);
 //        }
-
-
-        //CompletableFuture<?> future = CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0]));
+//        CompletableFuture<?> future = CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0]));
 
         CompletableFuture<?> future = new CompletableFuture<>();
         task.subscribe(sink::send, e -> {}, () -> future.complete(null));
@@ -297,11 +308,15 @@ public class MainCliVoidGenerator
 
     public static RxWorkflow<Triple> generateDataProfileForVoid(
             Graph graph,
+            int threadPoolSize,
             boolean enableStarJoin,
             boolean enablePathJoin) throws Exception {
 
         Map<String, Flowable<Triple>> tasks = new HashMap<>();
 
+        
+        Executor executor = Executors.newFixedThreadPool(threadPoolSize);
+		Scheduler workerScheduler = Schedulers.from(executor);
         // FlowableTransformer<Binding, Binding> accGroupBy =
         // QueryFlowOps.transformerFromQuery(QueryFactory.create("SELECT (COUNT(*) + 1
         // AS ?c) { }"));
@@ -459,7 +474,7 @@ public class MainCliVoidGenerator
         Flowable<Binding> root =
                 QueryFlowOps.wrapClosableIteratorSupplier(() -> graph.find())
 //                Flowable.fromIterable(() -> graph.find())
-//                .subscribeOn(Schedulers.io())
+                .subscribeOn(Schedulers.io())
                 .map(t -> {
                     BindingMap r = new BindingHashMap();
                     r.add(Vars.s, t.getSubject());
@@ -478,18 +493,23 @@ public class MainCliVoidGenerator
 //            System.exit(0);
 //        }
 
-        // Flowable<Binding> l1 = root.share();//.subscribeOn(Schedulers.computation());
-        Stopwatch sw = Stopwatch.createStarted();
+        // Flowable<Binding> l1 = root.share();//.subscribeOn(workerScheduler);
+        Stopwatch sw = Stopwatch.createUnstarted();
         int i[] = {0};
         int throughputUpdateInterval = 100000;
         ConnectableFlowable<Binding> pl1 = root
                 .doOnNext(x -> {
                     ++i[0];
                     if(i[0] % throughputUpdateInterval == 0) {
-                        System.err.println("Throughput of triples/second since start: " + i[0] / (sw.elapsed(TimeUnit.MILLISECONDS) * 0.001f) + " (update interval = " + throughputUpdateInterval + ")");
+                    	if(!sw.isRunning()) {
+                    		sw.start();
+                    		i[0] = 0;
+                    	} else {
+                    		System.err.println("Throughput of triples/second since start: " + i[0] / (sw.elapsed(TimeUnit.MILLISECONDS) * 0.001f) + " (update interval = " + throughputUpdateInterval + ")");
+                    	}
                     }
                 })
-//                .observeOn(Schedulers.computation())
+//                .observeOn(workerScheduler)
                 .publish();
 
         // publisher.subscribe(y -> System.out.println("Listener 1" + y));
@@ -514,27 +534,26 @@ public class MainCliVoidGenerator
         boolean identityMapping = false;
         if(identityMapping) {
         tasks.computeIfAbsent("test", key -> pl1
-//              .observeOn(Schedulers.computation())
+//              .observeOn(workerScheduler)
               .flatMap(b -> QueryFlowOps.createMapperTriples(new Template(BasicPattern.wrap(Arrays.asList(
                       new Triple(Vars.s, Vars.p, Vars.o)
                )))).apply(b)));
         }
 
-
         tasks.computeIfAbsent("qbAllBut2", key -> pl1
 //              .doOnNext(x -> System.err.println("got here: " + x))
-//              .observeOn(Schedulers.computation())
-//              .subscribeOn(Schedulers.computation())
+              .observeOn(workerScheduler)
+//        	  .doOnNext(x -> System.out.println(key + " on thread " + Thread.currentThread()))
+//              .subscribeOn(workerScheduler)
               .compose(QueryFlowOps.transformerFromQuery(
               "SELECT (COUNT(?s) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?p) AS ?b) (COUNT(DISTINCT ?o) AS ?c) WHERE {}"))
-              .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
-
-
+              .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply))
+              ;
 
         // Turn {?s ?p ?o} into {?s a ?t}
         ConnectableFlowable<Binding> pl11 = pl1
-//                .subscribeOn(Schedulers.computation())
-//                .observeOn(Schedulers.computation())
+//                .subscribeOn(workerScheduler)
+                .observeOn(workerScheduler)
                 .filter(QueryFlowOps
                         .createFilter(execCxt, "?p = <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>")::test)
                 .compose(QueryFlowOps.transformerFromQuery(
@@ -545,21 +564,24 @@ public class MainCliVoidGenerator
         // pl11.subscribe(x -> System.out.println("PEEK: " + x));
         // (D classes ?x)
         tasks.computeIfAbsent("qb2", key -> pl11
-//                .subscribeOn(Schedulers.computation())
-//                .observeOn(Schedulers.computation())
+//                .subscribeOn(workerScheduler)
+                .observeOn(workerScheduler)
+//                .doOnNext(x -> System.out.println(key + " on thread " + Thread.currentThread()))
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?t) AS ?x) {}"))
-                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply))
+        	    ;
 
         // single pattern for qcx: qc1, qc5 - the rest are star-joins
         // (D classPartition ?k) (?k distinctSubjects ?a)
         tasks.computeIfAbsent("qc5", key -> pl11
-//                .subscribeOn(Schedulers.computation())
-//                .observeOn(Schedulers.computation())
+//                .subscribeOn(workerScheduler)
+                .observeOn(workerScheduler)
+//                .doOnNext(x -> System.out.println(key + " on thread " + Thread.currentThread()))
                 .compose(QueryFlowOps.transformerFromQuery("SELECT ?k ?t (COUNT(DISTINCT ?s) AS ?a) {} GROUP BY ?k ?t"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 //}
 
-        if(enableStarJoin) {
+	if(enableStarJoin) {
             // join of ?s a ?t with ?s a ?o
             tasks.computeIfAbsent("qc3", key -> pl11.flatMap(QueryFlowOps.createMapperForJoin(graph, new Triple(Vars.s, RDF.Nodes.type, Vars.o))::apply)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT ?k ?t (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?k ?t"))
@@ -596,40 +618,55 @@ public class MainCliVoidGenerator
         // qd1 subsumed by qd2
         // pl1.subscribe(idToAccGraph.get("qd1")::accumulate);
 
+if(true) {
         tasks.computeIfAbsent("qdAll", key -> pl1
-//                .observeOn(Schedulers.computation())
+                .observeOn(workerScheduler)
+//                .doOnNext(x -> System.out.println(key + " on thread " + Thread.currentThread()))
                 .compose(QueryFlowOps.transformerFromQuery(
                 "SELECT ?p (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (COUNT(?o) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?p"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+}
 
-        if(false) {
+if(true) {
 
         tasks.computeIfAbsent("qf1", key -> pl1
-//                .observeOn(Schedulers.computation())
+                .observeOn(workerScheduler)
+//                .doOnNext(x -> System.out.println(key + " on thread " + Thread.currentThread()))
                 .filter(QueryFlowOps.createFilter(execCxt, "isIri(?s)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
-                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply)
+//        		.map(x -> new Triple(RDF.Nodes.type, RDF.Nodes.type, RDF.Nodes.type))
+        	);
 
+}
+
+if(true) {
         tasks.computeIfAbsent("qf2", key -> pl1
-//                .observeOn(Schedulers.computation())
+                .observeOn(workerScheduler)
+//                .doOnNext(x -> System.out.println(key + " on thread " + Thread.currentThread()))
                 .filter(QueryFlowOps.createFilter(execCxt, "isBlank(?s)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
-                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply)
+//        		.map(x -> new Triple(RDF.Nodes.type, RDF.Nodes.type, RDF.Nodes.type))
+        	);
+}
+        
+if(true) {
 
         tasks.computeIfAbsent("qf3", key -> pl1
-//                .observeOn(Schedulers.computation())
+                .observeOn(workerScheduler)
                 .filter(QueryFlowOps.createFilter(execCxt, "isIri(?o)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?o) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
         tasks.computeIfAbsent("qf4", key -> pl1
-//                .observeOn(Schedulers.computation())
+                .observeOn(workerScheduler)
                 .filter(QueryFlowOps.createFilter(execCxt, "isLiteral(?o)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?o) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
         tasks.computeIfAbsent("qf5", key -> pl1
-//                .observeOn(Schedulers.computation())
+                .observeOn(workerScheduler)
                 .filter(QueryFlowOps.createFilter(execCxt, "isBlank(?o)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?o) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
@@ -637,7 +674,7 @@ public class MainCliVoidGenerator
 
         // All nodes flow (expressed with bindings of ?s)
         ConnectableFlowable<Binding> allNodes = pl1
-//                .observeOn(Schedulers.computation())
+                .observeOn(workerScheduler)
                 .flatMap(t -> Flowable.just(BindingFactory.binding(Vars.s, t.get(Vars.s)),
                         BindingFactory.binding(Vars.s, t.get(Vars.p)), BindingFactory.binding(Vars.s, t.get(Vars.o))))
 //            .doOnNext(peek -> System.out.println("Peek: " + peek))
