@@ -1,18 +1,23 @@
 package org.aksw.data_profiler.cli;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.aksw.jena_sparql_api.io.binseach.GraphFromSubjectCache;
 import org.aksw.jena_sparql_api.io.lib.SpecialGraphs;
+import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.rx.SparqlRx;
 import org.aksw.jena_sparql_api.rx.query_flow.QueryFlowOps;
 import org.aksw.jena_sparql_api.utils.Vars;
+import org.apache.jena.atlas.lib.Sink;
+import org.apache.jena.atlas.lib.SinkNull;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.GraphUtil;
 import org.apache.jena.graph.Node;
@@ -23,8 +28,8 @@ import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.query.ResultSetFactory;
+import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.lang.SinkTriplesToGraph;
-import org.apache.jena.riot.out.SinkTripleOutput;
 import org.apache.jena.sparql.algebra.Table;
 import org.apache.jena.sparql.algebra.table.TableN;
 import org.apache.jena.sparql.core.BasicPattern;
@@ -32,6 +37,8 @@ import org.apache.jena.sparql.core.DatasetGraphFactory;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
+import org.apache.jena.sparql.engine.binding.BindingHashMap;
+import org.apache.jena.sparql.engine.binding.BindingMap;
 import org.apache.jena.sparql.graph.GraphFactory;
 import org.apache.jena.sparql.syntax.Template;
 import org.apache.jena.vocabulary.RDF;
@@ -138,6 +145,28 @@ public class MainCliVoidGenerator
 
         String fileName = inputFile.getFileName().toString();
 
+
+
+        // Benchmark plain parsing throughput
+        if(false) {
+            Stopwatch sw = Stopwatch.createStarted();
+            int i[] = {0};
+            int throughputUpdateInterval = 100000;
+            RDFDataMgrRx.createFlowableTriples(inputFile.toAbsolutePath().toString(), Lang.NTRIPLES, null)
+                    //.subscribeOn(Schedulers.io())
+                    .doOnNext(x -> {
+                        //System.out.println(NodeFmtLib.str(x));
+                        ++i[0];
+                        if(i[0] % throughputUpdateInterval == 0) {
+                            System.err.println("Throughput of triples/second since start: " + i[0] / (sw.elapsed(TimeUnit.MILLISECONDS) * 0.001f) + " (update interval = " + throughputUpdateInterval + ")");
+                        }
+                    })
+                    .subscribe();
+            return;
+        }
+
+
+
         Graph inGraph;
         if(fileName.endsWith(".bz2")) {
             inGraph = SpecialGraphs.fromSortedNtriplesBzip2File(inputFile);
@@ -171,7 +200,12 @@ public class MainCliVoidGenerator
 
         // Graph outGraph = GraphFactory.createDefaultGraph();
         // SinkTriplesToGraph sink = new SinkTriplesToGraph(false, outGraph);
-        SinkTripleOutput sink = new SinkTripleOutput(System.out, null, null);
+
+
+//        SinkTripleOutput sink = new SinkTripleOutput(System.out, null, null);
+        Sink<Triple> sink = new SinkNull<>();
+
+
         //Supplier<SinkTripleOutput> sinkSupp = () -> sink;
 
         //Supplier<MySinkTriplesToGraph> sinkToGraphSupp = () -> new MySinkTriplesToGraph(GraphFactory.createDefaultGraph());
@@ -196,7 +230,18 @@ public class MainCliVoidGenerator
 
 //        .count();
         Flowable<Triple> task = Flowable.fromIterable(workflow.getTasks().values())
-                .flatMap(x -> x);
+//                .flatMap(x -> x);
+                .flatMap(x -> x.observeOn(Schedulers.computation()));
+
+//        List<CompletableFuture<?>> futures = new ArrayList<>();
+//        for(Flowable<Triple> task : workflow.getTasks().values()) {
+//            CompletableFuture<?> future = new CompletableFuture<>();
+//            task.observeOn(Schedulers.computation()).subscribe(sink::send, e -> {}, () -> future.complete(null));
+//            futures.add(future);
+//        }
+
+
+        //CompletableFuture<?> future = CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0]));
 
         CompletableFuture<?> future = new CompletableFuture<>();
         task.subscribe(sink::send, e -> {}, () -> future.complete(null));
@@ -409,7 +454,19 @@ public class MainCliVoidGenerator
 
         // Query rootQuery = QueryFactory.create("SELECT * { ?s ?p ?o }");
 
-        Flowable<Binding> root = SparqlRx.execSelectRaw(() -> QueryExecutionFactory.create(spoQuery, DatasetGraphFactory.wrap(graph))); //rootQuery, () -> conn);
+        // Flowable<Binding> root = SparqlRx.execSelectRaw(() -> QueryExecutionFactory.create(spoQuery, DatasetGraphFactory.wrap(graph))); //rootQuery, () -> conn);
+
+        Flowable<Binding> root =
+                QueryFlowOps.wrapClosableIteratorSupplier(() -> graph.find())
+//                Flowable.fromIterable(() -> graph.find())
+//                .subscribeOn(Schedulers.io())
+                .map(t -> {
+                    BindingMap r = new BindingHashMap();
+                    r.add(Vars.s, t.getSubject());
+                    r.add(Vars.p, t.getPredicate());
+                    r.add(Vars.o, t.getObject());
+                    return r;
+                });
 
         //root.subscribe(x -> System.out.println("Saw triple: " + x));
 ////        root.subscribe(x -> System.out.println("Saw triple: " + x));
@@ -426,13 +483,13 @@ public class MainCliVoidGenerator
         int i[] = {0};
         int throughputUpdateInterval = 100000;
         ConnectableFlowable<Binding> pl1 = root
-                .subscribeOn(Schedulers.io())
                 .doOnNext(x -> {
                     ++i[0];
                     if(i[0] % throughputUpdateInterval == 0) {
                         System.err.println("Throughput of triples/second since start: " + i[0] / (sw.elapsed(TimeUnit.MILLISECONDS) * 0.001f) + " (update interval = " + throughputUpdateInterval + ")");
                     }
                 })
+//                .observeOn(Schedulers.computation())
                 .publish();
 
         // publisher.subscribe(y -> System.out.println("Listener 1" + y));
@@ -448,24 +505,36 @@ public class MainCliVoidGenerator
             pl1one.connect();
         }
 
+
 //        pl1.compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(*) AS ?x) WHERE {}")).subscribe(idToAccGraph.get("qb1")::accumulate);
 //        pl1.compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?p) AS ?x) {}")).subscribe(idToAccGraph.get("qb3")::accumulate);
 //        pl1.compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}")).subscribe(idToAccGraph.get("qb4")::accumulate);
 //        pl1.compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?o) AS ?x) {}")).subscribe(idToAccGraph.get("qb5")::accumulate);
 
+        boolean identityMapping = false;
+        if(identityMapping) {
+        tasks.computeIfAbsent("test", key -> pl1
+//              .observeOn(Schedulers.computation())
+              .flatMap(b -> QueryFlowOps.createMapperTriples(new Template(BasicPattern.wrap(Arrays.asList(
+                      new Triple(Vars.s, Vars.p, Vars.o)
+               )))).apply(b)));
+        }
+
+
         tasks.computeIfAbsent("qbAllBut2", key -> pl1
-//                .doOnNext(x -> System.err.println("got here: " + x))
-                .observeOn(Schedulers.computation())
-//                .subscribeOn(Schedulers.computation())
-                .compose(QueryFlowOps.transformerFromQuery(
-                "SELECT (COUNT(?s) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?p) AS ?b) (COUNT(DISTINCT ?o) AS ?c) WHERE {}"))
-                .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+//              .doOnNext(x -> System.err.println("got here: " + x))
+//              .observeOn(Schedulers.computation())
+//              .subscribeOn(Schedulers.computation())
+              .compose(QueryFlowOps.transformerFromQuery(
+              "SELECT (COUNT(?s) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?p) AS ?b) (COUNT(DISTINCT ?o) AS ?c) WHERE {}"))
+              .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+
 
 
         // Turn {?s ?p ?o} into {?s a ?t}
         ConnectableFlowable<Binding> pl11 = pl1
 //                .subscribeOn(Schedulers.computation())
-                .observeOn(Schedulers.computation())
+//                .observeOn(Schedulers.computation())
                 .filter(QueryFlowOps
                         .createFilter(execCxt, "?p = <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>")::test)
                 .compose(QueryFlowOps.transformerFromQuery(
@@ -477,7 +546,7 @@ public class MainCliVoidGenerator
         // (D classes ?x)
         tasks.computeIfAbsent("qb2", key -> pl11
 //                .subscribeOn(Schedulers.computation())
-                .observeOn(Schedulers.computation())
+//                .observeOn(Schedulers.computation())
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?t) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
@@ -485,10 +554,11 @@ public class MainCliVoidGenerator
         // (D classPartition ?k) (?k distinctSubjects ?a)
         tasks.computeIfAbsent("qc5", key -> pl11
 //                .subscribeOn(Schedulers.computation())
-                .observeOn(Schedulers.computation())
+//                .observeOn(Schedulers.computation())
                 .compose(QueryFlowOps.transformerFromQuery("SELECT ?k ?t (COUNT(DISTINCT ?s) AS ?a) {} GROUP BY ?k ?t"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 //}
+
         if(enableStarJoin) {
             // join of ?s a ?t with ?s a ?o
             tasks.computeIfAbsent("qc3", key -> pl11.flatMap(QueryFlowOps.createMapperForJoin(graph, new Triple(Vars.s, RDF.Nodes.type, Vars.o))::apply)
@@ -527,38 +597,39 @@ public class MainCliVoidGenerator
         // pl1.subscribe(idToAccGraph.get("qd1")::accumulate);
 
         tasks.computeIfAbsent("qdAll", key -> pl1
-                .observeOn(Schedulers.computation())
+//                .observeOn(Schedulers.computation())
                 .compose(QueryFlowOps.transformerFromQuery(
                 "SELECT ?p (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (COUNT(?o) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?p"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
+        if(false) {
 
         tasks.computeIfAbsent("qf1", key -> pl1
-                .observeOn(Schedulers.computation())
+//                .observeOn(Schedulers.computation())
                 .filter(QueryFlowOps.createFilter(execCxt, "isIri(?s)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
         tasks.computeIfAbsent("qf2", key -> pl1
-                .observeOn(Schedulers.computation())
+//                .observeOn(Schedulers.computation())
                 .filter(QueryFlowOps.createFilter(execCxt, "isBlank(?s)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
         tasks.computeIfAbsent("qf3", key -> pl1
-                .observeOn(Schedulers.computation())
+//                .observeOn(Schedulers.computation())
                 .filter(QueryFlowOps.createFilter(execCxt, "isIri(?o)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?o) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
         tasks.computeIfAbsent("qf4", key -> pl1
-                .observeOn(Schedulers.computation())
+//                .observeOn(Schedulers.computation())
                 .filter(QueryFlowOps.createFilter(execCxt, "isLiteral(?o)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?o) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
         tasks.computeIfAbsent("qf5", key -> pl1
-                .observeOn(Schedulers.computation())
+//                .observeOn(Schedulers.computation())
                 .filter(QueryFlowOps.createFilter(execCxt, "isBlank(?o)")::test)
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?o) AS ?x) {}"))
                 .flatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
@@ -566,7 +637,7 @@ public class MainCliVoidGenerator
 
         // All nodes flow (expressed with bindings of ?s)
         ConnectableFlowable<Binding> allNodes = pl1
-                .observeOn(Schedulers.computation())
+//                .observeOn(Schedulers.computation())
                 .flatMap(t -> Flowable.just(BindingFactory.binding(Vars.s, t.get(Vars.s)),
                         BindingFactory.binding(Vars.s, t.get(Vars.p)), BindingFactory.binding(Vars.s, t.get(Vars.o))))
 //            .doOnNext(peek -> System.out.println("Peek: " + peek))
@@ -598,7 +669,7 @@ public class MainCliVoidGenerator
 
             pathJoin.connect();
         }
-
+}
 
         // Start the whole process
         // Disposable d = pl1.connect();
