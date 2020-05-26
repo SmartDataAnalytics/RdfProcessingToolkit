@@ -16,8 +16,6 @@ import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.rx.SparqlRx;
 import org.aksw.jena_sparql_api.rx.query_flow.QueryFlowOps;
 import org.aksw.jena_sparql_api.utils.Vars;
-import org.apache.jena.atlas.lib.Sink;
-import org.apache.jena.atlas.lib.SinkNull;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.GraphUtil;
 import org.apache.jena.graph.Node;
@@ -30,6 +28,7 @@ import org.apache.jena.query.ResultSet;
 import org.apache.jena.query.ResultSetFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.lang.SinkTriplesToGraph;
+import org.apache.jena.riot.out.SinkTripleOutput;
 import org.apache.jena.sparql.algebra.Table;
 import org.apache.jena.sparql.algebra.table.TableN;
 import org.apache.jena.sparql.core.BasicPattern;
@@ -46,7 +45,6 @@ import org.apache.jena.vocabulary.VOID;
 
 import com.google.common.base.Stopwatch;
 
-import io.reactivex.rxjava3.annotations.NonNull;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Scheduler;
 import io.reactivex.rxjava3.flowables.ConnectableFlowable;
@@ -208,8 +206,8 @@ public class MainCliVoidGenerator
         // SinkTriplesToGraph sink = new SinkTriplesToGraph(false, outGraph);
 
 
-//        SinkTripleOutput sink = new SinkTripleOutput(System.out, null, null);
-        Sink<Triple> sink = new SinkNull<>();
+        SinkTripleOutput sink = new SinkTripleOutput(System.out, null, null);
+//        Sink<Triple> sink = new SinkNull<>();
 
 
         //Supplier<SinkTripleOutput> sinkSupp = () -> sink;
