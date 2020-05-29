@@ -22,41 +22,67 @@ public class TestPublishConnect {
         Stopwatch sw = Stopwatch.createStarted();
 
         Stopwatch rootSw = Stopwatch.createStarted();
-        ConnectableFlowable<Integer> root = Flowable.
-                fromStream(IntStream.range(0, 100).mapToObj(x -> x))
-                .doOnComplete(() -> System.err.println("Root elapsed time: " + rootSw.elapsed(TimeUnit.MILLISECONDS) * 0.001))
+
+        Flowable<Integer> root = Flowable.
+            fromIterable(() -> IntStream.range(0, 100).mapToObj(x -> x).iterator())
+            .doOnComplete(() -> System.err.println("Root elapsed time: " + rootSw.elapsed(TimeUnit.MILLISECONDS) * 0.001))
+            .compose(RxUtils.counter("root", 1));
+
+
+        ConnectableFlowable<Integer> rootPub = root
+//                .share()
                 .publish();
 
-        int capacity = 10;
+        int capacity = 3;
 
 
+
+
+        Flowable<String> aPublisher = rootPub
+//			.flatMap(x -> Flowable.just(x).observeOn(Schedulers.computation()))
+            .compose(RxUtils.queuedObserveOn(Schedulers.newThread(), capacity))
+//            .observeOn(Schedulers.computation())
+//            .observeOn(Schedulers.computation(), false, 1)
+            .map(x -> {
+                // Thread.sleep(80);
+                return "a" + x;
+            })
+            .compose(RxUtils.counter("aPublisher", 1))
+            .share()
+            ;
 
         List<Flowable<String>> tasks = Arrays.asList(
-            root
-//				.flatMap(x -> Flowable.just(x).observeOn(Schedulers.computation()))
-                .compose(RxUtils.queuedObserveOn(Schedulers.computation(), capacity))
-//                .observeOn(Schedulers.computation())
-                .map(x -> {
-                    // Thread.sleep(80);
-                    return "a" + x;
-                })
 //				.subscribe(x -> System.out.println(x));
+                aPublisher
+                    .map(x -> {
+//                        Thread.sleep(100);
+                        return "pub1:" + x;
+                    })
+                    .compose(RxUtils.queuedObserveOn(Schedulers.newThread(), capacity))
+//                    .observeOn(Schedulers.computation())
+                    ,
+                aPublisher
+                    .map(x -> "pub2:" + x)
+                    .compose(RxUtils.queuedObserveOn(Schedulers.computation(), capacity))
+                    .observeOn(Schedulers.computation(), false, 1)
                 ,
-            root
+            rootPub
 //				.flatMap(x -> Flowable.just(x).observeOn(Schedulers.computation()))
 //                .observeOn(Schedulers.computation())
-                .compose(RxUtils.queuedObserveOn(Schedulers.computation(), capacity))
+                .compose(RxUtils.queuedObserveOn(Schedulers.computation(), 3))
+//                .observeOn(Schedulers.computation(), false, 1)
                 .map(x -> {
-                    // Thread.sleep(90);
+                    Thread.sleep(100);
                     return "b" + x;
                 })
                 ,
-            root
+            rootPub
 //				.flatMap(x -> Flowable.just(x).observeOn(Schedulers.computation()))
-//                .observeOn(Schedulers.computation())
-                .compose(RxUtils.queuedObserveOn(Schedulers.computation(), capacity))
+                .observeOn(Schedulers.computation())
+//                .compose(RxUtils.queuedObserveOn(Schedulers.computation(), capacity))
+//                .observeOn(Schedulers.computation(), false, 1)
                 .map(x -> {
-                    Thread.sleep(100);
+                    //Thread.sleep(100);
                     return "c" + x;
                 })
         );
@@ -79,7 +105,7 @@ public class TestPublishConnect {
 //		.subscribe(x -> System.out.println(x));
 
 
-        root.connect();
+        rootPub.connect();
 
         future.get();
 
