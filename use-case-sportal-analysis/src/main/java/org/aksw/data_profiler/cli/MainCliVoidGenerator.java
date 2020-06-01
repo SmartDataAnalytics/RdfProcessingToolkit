@@ -1,6 +1,9 @@
 package org.aksw.data_profiler.cli;
 
+import java.nio.channels.Channels;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -13,6 +16,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.aksw.jena_sparql_api.io.binseach.BufferFromInputStream;
 import org.aksw.jena_sparql_api.io.binseach.GraphFromSubjectCache;
 import org.aksw.jena_sparql_api.io.lib.SpecialGraphs;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
@@ -20,7 +24,6 @@ import org.aksw.jena_sparql_api.rx.SparqlRx;
 import org.aksw.jena_sparql_api.rx.query_flow.QueryFlowOps;
 import org.aksw.jena_sparql_api.rx.query_flow.RxUtils;
 import org.aksw.jena_sparql_api.utils.Vars;
-import org.apache.jena.ext.com.google.common.cache.CacheBuilder;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.GraphUtil;
 import org.apache.jena.graph.Node;
@@ -159,22 +162,25 @@ public class MainCliVoidGenerator
 
         // Benchmark plain parsing throughput
         if(false) {
-            Stopwatch sw = Stopwatch.createStarted();
-            int i[] = {0};
-            int throughputUpdateInterval = 1000;
             RDFDataMgrRx.createFlowableTriples(inputFile.toAbsolutePath().toString(), Lang.NTRIPLES, null)
-                    // .subscribeOn(Schedulers.io())
-                    .doOnNext(x -> {
-                        //System.out.println(NodeFmtLib.str(x));
-                        ++i[0];
-                        if(i[0] % throughputUpdateInterval == 0) {
-                            System.err.println("Throughput of triples/second since start: " + i[0] / (sw.elapsed(TimeUnit.MILLISECONDS) * 0.001f) + " (update interval = " + throughputUpdateInterval + ")");
-                        }
-                    })
-                    .subscribe();
+            	.compose(RxUtils.counter("parser", 1000000 - 1))
+                .subscribe();
+
+            BufferFromInputStream bfis = BufferFromInputStream.create(
+            		Files.newInputStream(inputFile, StandardOpenOption.READ), 8192);
+            
+            RDFDataMgrRx.createFlowableTriples(() -> Channels.newInputStream(bfis.newChannel()),
+            		Lang.NTRIPLES, null)
+            	.compose(RxUtils.counter("p2", 1000000 - 1))
+                .subscribe();
+
+            RDFDataMgrRx.createFlowableTriples(() -> Channels.newInputStream(bfis.newChannel()),
+            		Lang.NTRIPLES, null)
+            	.compose(RxUtils.counter("p3", 1000000 - 1))
+                .subscribe();
+
             return;
         }
-
 
 
         Graph inGraph;
@@ -227,7 +233,8 @@ public class MainCliVoidGenerator
                 r.add(Vars.o, t.getObject());
                 return r;
             })
-            .flatMap(QueryFlowOps.createMapperForJoin(ffs, new Triple(Vars.s, Node.ANY, Vars.x))::apply)
+//            .flatMap(QueryFlowOps.createMapperForJoin(ffs, new Triple(Vars.s, Node.ANY, Vars.x))::apply)
+            .compose(RxUtils.counter("graph.find", 1000000 - 1))
             .doOnComplete(() -> System.err.println("Done!"))
             .subscribe();
             //.subscribe(x -> System.out.println(x));
@@ -548,7 +555,7 @@ public class MainCliVoidGenerator
                 ;
 
 
-        if(true) {
+        if(false) {
             tasks.computeIfAbsent("qbAllBut2", key -> pl1
                 .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
                 .compose(RxUtils.counter(key, counterInterval))
@@ -567,7 +574,7 @@ public class MainCliVoidGenerator
             .share()
             ;
 
-if(false) {
+if(true) {
 
         // pl11.subscribe(x -> System.out.println("PEEK: " + x));
         // (D classes ?x)
@@ -579,7 +586,7 @@ if(false) {
            );
 }
 
-if(false) {
+if(true) {
         // single pattern for qcx: qc1, qc5 - the rest are star-joins
         // (D classPartition ?k) (?k distinctSubjects ?a)
         tasks.computeIfAbsent("qc5", key -> sat
@@ -663,7 +670,7 @@ Flowable<Binding> spo2 = pl1
 .share();
 
 
-if(true) {
+if(false) {
 
         tasks.computeIfAbsent("qf1", key -> spo2
 //                .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
@@ -675,7 +682,7 @@ if(true) {
 
 }
 
-if(true) {
+if(false) {
         tasks.computeIfAbsent("qf2", key -> spo2
 //                .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
                 .filter(QueryFlowOps.createFilter(execCxt, "isBlank(?s)")::test)
@@ -685,7 +692,7 @@ if(true) {
             );
 }
 
-if(true) {
+if(false) {
 
         tasks.computeIfAbsent("qf3", key -> spo2
 //                .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
@@ -694,7 +701,7 @@ if(true) {
                 .concatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 }
 
-if(true) {
+if(false) {
         tasks.computeIfAbsent("qf4", key -> spo2
 //                .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
                 .filter(QueryFlowOps.createFilter(execCxt, "isLiteral(?o)")::test)
@@ -709,28 +716,32 @@ if(true) {
 
         // All nodes flow (expressed with bindings of ?s)
 //        ConnectableFlowable<Binding> allNodes = pl1
-  if(false) {
         Flowable<Binding> allNodes = spo2
                 .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
                 .concatMap(t -> Flowable.just(BindingFactory.binding(Vars.s, t.get(Vars.s)),
                         BindingFactory.binding(Vars.s, t.get(Vars.p)), BindingFactory.binding(Vars.s, t.get(Vars.o))))
                 .share()
                 ;
+        if(false) {
 
         tasks.computeIfAbsent("qf6", key -> allNodes.filter(QueryFlowOps.createFilter(execCxt, "isBlank(?s)")::test)
 //                .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
                 .concatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
+        }
+        if(false) {
 
         tasks.computeIfAbsent("qf7", key -> allNodes.filter(QueryFlowOps.createFilter(execCxt, "isIri(?s)")::test)
 //                .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
                 .compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
                 .concatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
-
+        }
+        if(false) {
         tasks.computeIfAbsent("qf8", key -> allNodes.compose(QueryFlowOps.transformerFromQuery("SELECT (COUNT(DISTINCT ?s) AS ?x) {}"))
 //                .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
                 .concatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
-  }
+        }
+
 
 
         // allNodes.connect();
