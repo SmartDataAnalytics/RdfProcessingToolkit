@@ -40,6 +40,7 @@ import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgMain;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsCat;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsFilter;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsHead;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsMap;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsProbe;
@@ -142,6 +143,7 @@ public class MainCliNamedGraphStream {
         CmdNgMain cmdMain = new CmdNgMain();
         CmdNgsSort cmdSort = new CmdNgsSort();
         CmdNgsHead cmdHead = new CmdNgsHead();
+        CmdNgsFilter cmdFilter = new CmdNgsFilter();
         CmdNgsWhile cmdWhile = new CmdNgsWhile();
         CmdNgsUntil cmdUntil = new CmdNgsUntil();
         CmdNgsCat cmdCat = new CmdNgsCat();
@@ -161,6 +163,7 @@ public class MainCliNamedGraphStream {
                 .addCommand("head", cmdHead)
                 .addCommand("until", cmdUntil)
                 .addCommand("while", cmdWhile)
+                .addCommand("filter", cmdFilter)
                 .addCommand("cat", cmdCat)
                 .addCommand("map", cmdMap)
                 .addCommand("wc", cmdWc)
@@ -262,6 +265,23 @@ public class MainCliNamedGraphStream {
 
             RDFDataMgrRx.writeDatasets(flow, out, outFormat);
 
+            break;
+        }
+        case "filter": {
+            RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdFilter.outFormat);
+
+            Function<String, SparqlStmt> stmtParser = SparqlStmtParserImpl.create(DefaultPrefixes.prefixes);
+            SparqlStmt stmt = stmtParser.apply(cmdFilter.sparqlCondition);
+            Query query = stmt.getQuery();
+
+            Predicate<Dataset> tmpCondition = createPredicate(query);
+
+            Predicate<Dataset> condition = cmdFilter.drop ? tmpCondition.negate() : tmpCondition;
+
+            Flowable<Dataset> flow = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdFilter.nonOptionArgs, null, pm)
+                    .filter(condition::test);
+
+            RDFDataMgrRx.writeDatasets(flow, out, outFormat);
             break;
         }
         case "while": {
