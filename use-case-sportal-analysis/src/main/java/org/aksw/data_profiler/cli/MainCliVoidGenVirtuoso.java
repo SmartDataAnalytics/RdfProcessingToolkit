@@ -41,6 +41,10 @@ import com.spotify.docker.client.DockerClient;
 
 import virtuoso.jdbc4.VirtuosoDataSource;
 
+interface RunnableEx {
+    void run() throws Exception;
+}
+
 public class MainCliVoidGenVirtuoso {
     private static final Logger logger = LoggerFactory.getLogger(MainCliVoidGenVirtuoso.class);
 
@@ -74,6 +78,13 @@ public class MainCliVoidGenVirtuoso {
         return result;
     }
 
+    public static void benchmark(String name, RunnableEx x) throws Exception {
+        logger.info("Starting task [" + name + "]");
+        Stopwatch sw = Stopwatch.createStarted();
+        x.run();
+        logger.info("Task [" + name + "] finished in " + sw.elapsed(TimeUnit.MILLISECONDS) * 0.001 + " seconds");
+    }
+
     public static void main(String[] args) throws Exception {
         Stopwatch sw = Stopwatch.createStarted();
         work(args);
@@ -92,15 +103,17 @@ public class MainCliVoidGenVirtuoso {
             DockerClient dockerClient = dss.getDockerClient();
 
 
-            List<Path> paths = Arrays.asList(Paths.get("/home/raven/tmp/sorttest/yago-wd-facts-types_sorted.nt"));
+            List<Path> paths = Arrays.asList(Paths.get("/home/raven/tmp/sorttest/yago-wd-facts-types_sorted-2m.nt"));
             //conn = DatasetFactory.wrap(model);
 
             logger.info("Attempting to starting a virtuoso from docker");
             DockerServiceDockerClient dsCore = dss.create("tenforce/virtuoso", ImmutableMap.<String, String>builder()
                     .put("SPARQL_UPDATE", "true")
                     .put("DEFAULT_GRAPH", "http://www.example.org/")
-                    .put("VIRT_Parameters_NumberOfBuffers", "170000")
-                    .put("VIRT_Parameters_MaxDirtyBuffers", "130000")
+//                    .put("VIRT_Parameters_NumberOfBuffers", "170000")
+//                    .put("VIRT_Parameters_MaxDirtyBuffers", "130000")
+                    .put("VIRT_Parameters_NumberOfBuffers", "680000")
+                    .put("VIRT_Parameters_MaxDirtyBuffers", "500000")
                     .put("VIRT_Parameters_MaxVectorSize", "1000000000")
                     .put("VIRT_SPARQL_ResultSetMaxRows", "1000000000")
                     .put("VIRT_SPARQL_MaxQueryCostEstimationTime", "0")
@@ -118,42 +131,44 @@ public class MainCliVoidGenVirtuoso {
                 String dockerContainerId = dsCore.getCreationId();
                 String dockerContainerIp = ds.getContainerId();
 
-                logger.info("Copying data into container");
+                //logger.info("Copying data into container");
                 Path unzipFolder = Paths.get("/tmp").resolve(dockerContainerId);
                 Files.createDirectories(unzipFolder);
 
-                for(Path path : paths) {
-                    Path filename = path.getFileName();
-                    Path target = unzipFolder.resolve(filename);
-                    Files.copy(path, target);
-                }
-
-
-                String allowedDir = "/usr/local/virtuoso-opensource/var/lib/virtuoso/db/";
-                dockerClient.copyToContainer(unzipFolder, dockerContainerId, allowedDir);
-
-                logger.info("Connecting to virtuoso");
-                VirtuosoDataSource dataSource = new VirtuosoDataSource();
-                dataSource.setUser("dba");
-                dataSource.setPassword("dba");
-                dataSource.setPortNumber(1111);
-                dataSource.setServerName(dockerContainerIp);
-                try(java.sql.Connection c = dataSource.getConnection()) {
-                    logger.info("Preparing bulk loader");
-                    VirtuosoBulkLoad.logEnable(c, 2, 0);
-
+                benchmark("DataLoading", () -> {
                     for(Path path : paths) {
-                        String actualFilename = path.getFileName().toString();
-                        logger.info("Registered file for bulkload: " + actualFilename);
-                        VirtuosoBulkLoad.ldDir(c, allowedDir, actualFilename, "http://www.example.org/");
+                        Path filename = path.getFileName();
+                        Path target = unzipFolder.resolve(filename);
+                        Files.copy(path, target);
                     }
+                    String allowedDir = "/usr/local/virtuoso-opensource/var/lib/virtuoso/db/";
+                    dockerClient.copyToContainer(unzipFolder, dockerContainerId, allowedDir);
 
-                    logger.info("Running bulk loader");
-                    VirtuosoBulkLoad.rdfLoaderRun(c);
+                    logger.info("Connecting to virtuoso");
+                    VirtuosoDataSource dataSource = new VirtuosoDataSource();
+                    dataSource.setUser("dba");
+                    dataSource.setPassword("dba");
+                    dataSource.setPortNumber(1111);
+                    dataSource.setServerName(dockerContainerIp);
+                    try(java.sql.Connection c = dataSource.getConnection()) {
+                        logger.info("Preparing bulk loader");
+                        VirtuosoBulkLoad.logEnable(c, 2, 0);
 
-                    logger.info("Creating checkpoint");
-                    VirtuosoBulkLoad.checkpoint(c);
-                }
+                        for(Path path : paths) {
+                            String actualFilename = path.getFileName().toString();
+                            logger.info("Registered file for bulkload: " + actualFilename);
+                            VirtuosoBulkLoad.ldDir(c, allowedDir, actualFilename, "http://www.example.org/");
+                        }
+
+                        logger.info("Running bulk loader");
+                        VirtuosoBulkLoad.rdfLoaderRun(c);
+
+                        logger.info("Creating checkpoint");
+                        VirtuosoBulkLoad.checkpoint(c);
+                    }
+                });
+
+
 
                 Files.walk(unzipFolder)
                     .sorted(Comparator.reverseOrder())
@@ -168,27 +183,29 @@ public class MainCliVoidGenVirtuoso {
             String sparqlEndpoint = sparqlApiBase + "sparql";
 
 
-            try(RDFConnection conn= RDFConnectionRemote.create()
-                .destination(sparqlEndpoint)
-                .acceptHeaderSelectQuery(WebContent.contentTypeResultsXML)
-                .build()) {
+            benchmark("Querying", () -> {
+                try(RDFConnection conn= RDFConnectionRemote.create()
+                    .destination(sparqlEndpoint)
+                    .acceptHeaderSelectQuery(WebContent.contentTypeResultsXML)
+                    .build()) {
 
-                List<Entry<Path, Query>> qs = queries.entries().stream().collect(Collectors.toList());
+                    List<Entry<Path, Query>> qs = queries.entries().stream().collect(Collectors.toList());
 
-                List<Model> models = qs.parallelStream()
-                    .map(e -> {
-                        Model m;
-                        String name = e.getKey().getFileName().toString();
-                        Query q = e.getValue();
-                        logger.info("Execution starting: " + name);
-                        try(QueryExecution qe = conn.query(q)) {
-                            m = qe.execConstruct();
-                        }
-                        logger.info("Execution finished: " + name + " with " + m.size() + " triples");
-                        return m;
-                    })
-                    .collect(Collectors.toList());
-            }
+                    List<Model> models = qs.parallelStream()
+                        .map(e -> {
+                            Model m;
+                            String name = e.getKey().getFileName().toString();
+                            Query q = e.getValue();
+                            logger.info("Execution starting: " + name);
+                            try(QueryExecution qe = conn.query(q)) {
+                                m = qe.execConstruct();
+                            }
+                            logger.info("Execution finished: " + name + " with " + m.size() + " triples");
+                            return m;
+                        })
+                        .collect(Collectors.toList());
+                }
+            });
 
 //                try(QueryExecution qe = conn.query("SELECT (COUNT(*) AS ?c) { ?s ?p ?o }")) {
 //                    System.out.println(ResultSetFormatter.asText(qe.execSelect()));

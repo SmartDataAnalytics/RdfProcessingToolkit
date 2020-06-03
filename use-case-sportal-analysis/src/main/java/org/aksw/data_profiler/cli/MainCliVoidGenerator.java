@@ -163,20 +163,20 @@ public class MainCliVoidGenerator
         // Benchmark plain parsing throughput
         if(false) {
             RDFDataMgrRx.createFlowableTriples(inputFile.toAbsolutePath().toString(), Lang.NTRIPLES, null)
-            	.compose(RxUtils.counter("parser", 1000000 - 1))
+                .compose(RxUtils.counter("parser", 1000000 - 1))
                 .subscribe();
 
             BufferFromInputStream bfis = BufferFromInputStream.create(
-            		Files.newInputStream(inputFile, StandardOpenOption.READ), 8192);
-            
+                    Files.newInputStream(inputFile, StandardOpenOption.READ), 8192);
+
             RDFDataMgrRx.createFlowableTriples(() -> Channels.newInputStream(bfis.newChannel()),
-            		Lang.NTRIPLES, null)
-            	.compose(RxUtils.counter("p2", 1000000 - 1))
+                    Lang.NTRIPLES, null)
+                .compose(RxUtils.counter("p2", 1000000 - 1))
                 .subscribe();
 
             RDFDataMgrRx.createFlowableTriples(() -> Channels.newInputStream(bfis.newChannel()),
-            		Lang.NTRIPLES, null)
-            	.compose(RxUtils.counter("p3", 1000000 - 1))
+                    Lang.NTRIPLES, null)
+                .compose(RxUtils.counter("p3", 1000000 - 1))
                 .subscribe();
 
             return;
@@ -570,7 +570,7 @@ public class MainCliVoidGenerator
             .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
             .filter(QueryFlowOps.createFilter(execCxt, "?p = <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>")::test)
             .compose(QueryFlowOps.transformerFromQuery(
-                    "SELECT (IRI(CONCAT('x-cp://', ENCODE_FOR_URI(STR(?o)))) AS ?k) ?s (?o AS ?t) {}"))
+                    "SELECT (IRI(CONCAT('x-cp://', 'host.name/', ENCODE_FOR_URI(STR(?o)))) AS ?k) ?s (?o AS ?t) {}"))
             .share()
             ;
 
@@ -648,7 +648,7 @@ if(true) {
                     .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
                     .compose(RxUtils.counter(key, counterInterval))
                     .compose(QueryFlowOps.transformerFromQuery(
-                    "SELECT ?t (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('x-ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?s) AS ?x) {} GROUP BY ?p ?t"))
+                    "SELECT ?t (IRI(CONCAT('x-pp://', 'host.name/', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('x-ppcp://', 'host.name/', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?s) AS ?x) {} GROUP BY ?p ?t"))
                     .concatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply)
             );
     }
@@ -660,7 +660,7 @@ if(false) {
         tasks.computeIfAbsent("qdAll", key -> pl1
 //                .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
                 .compose(QueryFlowOps.transformerFromQuery(
-                "SELECT ?p (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (COUNT(?o) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?p"))
+                "SELECT ?p (IRI(CONCAT('x-pp://', 'host.name/', ENCODE_FOR_URI(STR(?p)))) AS ?l) (COUNT(?o) AS ?x) (COUNT(DISTINCT ?s) AS ?a) (COUNT(DISTINCT ?o) AS ?c) {} GROUP BY ?p"))
                 .concatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 }
 
@@ -754,7 +754,7 @@ if(false) {
             tasks.computeIfAbsent("qf10", key -> pathJoin
                     .compose(RxUtils.queuedObserveOn(workerScheduler, capacity))
                     .compose(QueryFlowOps.transformerFromQuery(
-                    "SELECT (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('x-ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?o) AS ?x) ?p ?t {} GROUP BY ?p ?t"))
+                    "SELECT (IRI(CONCAT('x-pp://', 'host.name/', ENCODE_FOR_URI(STR(?p)))) AS ?l) (IRI(CONCAT('x-ppcp://', 'host.name/', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k) (COUNT(?o) AS ?x) ?p ?t {} GROUP BY ?p ?t"))
                     .concatMap(QueryFlowOps.createMapperTriples(idToTemplate.get(key))::apply));
 
             pathJoin.connect();
