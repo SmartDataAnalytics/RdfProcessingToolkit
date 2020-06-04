@@ -15,10 +15,12 @@
 
 
 	<dependencies>
+<!--
 		<dependency>
 			<groupId>org.aksw.sparql-integrate</groupId>
 			<artifactId>use-case-sportal-analysis</artifactId>
 		</dependency>
+-->
 
 		<dependency>
 			<groupId>com.beust</groupId>
