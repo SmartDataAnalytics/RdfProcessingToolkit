@@ -13,6 +13,7 @@ import java.util.function.BiConsumer;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.json.SPARQLResultVisitorSelectJsonOutput;
 import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
+import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
@@ -237,7 +238,7 @@ public class MainCliSparqlStream {
 
 
         Flowable<Dataset> datasets = RDFDataMgrRx.createFlowableDatasets(() ->
-            MainCliSparqlIntegrate.prependWithPrefixes(
+            RDFDataMgrEx.prependWithPrefixes(
                     SparqlStmtUtils.openInputStream(src), pm));
 
         datasets.forEach(ds -> {
