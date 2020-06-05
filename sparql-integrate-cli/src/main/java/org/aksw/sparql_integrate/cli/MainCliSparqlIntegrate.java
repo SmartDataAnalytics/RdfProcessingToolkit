@@ -415,7 +415,7 @@ public class MainCliSparqlIntegrate {
                     if(!isProcessed) {
 
                         String baseIri = cwd == null ? null : cwd.toUri().toString();
-                        Iterator<SparqlStmt> it = SparqlStmtMgr.loadSparqlStmts(ioFilename, globalPrefixes, sparqlParser, baseIri);
+                        Iterator<SparqlStmt> it = SparqlStmtMgr.loadSparqlStmts(filename, globalPrefixes, sparqlParser, baseIri);
 
                         if(it != null) {
                             SparqlStmtIterator itWithPos = it instanceof SparqlStmtIterator
