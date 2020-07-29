@@ -2,9 +2,13 @@ package org.aksw.sparql_integrate.ngs.cli.cmd;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
+import org.aksw.sparql_integrate.ngs.cli.main.NgsCmdImpls;
+
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
 /**
  * List the top n named graphs
@@ -12,24 +16,31 @@ import com.beust.jcommander.Parameters;
  * @author raven
  *
  */
-@Parameters(commandDescription="Yield items (not) satisfying a given condition")
-public class CmdNgsFilter {
+@Command(name = "filter", description = "Yield items (not) satisfying a given condition")
+public class CmdNgsFilter implements Callable<Integer> {
+
+    @Option(names = { "-h", "--help" }, usageHelp = true)
+    public boolean help = false;
+
     /**
      * sparql-pattern file
      *
      */
-    @Parameter(names={"--sparql"}, description="Ask/Select/Construct query. True or non-empty result set / graph aborts the stream.")
+    @Option(names = { "--sparql" }, description = "Ask/Select/Construct query. True or non-empty result set / graph aborts the stream.")
     public String sparqlCondition;
 
-    @Parameter(names={"-h", "--help"}, help = true)
-    public boolean help = false;
 
-    @Parameter(names={"-d", "--drop"}, description="Invert filter condition; drops matching graphs instead of keeping them")
+    @Option(names = { "-d", "--drop" }, description = "Invert filter condition; drops matching graphs instead of keeping them")
     public boolean drop = false;
 
-    @Parameter(names={"-o", "--out-format"})
+    @Option(names = { "-o", "--out-format" })
     public String outFormat = "trig/pretty";
 
-    @Parameter(description="Non option args")
+    @Parameters(arity = "0..*", description = "Input files")
     public List<String> nonOptionArgs = new ArrayList<>();
+
+    @Override
+    public Integer call() throws Exception {
+        return NgsCmdImpls.filter(this);
+    }
 }

@@ -11,33 +11,25 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 /**
- * Probe the RDF language of some input by trying out all available parsers
+ * List the top n named graphs
  *
  * @author raven
  *
  */
-@Command(name = "probe", description = "Determine content type based on input")
-public class CmdNgsProbe implements Callable<Integer> {
+@Command(name = "merge", description = "Not implemented; merge graphs from multiple input file based on a sort key")
+public class CmdNgsMerge implements Callable<Integer> {
 
     @Option(names = { "-h", "--help" }, usageHelp = true)
     public boolean help = false;
 
-    /**
-     * sparql-pattern file
-     *
-     */
-//	@Parameter(names={"-n"}, description="numRecords")
-//	public long numRecords = 10;
-
-//	@Parameter(names={"-h", "--help"}, help = true)
-//	public boolean help = false;
+    @Option(names = { "-o", "--out-format" })
+    public String outFormat = "trig/pretty";
 
     @Parameters(arity = "0..*", description = "Input files")
     public List<String> nonOptionArgs = new ArrayList<>();
 
     @Override
     public Integer call() throws Exception {
-        return NgsCmdImpls.probe(this);
+        return NgsCmdImpls.merge(this);
     }
-
 }

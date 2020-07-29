@@ -8,8 +8,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.aksw.commons.util.strings.StringUtils;
-import org.aksw.jena_sparql_api.rx.OperatorOrderedGroupBy;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
+import org.aksw.jena_sparql_api.rx.op.OperatorOrderedGroupBy;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsMap;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSort;
@@ -52,7 +52,7 @@ public class NamedGraphStreamOps {
 
         return upstream ->
             upstream
-                .lift(new OperatorOrderedGroupBy<Triple, Node, List<Triple>>(
+                .lift(OperatorOrderedGroupBy.<Triple, Node, List<Triple>>create(
                         grouper::apply,
                         groupKey -> new ArrayList<>(),
                         (l, t) -> l.add(t)))
@@ -67,7 +67,7 @@ public class NamedGraphStreamOps {
                         mg.add(t);
                     }
                     return ds;
-            });
+                });
     }
 
 

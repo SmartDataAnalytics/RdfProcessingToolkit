@@ -2,42 +2,58 @@ package org.aksw.sparql_integrate.ngs.cli.cmd;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
-import com.beust.jcommander.Parameter;
+import org.aksw.sparql_integrate.ngs.cli.main.NgsCmdImpls;
 
-public class CmdNgsSort {
-	/**
-	 * sparql-pattern file
-	 * 
-	 */
-	@Parameter(description="Non option args")
-	public List<String> nonOptionArgs = new ArrayList<>();
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
-	@Parameter(names={"-k", "--key"})
-	public String key = null;
+@Command(name = "sort", description = "Sort named graphs by key")
+public class CmdNgsSort implements Callable<Integer> {
 
-	@Parameter(names={"-R", "--random-sort"})
-	public boolean randomSort = false;
+    @Option(names = { "-h", "--help" }, usageHelp = true)
+    public boolean help = false;
 
-	@Parameter(names={"-r", "--reverse"})
-	public boolean reverse = false;
-	
-	@Parameter(names={"-u", "--unique"})
-	public boolean unique = false;
+    /**
+     * sparql-pattern file
+     *
+     */
+    @Parameters(arity = "0..*", description = "Input files")
+    public List<String> nonOptionArgs = new ArrayList<>();
 
-	@Parameter(names={"-S", "--buffer-size"})
-	public String bufferSize = null;
+    @Option(names = { "-k", "--key" })
+    public String key = null;
 
-	@Parameter(names={"-T", "--temporary-directory"})
-	public String temporaryDirectory = null;
+    @Option(names = { "-R", "--random-sort" })
+    public boolean randomSort = false;
 
-	// TODO Integrate oshi to get physical core count by default
-	@Parameter(names={"--parallel"})
-	public int parallel = -1;
+    @Option(names = { "-r", "--reverse" })
+    public boolean reverse = false;
 
-	// TODO Clarify merge semantics
-	// At present it is for conflating consecutive named graphs with the same name into a single graph
-	@Parameter(names={"-m", "--merge"})
-	public boolean merge = false;
+    @Option(names = { "-u", "--unique" })
+    public boolean unique = false;
+
+    @Option(names = { "-S", "--buffer-size" })
+    public String bufferSize = null;
+
+    @Option(names = { "-T", "--temporary-directory" })
+    public String temporaryDirectory = null;
+
+    // TODO Integrate oshi to get physical core count by default
+    @Option(names = { "--parallel" })
+    public int parallel = -1;
+
+    // TODO Clarify merge semantics
+    // At present it is for conflating consecutive named graphs with the same name
+    // into a single graph
+    @Option(names = { "-m", "--merge" })
+    public boolean merge = false;
+
+    @Override
+    public Integer call() throws Exception {
+        return NgsCmdImpls.sort(this);
+    }
 
 }

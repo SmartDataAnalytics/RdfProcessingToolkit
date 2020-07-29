@@ -38,11 +38,12 @@ import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
 import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
-import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgMain;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsCat;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsFilter;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsHead;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsMain;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsMap;
+import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsMerge;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsProbe;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSort;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSubjects;
@@ -52,7 +53,6 @@ import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsWhile;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.ext.com.google.common.base.Strings;
 import org.apache.jena.ext.com.google.common.collect.Iterables;
@@ -88,10 +88,22 @@ import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.FlowableTransformer;
 import io.reactivex.rxjava3.functions.BiFunction;
 import io.reactivex.rxjava3.schedulers.Schedulers;
+import picocli.CommandLine;
 
 public class MainCliNamedGraphStream {
 
     public static Collection<Lang> quadLangs = Arrays.asList(Lang.TRIG, Lang.NQUADS);
+
+    public static final OutputStream out = new CloseShieldOutputStream(new FileOutputStream(FileDescriptor.out));
+    public static final PrefixMapping pm = new PrefixMappingImpl();
+
+    static {
+        pm.setNsPrefixes(DefaultPrefixes.prefixes);
+        JenaExtensionUtil.addPrefixes(pm);
+        JenaExtensionHttp.addPrefixes(pm);
+
+    }
+
     //public static Collection<Lang> tripleLangs = Arrays.asList(Lang.TURTLE, Lang.NTRIPLES, Lang.RDFXML);
 
     static final Logger logger = LoggerFactory.getLogger(MainCliNamedGraphStream.class);
@@ -119,28 +131,21 @@ public class MainCliNamedGraphStream {
     }
 
     public static void main(String[] args) throws Exception {
+        int exitCode;
         try {
-            mainCore(args);
+            exitCode = new CommandLine(new CmdNgsMain()).execute(args);
         } catch(Throwable e) {
-            //String str = ExceptionUtils.getRootCauseMessage(e);
-            String str = ExceptionUtils.getStackTrace(e);
-            if(str.toLowerCase().contains("broken pipe")) {
-                // Silently ignore
-            } else {
-                throw new RuntimeException(e);
-            }
+            org.aksw.sparql_integrate.ngs.cli.main.ExceptionUtils.rethrowIfNotBrokenPipe(e);
+            exitCode = 0;
         }
+
+        System.exit(exitCode);
     }
 
-    public static void mainCore(String[] args) throws Exception {
-
-        PrefixMapping pm = new PrefixMappingImpl();
-        pm.setNsPrefixes(DefaultPrefixes.prefixes);
-        JenaExtensionUtil.addPrefixes(pm);
-        JenaExtensionHttp.addPrefixes(pm);
+    public static void mainCoreOld(String[] args) throws Exception {
 
 
-        CmdNgMain cmdMain = new CmdNgMain();
+        CmdNgsMain cmdMain = new CmdNgsMain();
         CmdNgsSort cmdSort = new CmdNgsSort();
         CmdNgsHead cmdHead = new CmdNgsHead();
         CmdNgsFilter cmdFilter = new CmdNgsFilter();
@@ -151,6 +156,7 @@ public class MainCliNamedGraphStream {
         CmdNgsWc cmdWc = new CmdNgsWc();
         CmdNgsProbe cmdProbe = new CmdNgsProbe();
         CmdNgsSubjects cmdSubjects = new CmdNgsSubjects();
+        CmdNgsMerge cmdMerge = new CmdNgsMerge();
 
         //CmdNgsConflate cmdConflate = new CmdNgsConflate();
 
@@ -166,6 +172,7 @@ public class MainCliNamedGraphStream {
                 .addCommand("filter", cmdFilter)
                 .addCommand("cat", cmdCat)
                 .addCommand("map", cmdMap)
+                .addCommand("merge", cmdMerge)
                 .addCommand("wc", cmdWc)
                 .addCommand("probe", cmdProbe)
 
@@ -185,7 +192,7 @@ public class MainCliNamedGraphStream {
 //        	return;
 //        }
 
-        OutputStream out = new CloseShieldOutputStream(new FileOutputStream(FileDescriptor.out));
+//        OutputStream out = new CloseShieldOutputStream(new FileOutputStream(FileDescriptor.out));
 
         switch (cmd) {
         case "subjects": {
@@ -312,6 +319,12 @@ public class MainCliNamedGraphStream {
                     .takeUntil(condition::test);
 
             RDFDataMgrRx.writeDatasets(flow, out, outFormat);
+            break;
+        }
+        case "merge": {
+            // Create quad streams from all input sources
+
+
             break;
         }
         case "map": {

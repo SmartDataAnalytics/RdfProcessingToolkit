@@ -2,17 +2,28 @@ package org.aksw.sparql_integrate.ngs.cli.cmd;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
-import com.beust.jcommander.Parameter;
+import org.aksw.sparql_integrate.ngs.cli.main.NgsCmdImpls;
 
-public class CmdNgsCat {
-	@Parameter(names={"-h", "--help"}, help = true)
-	public boolean help = false;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
-	@Parameter(names={"-o", "--out-format"})
-	public String outFormat = "trig/pretty";
+@Command(name = "cat", description = "Output and optionally convert graph input")
+public class CmdNgsCat implements Callable<Integer> {
 
-	@Parameter(description="Non option args")
-	public List<String> nonOptionArgs = new ArrayList<>();	
+    @Option(names = { "-h", "--help" }, usageHelp = true)
+    public boolean help = false;
 
+    @Option(names = { "-o", "--out-format" })
+    public String outFormat = "trig/pretty";
+
+    @Parameters(arity = "0..*", description = "Input files")
+    public List<String> nonOptionArgs = new ArrayList<>();
+
+    @Override
+    public Integer call() throws Exception {
+        return NgsCmdImpls.cat(this);
+    }
 }

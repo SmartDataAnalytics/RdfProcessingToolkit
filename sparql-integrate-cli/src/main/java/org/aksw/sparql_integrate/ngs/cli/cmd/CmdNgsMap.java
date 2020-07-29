@@ -2,25 +2,38 @@ package org.aksw.sparql_integrate.ngs.cli.cmd;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
-import com.beust.jcommander.Parameter;
+import org.aksw.sparql_integrate.ngs.cli.main.NgsCmdImpls;
 
-public class CmdNgsMap {
-	/**
-	 * sparql-pattern file
-	 * 
-	 */
-	@Parameter(names={"-s", "--sparql"}, description="sparql file or statement(s)")
-	public List<String> stmts = new ArrayList<>();
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
-	@Parameter(names={"-t", "--service-timeout"}, description="connect and/or query timeout in ms. E.g -t 1000 or -t 1000,2000")
-	public String serviceTimeout = null;
+@Command(name = "map", description = "(flat-)Map each named graph to a new set of named graphs")
+public class CmdNgsMap implements Callable<Integer> {
 
-	@Parameter(description="Non option args")
-	public List<String> nonOptionArgs = new ArrayList<>();	
+    @Option(names = { "-h", "--help" }, usageHelp = true)
+    public boolean help = false;
 
-	
-	
+    /**
+     * sparql-pattern file
+     *
+     */
+    @Option(names = { "-s", "--sparql" }, description = "sparql file or statement(s)")
+    public List<String> stmts = new ArrayList<>();
+
+    @Option(names = { "-t", "--service-timeout" }, description = "connect and/or query timeout in ms. E.g -t 1000 or -t 1000,2000")
+    public String serviceTimeout = null;
+
+    @Parameters(arity = "0..*", description = "Input files")
+    public List<String> nonOptionArgs = new ArrayList<>();
+
+    @Override
+    public Integer call() throws Exception {
+        return NgsCmdImpls.map(this);
+    }
+
 //	@Parameter(names={"-h", "--help"}, help = true)
 //	public boolean help = false;
 }

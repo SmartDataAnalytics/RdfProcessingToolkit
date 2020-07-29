@@ -14,8 +14,8 @@ import java.util.stream.Collectors;
 
 import org.aksw.jena_sparql_api.io.json.GraphNameAndNode;
 import org.aksw.jena_sparql_api.io.json.GroupedResourceInDataset;
-import org.aksw.jena_sparql_api.rx.OperatorOrderedGroupBy;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx.ConsecutiveNamedGraphMergerCore;
+import org.aksw.jena_sparql_api.rx.op.OperatorOrderedGroupBy;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
 import org.aksw.jena_sparql_api.utils.DatasetUtils;
 import org.aksw.jena_sparql_api.utils.model.ResourceInDataset;
@@ -145,11 +145,11 @@ public class ResourceInDatasetFlowOps {
      */
     public static FlowableTransformer<ResourceInDataset, GroupedResourceInDataset> groupedResourceInDataset() {
         return upstream -> upstream
-                .compose(new OperatorOrderedGroupBy<ResourceInDataset, Dataset, List<ResourceInDataset>>(
+                .lift(OperatorOrderedGroupBy.<ResourceInDataset, Dataset, List<ResourceInDataset>>create(
                         ResourceInDataset::getDataset,
                         (k1, k2) -> k1 == k2 || k1.asDatasetGraph() == k2.asDatasetGraph(),
                         key -> new ArrayList<>(),
-                        (list, item) -> list.add(item)).transformer())
+                        (list, item) -> list.add(item)))
                 .map(Entry::getValue)
 //                .compose(Transformers.<ResourceInDataset>toListWhile(
 //                        (list, t) -> {
@@ -264,5 +264,19 @@ public class ResourceInDatasetFlowOps {
 //				.flatMap(ResourceInDatasetFlowOps::ungrouperResourceInDataset)
 //			;
 //	}
+
+
+    /**
+     * Adapter to create a transformed for {@link ResourceInDataset} based on one for {@link GroupedResourceInDataset}.
+     *
+     * @param innerTransform
+     * @return
+     */
+    public static FlowableTransformer<ResourceInDataset, ResourceInDataset> createTransformerFromGroupedTransform(FlowableTransformer<GroupedResourceInDataset, GroupedResourceInDataset> innerTransform) {
+        return upstream -> upstream
+            .compose(ResourceInDatasetFlowOps.groupedResourceInDataset())
+            .compose(innerTransform)
+            .flatMap(ResourceInDatasetFlowOps::ungrouperResourceInDataset);
+    }
 
 }
