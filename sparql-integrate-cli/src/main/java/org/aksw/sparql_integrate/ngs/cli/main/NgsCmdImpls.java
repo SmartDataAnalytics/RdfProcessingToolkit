@@ -41,6 +41,13 @@ import org.slf4j.LoggerFactory;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.FlowableTransformer;
 
+/**
+ * Implementation of all named graph stream commands as static methods.
+ *
+ *
+ * @author raven
+ *
+ */
 public class NgsCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(NgsCmdImpls.class);
 

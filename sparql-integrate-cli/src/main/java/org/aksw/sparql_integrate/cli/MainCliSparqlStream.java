@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiConsumer;
 
@@ -15,16 +16,20 @@ import org.aksw.jena_sparql_api.json.SPARQLResultVisitorSelectJsonOutput;
 import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
+import org.aksw.jena_sparql_api.rx.SparqlStmtMgr;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtIterator;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtParser;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.apache.jena.atlas.lib.Sink;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.query.Syntax;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
 import org.apache.jena.riot.RDFFormat;
@@ -136,13 +141,20 @@ public class MainCliSparqlStream {
             PrefixMapping copy = new PrefixMappingImpl();
             copy.setNsPrefixes(pm);
 
-            SparqlStmtIterator it = SparqlStmtUtils.processFile(copy, filename, baseIri);
+//            SparqlStmtIterator it = SparqlStmtUtils.processFile(copy, filename, baseIri);
+            SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, copy, true);
+            Iterator<SparqlStmt> it = SparqlStmtMgr.loadSparqlStmts(filename, copy, parser, baseIri);
+
+            // View 'it' as a SparqlStmtIterator if applicable; null otherwise
+            SparqlStmtIterator sit = it instanceof SparqlStmtIterator ? (SparqlStmtIterator)it : null;
 
 
             List<SparqlStmt> stmts = new ArrayList<>();
 
             while(it.hasNext()) {
-                logger.info("Loading SPARQL statement at line " + it.getLine() + ", column " + it.getColumn());
+                if(sit != null) {
+                    logger.info("Loading SPARQL statement at line " + sit.getLine() + ", column " + sit.getColumn());
+                }
                 SparqlStmt stmt = it.next();
                 stmt = SparqlStmtUtils.optimizePrefixes(stmt);
 

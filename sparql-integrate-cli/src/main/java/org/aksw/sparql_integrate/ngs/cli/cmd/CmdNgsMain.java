@@ -3,12 +3,12 @@ package org.aksw.sparql_integrate.ngs.cli.cmd;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-@Command(name="main", description = "Subcommands", subcommands = {
+@Command(name="ngs", description = "Subcommands", subcommands = {
         CmdNgsCat.class,
         CmdNgsFilter.class,
         CmdNgsHead.class,
         CmdNgsMap.class,
-        CmdNgsMerge.class,
+//        CmdNgsMerge.class,
         CmdNgsProbe.class,
         CmdNgsSort.class,
         CmdNgsSubjects.class,
