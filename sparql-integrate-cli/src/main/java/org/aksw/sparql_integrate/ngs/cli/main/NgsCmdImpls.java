@@ -40,7 +40,6 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFLanguages;
-import org.apache.jena.riot.writer.NQuadsWriter;
 import org.apache.jena.sparql.core.Quad;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,6 +131,10 @@ public class NgsCmdImpls {
 
 
     public static int map(CmdNgsMap cmdMap) throws Exception {
+        if (cmdMap.mapSpec.defaultGraph) {
+            cmdMap.mapSpec.graph = Quad.defaultGraphIRI.toString();
+        }
+
         if (cmdMap.mapSpec.graph != null) {
             mapQuads(cmdMap);
         } else {

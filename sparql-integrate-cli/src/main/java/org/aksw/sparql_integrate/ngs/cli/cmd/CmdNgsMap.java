@@ -31,6 +31,9 @@ public class CmdNgsMap implements Callable<Integer> {
 
         @Option(names = { "-g", "--graph" },  description = "set the graph of triples or quads")
         public String graph = null;
+
+        @Option(names = { "-d", "--dg", "--default-graph" },  description = "map into the default graph")
+        public boolean defaultGraph = false;
     }
 
 
