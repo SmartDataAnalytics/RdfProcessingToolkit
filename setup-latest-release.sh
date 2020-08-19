@@ -62,6 +62,8 @@ if [ "$arg" = "uninstall" ]; then
 elif [ -z "$arg" ]; then
   echo "Installing: $pkgName"
 
+  mkdir -p "$binFolder"
+
   downloadUrl=`curl -s "$gitApiUrl" | grep "$downloadPattern" | cut -d : -f 2,3 | tr -d ' "'`
   jarFileName=`basename "$downloadUrl"`
 
