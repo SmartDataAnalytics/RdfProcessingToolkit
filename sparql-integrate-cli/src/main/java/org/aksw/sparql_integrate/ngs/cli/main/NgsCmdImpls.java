@@ -3,12 +3,14 @@ package org.aksw.sparql_integrate.ngs.cli.main;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
+import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
@@ -27,14 +29,19 @@ import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsSubjects;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsUntil;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsWc;
 import org.aksw.sparql_integrate.ngs.cli.cmd.CmdNgsWhile;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jena.atlas.web.TypedInputStream;
-import org.apache.jena.ext.com.google.common.collect.Iterables;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
 import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.riot.writer.NQuadsWriter;
+import org.apache.jena.sparql.core.Quad;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +57,6 @@ import io.reactivex.rxjava3.core.FlowableTransformer;
  */
 public class NgsCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(NgsCmdImpls.class);
-
 
     public static int cat(CmdNgsCat cmdCat) throws Exception {
         RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdCat.outFormat);
@@ -97,9 +103,41 @@ public class NgsCmdImpls {
         return 0;
     }
 
+    /**
+     * Quad-based mapping (rather than Dataset-based).
+     *
+     * @param cmdMap
+     */
+    public static int mapQuads(CmdNgsMap cmdMap) {
+        List<String> args = preprocessArgs(cmdMap.nonOptionArgs);
+        validate(args, MainCliNamedGraphStream.quadLangs, true);
+
+        String graphIri = cmdMap.mapSpec.graph;
+        Node g = NodeFactory.createURI(graphIri);
+
+        Function<Quad, Quad> quadMapper = q -> new Quad(g, q.asTriple());
+
+        Flowable.fromIterable(args)
+            .flatMap(arg -> {
+                Flowable<Quad> r = RDFDataMgrRx.createFlowableQuads(() ->
+                    RDFDataMgrEx.open(arg, MainCliNamedGraphStream.quadLangs))
+                .map(quad -> quadMapper.apply(quad));
+                return r;
+            })
+            .forEach(q -> RDFDataMgr.writeQuads(MainCliNamedGraphStream.out, Collections.singleton(q).iterator()));
+//            .forEach(q -> NQuadsWriter.write(MainCliNamedGraphStream.out, Collections.singleton(q).iterator()));
+
+        return 0;
+    }
+
 
     public static int map(CmdNgsMap cmdMap) throws Exception {
-        NamedGraphStreamOps.map(MainCliNamedGraphStream.pm, cmdMap, MainCliNamedGraphStream.out);
+        if (cmdMap.mapSpec.graph != null) {
+            mapQuads(cmdMap);
+        } else {
+            NamedGraphStreamOps.map(MainCliNamedGraphStream.pm, cmdMap, MainCliNamedGraphStream.out);
+        }
+
         return 0;
     }
 
@@ -111,15 +149,85 @@ public class NgsCmdImpls {
 
 
     public static int probe(CmdNgsProbe cmdProbe) throws IOException {
-        try(TypedInputStream tin = NamedGraphStreamCliUtils.open(cmdProbe.nonOptionArgs, MainCliNamedGraphStream.quadLangs)) {
-//			Collection<Lang> quadLangs = RDFLanguages.getRegisteredLanguages()
-//					.stream().filter(RDFLanguages::isQuads)
-//					.collect(Collectors.toList());
+        List<String> args = preprocessArgs(cmdProbe.nonOptionArgs);
+        for (String arg : args) {
+            // Do not output the arg if there is less-than-or-equal 1
+            String prefix = args.size() <= 1 ? "" :  arg + ": ";
 
-            String r = tin.getContentType();
-            System.out.println(r);
+            try(TypedInputStream tin = RDFDataMgrEx.open(arg, RDFLanguagesEx.getQuadAndTripleLangs())) {
+
+                String r = tin.getContentType();
+                System.out.println(prefix + "[ OK ] " + r);
+            } catch(Exception e) {
+                String msg = ExceptionUtils.getRootCauseMessage(e);
+                System.out.println(prefix + "[FAIL] " + msg);
+            }
         }
         return 0;
+    }
+
+    /**
+     * Injects stdin if there are no arguments and checks that stdin is not mixed with
+     * outher input sources
+     *
+     * @param args
+     * @return
+     */
+    public static List<String> preprocessArgs(List<String> args) {
+        List<String> result = args.isEmpty() ? Collections.singletonList("-") : args;
+
+        validateStdIn(args);
+
+        return result;
+    }
+
+
+    /**
+     *  If one of the args is '-' for STDIN there must not be any further arg
+     *
+     * @param args
+     */
+    public static void validateStdIn(List<String> args) {
+        long stdInCount = args.stream().filter(item -> item.equals("-")).count();
+        if (stdInCount != 0 && args.size() > 1) {
+            throw new RuntimeException("If STDIN (denoted by '-') is used no further input sources may be used");
+        }
+    }
+    /**
+     * Validate whether all given arguments can be opened.
+     * This is similar to probe() except that an exception is raised on error
+     *
+     * @param args
+     * @param probeLangs
+     */
+    public static void validate(List<String> args, Iterable<Lang> probeLangs, boolean displayProbeResults) {
+
+        validateStdIn(args);
+
+        int violationCount = 0;
+        for (String arg : args) {
+            if (!arg.equals("-")) {
+
+                // Do not output the arg if there is less-than-or-equal 1
+                String prefix = args.size() <= 1 ? "" :  arg + ": ";
+
+                try(TypedInputStream tin = RDFDataMgrEx.open(arg, probeLangs)) {
+                    if (displayProbeResults) {
+                        MainCliNamedGraphStream.logger.info("Detected format: " + prefix + " " + tin.getContentType());
+                    }
+                    // success
+                } catch(Exception e) {
+                    String msg = ExceptionUtils.getRootCauseMessage(e);
+                    System.err.println(prefix + msg);
+
+                    ++violationCount;
+                }
+            }
+        }
+
+        if (violationCount != 0) {
+            throw new IllegalArgumentException("Some arguments failed to validate");
+        }
     }
 
 
@@ -145,17 +253,35 @@ public class NgsCmdImpls {
     }
 
     public static int subjects(CmdNgsSubjects cmdSubjects) throws Exception {
+        return groupTriplesByComponent(cmdSubjects, Triple::getSubject);
+    }
+
+    /**
+     * Common routine for grouping triples by component
+     *
+     * TODO Clean up
+     *
+     * @param cmdSubjects
+     * @param getFieldValue
+     * @return
+     * @throws Exception
+     */
+    public static int groupTriplesByComponent(CmdNgsSubjects cmdSubjects, Function<? super Triple, ? extends Node> getFieldValue) throws Exception {
         List<Lang> tripleLangs = RDFLanguagesEx.getTripleLangs();
         RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdSubjects.outFormat);
 
+        List<String> args = preprocessArgs(cmdSubjects.nonOptionArgs);
+        for(String arg : args) {
 
-        TypedInputStream tmp = NamedGraphStreamCliUtils.open(cmdSubjects.nonOptionArgs, tripleLangs);
-        MainCliNamedGraphStream.logger.info("Detected format: " + tmp.getContentType());
+            TypedInputStream tmp = RDFDataMgrEx.open(arg, tripleLangs);
+            MainCliNamedGraphStream.logger.info("Detected format: " + tmp.getContentType());
 
-        Flowable<Dataset> flow = RDFDataMgrRx.createFlowableTriples(() -> tmp)
-                .compose(NamedGraphStreamOps.groupConsecutiveTriplesByComponent(Triple::getSubject, DatasetFactoryEx::createInsertOrderPreservingDataset));
+            Flowable<Dataset> flow = RDFDataMgrRx.createFlowableTriples(() -> tmp)
+                    .compose(NamedGraphStreamOps.groupConsecutiveTriplesByComponent(getFieldValue, DatasetFactoryEx::createInsertOrderPreservingDataset));
 
-        RDFDataMgrRx.writeDatasets(flow, MainCliNamedGraphStream.out, outFormat);
+            RDFDataMgrRx.writeDatasets(flow, MainCliNamedGraphStream.out, outFormat);
+        }
+
         return 0;
     }
 
@@ -177,37 +303,52 @@ public class NgsCmdImpls {
     }
 
     public static int wc(CmdNgsWc cmdWc) throws IOException {
-        Long count;
 
-        if(cmdWc.numQuads) {
-            TypedInputStream tmp = NamedGraphStreamCliUtils.open(cmdWc.nonOptionArgs, MainCliNamedGraphStream.quadLangs);
-            logger.info("Detected: " + tmp.getContentType());
+        List<String> args = preprocessArgs(cmdWc.nonOptionArgs);
 
-            if(cmdWc.noValidate && tmp.getMediaType().equals(Lang.NQUADS.getContentType())) {
-                logger.info("Validation disabled. Resorting to plain line counting");
-                try(BufferedReader br = new BufferedReader(new InputStreamReader(tmp.getInputStream()))) {
-                    count = br.lines().count();
+        for(String arg : args) {
+            String suffix = args.size() <= 1 ? "" : " " +  arg;
+
+            Long count;
+            if(cmdWc.numQuads) {
+                TypedInputStream tmp = RDFDataMgrEx.open(arg, MainCliNamedGraphStream.quadLangs);
+                logger.info("Detected: " + tmp.getContentType() + " on argument " + arg);
+
+                if(cmdWc.noValidate && tmp.getMediaType().equals(Lang.NQUADS.getContentType())) {
+                    logger.info("Validation disabled. Resorting to plain line counting");
+                    try(BufferedReader br = new BufferedReader(new InputStreamReader(tmp.getInputStream()))) {
+                        count = br.lines().count();
+                    }
+                } else {
+                    Lang lang = RDFLanguages.contentTypeToLang(tmp.getContentType());
+                    count =  RDFDataMgrRx.createFlowableQuads(() -> tmp, lang, null)
+                            .count()
+                            .blockingGet();
                 }
+
             } else {
-                Lang lang = RDFLanguages.contentTypeToLang(tmp.getContentType());
-                count =  RDFDataMgrRx.createFlowableQuads(() -> tmp, lang, null)
-                        .count()
-                        .blockingGet();
+                count = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdWc.nonOptionArgs, null, MainCliNamedGraphStream.pm)
+                    .count()
+                    .blockingGet();
             }
 
-        } else {
-            count = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdWc.nonOptionArgs, null, MainCliNamedGraphStream.pm)
-                .count()
-                .blockingGet();
+            String outStr = Long.toString(count) + suffix;
+            System.out.println(outStr);
         }
-
-        String file = Iterables.getFirst(cmdWc.nonOptionArgs, null);
-        String outStr = Long.toString(count) + (file != null ? " " + file : "");
-        System.out.println(outStr);
         return 0;
     }
 
 
+    /**
+     * Implementation of the the ngs while command.
+     * 'while' is a reserved keyword in java hence the 'x' prefix.
+     *
+     *
+     *
+     * @param cmdWhile
+     * @return
+     * @throws Exception
+     */
     public static int xwhile(CmdNgsWhile cmdWhile) throws Exception {
         RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdWhile.outFormat);
 

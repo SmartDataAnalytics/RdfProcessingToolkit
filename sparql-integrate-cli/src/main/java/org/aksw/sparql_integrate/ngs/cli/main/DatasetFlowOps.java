@@ -14,8 +14,6 @@ import org.apache.jena.ext.com.google.common.collect.Maps;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdfconnection.SparqlQueryConnection;
-import org.apache.poi.ss.formula.functions.T;
-import org.checkerframework.checker.units.qual.K;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -26,6 +24,11 @@ import io.reactivex.rxjava3.core.Maybe;
 
 public class DatasetFlowOps {
 
+    /**
+     * GSON instance configured for {@link Dataset} and {@link Node} classes.
+     * Used in serialization of datasets
+     *
+     */
     public static final Gson GSON = new GsonBuilder()
             .registerTypeHierarchyAdapter(Node.class, new TypeAdapterNode())
             .registerTypeHierarchyAdapter(Dataset.class, new TypeAdapterDataset(DatasetFactoryEx::createInsertOrderPreservingDataset))
@@ -62,6 +65,13 @@ public class DatasetFlowOps {
         return result;
     }
 
+    /**
+     * Return a transformer that applies sorting using a system call
+     *
+     * @param keyMapper
+     * @param sysCallArgs
+     * @return
+     */
     public static FlowableTransformer<Dataset, Dataset> sysCallSort(
             Function<? super SparqlQueryConnection, Node> keyMapper,
             List<String> sysCallArgs) {

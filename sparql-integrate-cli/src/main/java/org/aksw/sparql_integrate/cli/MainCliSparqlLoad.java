@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.aksw.jena_sparql_api.core.utils.UpdateUtils;
 import org.aksw.jena_sparql_api.http.HttpExceptionUtils;
+import org.aksw.jena_sparql_api.syntax.UpdateUtils;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
 import org.slf4j.Logger;

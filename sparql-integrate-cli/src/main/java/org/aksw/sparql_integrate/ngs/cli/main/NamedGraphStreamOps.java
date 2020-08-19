@@ -19,6 +19,7 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdfconnection.SparqlQueryConnection;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.engine.http.Service;
@@ -47,8 +48,8 @@ public class NamedGraphStreamOps {
      * @return
      */
     public static FlowableTransformer<Triple, Dataset> groupConsecutiveTriplesByComponent(
-            Function<Triple, Node> grouper,
-            Supplier<Dataset> datasetSupplier) {
+            Function<? super Triple, ? extends Node> grouper,
+            Supplier<? extends Dataset> datasetSupplier) {
 
         return upstream ->
             upstream
@@ -102,6 +103,7 @@ public class NamedGraphStreamOps {
                 : upstream -> upstream.compose(sorter).compose(s -> DatasetFlowOps.mergeConsecutiveDatasets(s));
         return result;
     }
+
 
     public static void map(PrefixMapping pm, CmdNgsMap cmdMap, OutputStream out) throws Exception {
 

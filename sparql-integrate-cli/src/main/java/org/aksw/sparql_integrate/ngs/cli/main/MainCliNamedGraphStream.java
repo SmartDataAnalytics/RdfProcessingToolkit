@@ -80,7 +80,7 @@ public class MainCliNamedGraphStream {
 
     public static void main(String[] args) throws Exception {
         int exitCode = new CommandLine(new CmdNgsMain())
-                .setExecutionExceptionHandler((ex, commandLine, parseresult) -> {
+                .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
                     org.aksw.sparql_integrate.ngs.cli.main.ExceptionUtils.rethrowIfNotBrokenPipe(ex);
                     return 0;
                 })
@@ -213,7 +213,7 @@ public class MainCliNamedGraphStream {
     public static Flowable<Dataset> mapCore(Consumer<Context> contextHandler, PrefixMapping pm, CmdNgsMap cmdFlatMap)
             throws FileNotFoundException, IOException, ParseException {
 
-        FlowableTransformer<Dataset, Dataset> mapper = createMapper(pm, cmdFlatMap.stmts, ds -> ds, (before, after) -> after, contextHandler);
+        FlowableTransformer<Dataset, Dataset> mapper = createMapper(pm, cmdFlatMap.mapSpec.stmts, ds -> ds, (before, after) -> after, contextHandler);
 
         Flowable<Dataset> result = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdFlatMap.nonOptionArgs, null, pm)
                 .compose(mapper);
