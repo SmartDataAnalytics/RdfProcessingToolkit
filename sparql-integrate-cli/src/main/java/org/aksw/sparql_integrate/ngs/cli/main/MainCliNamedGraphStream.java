@@ -81,7 +81,7 @@ public class MainCliNamedGraphStream {
     public static void main(String[] args) throws Exception {
         int exitCode = new CommandLine(new CmdNgsMain())
                 .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                    org.aksw.sparql_integrate.ngs.cli.main.ExceptionUtils.rethrowIfNotBrokenPipe(ex);
+                    org.aksw.commons.util.exception.ExceptionUtils.rethrowIfNotBrokenPipe(ex);
                     return 0;
                 })
                 .execute(args);

@@ -1,6 +1,6 @@
 package org.aksw.sparql_integrate.rtk.cli.main;
 
-import org.aksw.sparql_integrate.ngs.cli.main.ExceptionUtils;
+import org.aksw.commons.util.exception.ExceptionUtils;
 import org.aksw.sparql_integrate.rtk.cli.cmd.CmdRtkMain;
 
 import picocli.CommandLine;

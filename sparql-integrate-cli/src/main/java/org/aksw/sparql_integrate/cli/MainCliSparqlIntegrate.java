@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import org.aksw.commons.util.exception.ExceptionUtils;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.core.SparqlService;
@@ -49,7 +50,6 @@ import org.aksw.jena_sparql_api.stmt.SparqlUpdateParser;
 import org.aksw.jena_sparql_api.stmt.SparqlUpdateParserImpl;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.jena_sparql_api.utils.NodeUtils;
-import org.aksw.sparql_integrate.ngs.cli.main.ExceptionUtils;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.atlas.lib.Sink;
