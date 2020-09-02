@@ -1,5 +1,26 @@
 ## Named Graph Streams (NGS)
 
+```bash
+➜  ngs -h
+Usage: ngs [-h] [COMMAND]
+Named Graph Stream Subcommands
+  -h, --help
+Commands:
+  cat       Output and optionally convert graph input
+  filter    Yield items (not) satisfying a given condition
+  head      List or skip the first n named graphs
+  tail      Output the last named graphs
+  map       (flat-)Map each named graph to a new set of named graphs
+  probe     Determine content type based on input
+  sort      Sort named graphs by key
+  subjects  Group triples with consecutive subjects into named graphs
+  until     Yield items up to and including the first one that satisfies the
+              condition
+  wc        Mimicks the wordcount (wc) command; counts graphs or quads
+  while     Yield items up to but excluding the one that satisfies the condition
+```
+
+
 The command line swiss army knife for efficient processing of collections of named graphs using standard quad-based RDF syntaxes (n-quads, trig).
 The tool suite is akin to well know shell scripting tools, such as head, tail, join, sort (including sort --merge), etc.
 
@@ -45,42 +66,7 @@ TODO Setup a bundle github release process
 ### Rules
 
 * Input must be quads where all quads of a graph must be consecutive
-* * TODO Provide a command that efficiently sorts quads by graph
 * `map`: Map an input named graph to a set of output graphs. Output graphs are created using CONSTRUCT queries. Thanks to Jena's extension, CONSTRUCT { GRAPH ?g { ... } } is allowed. All explicitly generated named graphs are returned as-is. CONSTRUCT'ed data in the default graph is wrapped in a graph with the same name as the input graph.
-
-### Performance Metrics
-TODO Outdated values
-
-The `ngs` folder contains a small benchmark utility:
-
-```
-# Create a given number of graphs
-./ngs-create-test-data.sh 1000000 > test-data.trig
-
-# The benchmark task is to emit all named graphs containing an even number
-./ngs-benchmark.sh
-```
-
-
-* Running a single query over the whole dataset vs parallel map
-
-Notebook, 2 cores + ht
-
-even.sparql
-<pre>
-ngs-map          165.54user 6.56system 0:53.02elapsed 324%CPU
-sparql-integrate 139.77user 1.82system 0:51.12elapsed 276%CPU
-</pre>
-
-
-hash.sparql
-<pre>
-ngs-map          182.86user 7.20system 0:57.41elapsed 331%CPU
-sparql-integrate 155.86user 2.03system 0:58.42elapsed 270%CPU
-</pre>
-
-
-Server:
 
 
 

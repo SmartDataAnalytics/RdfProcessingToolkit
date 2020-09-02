@@ -18,8 +18,8 @@ set -e
 
 arg="$1"
 
-pkgName="sparql-integrate"
-gitApiUrl="https://api.github.com/repos/SmartDataAnalytics/Sparqlintegrate/releases/latest"
+pkgName="rdf-processing-toolkit"
+gitApiUrl="https://api.github.com/repos/SmartDataAnalytics/RdfProcessingToolkit/releases/latest"
 downloadPattern="download/.*-with-dependencies.jar"
 
 declare -a cmdToClass
