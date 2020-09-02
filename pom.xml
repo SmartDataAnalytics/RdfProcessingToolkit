@@ -4,30 +4,30 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>org.aksw.sparql-integrate</groupId>
-	<artifactId>sparql-integrate-parent</artifactId>
+	<groupId>org.aksw.rdf-processing-toolkit</groupId>
+	<artifactId>rdf-processing-toolkit-parent</artifactId>
 	<version>1.0.6-SNAPSHOT</version>
 
 	<packaging>pom</packaging>
 
 	<name>Sparql Integrate</name>
 	<description>Sparql-based tool for the integration of heterogeneous data</description>
-	<url>https://github.com/SmartDataAnalytics/SparqlIntegrate</url>
+	<url>https://github.com/SmartDataAnalytics/RdfProcessingToolkit</url>
 
 	<modules>
-		<module>sparql-integrate-cli</module>
-		<module>sparql-integrate-debian-cli</module>
+		<module>rdf-processing-toolkit-cli</module>
+		<module>rdf-processing-toolkit-debian-cli</module>
 
-		<module>sparql-integrate-web-service</module>
+		<module>rdf-processing-toolkit-web-service</module>
 
-		<module>sparql-integrate-bundle</module>
-		<module>sparql-integrate-dummy</module>
+		<module>rdf-processing-toolkit-bundle</module>
+		<module>rdf-processing-toolkit-dummy</module>
 
 		<module>use-case-sportal-analysis</module>
 	</modules>
 
 	<issueManagement>
-		<url>https://github.com/SmartDataAnalytics/SparqlIntegrate/issues</url>
+		<url>https://github.com/SmartDataAnalytics/RdfProcessingToolkit/issues</url>
 		<system>GitHub</system>
 	</issueManagement>
 
@@ -42,9 +42,9 @@
 	<!-- scm section needs to be duplicated on child module for github-release-plugin; 
 		see https://github.com/jutzig/github-release-plugin/issues/14 -->
 	<scm>
-		<url>https://github.com/SmartDataAnalytics/SparqlIntegrate</url>
-		<connection>scm:git:git@github.com:SmartDataAnalytics/SparqlIntegrate.git</connection>
-		<developerConnection>scm:git:git@github.com:SmartDataAnalytics/SparqlIntegrate.git</developerConnection>
+		<url>https://github.com/SmartDataAnalytics/RdfProcessingToolkit</url>
+		<connection>scm:git:git@github.com:SmartDataAnalytics/RdfProcessingToolkit.git</connection>
+		<developerConnection>scm:git:git@github.com:SmartDataAnalytics/RdfProcessingToolkit.git</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
 
@@ -81,7 +81,7 @@
 		<dependencies>
 
 			<dependency>
-				<groupId>org.aksw.sparql-integrate</groupId>
+				<groupId>org.aksw.rdf-processing-toolkit</groupId>
 				<artifactId>use-case-sportal-analysis</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -111,14 +111,14 @@
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.sparql-integrate</groupId>
-				<artifactId>sparql-integrate-cli</artifactId>
+				<groupId>org.aksw.rdf-processing-toolkit</groupId>
+				<artifactId>rdf-processing-toolkit-cli</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.sparql-integrate</groupId>
-				<artifactId>sparql-integrate-bundle</artifactId>
+				<groupId>org.aksw.rdf-processing-toolkit</groupId>
+				<artifactId>rdf-processing-toolkit-bundle</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
