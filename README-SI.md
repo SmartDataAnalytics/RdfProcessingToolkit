@@ -137,25 +137,11 @@ These arguments are global:
 * `--u` Activate union default graph mode: The set of named graphs becomes the default graph. Useful for running "named-graph-unaware" SPARQL queries on quad-based datasets, such as data from `.trig` files. Internally, triple patterns `s p o` are rewritten to `GRAPH g { s p o }`.
 
 
-## Building
-The build requires maven. 
 
-```bash
-mvn clean install
-```
+## Related projects
 
-The all-in-one jar is built in the `sparql-integrate-bundle` folder, which is also the jar file available in the [Releases Section](https://github.com/SmartDataAnalytics/SparqlIntegrate/releases).
-```
-java -cp sparql-integrate-bundle/target/sparql-integrate-bundle-VERSION-jar-with-dependencies.jar sparqlintegrate
-```
-
-Installing the Debian packages can be easily accomplished using:
-```
-sudo dpkg -i $(find . -name "sparql-integrate*.deb")
-```
-
-The bare-metal approach is to manually start the tool from the 'sparql-integrate-cli/target` folder using:
-```bash
-java -cp ".:lib/*" "-Dloader.main=org.aksw.sparql_integrate.cli.MainSparqlIntegrateCli" "org.springframework.boot.loader.PropertiesLauncher" "your" "args"
-```
+* [TARQL](https://github.com/tarql/tarql)
+* [JARQL](https://github.com/linked-solutions/jarql)
+* [RML](http://rml.io)
+* [SPARQLGenerate](http://w3id.org/sparql-generate)
 

@@ -1,12 +1,12 @@
-Package: sparql-integrate-cli
+Package: rdf-processing-toolkit-cli
 Version: [[version]]
 Section: web
 Priority: optional
 Architecture: all
 Depends: java-runtime-headless
 Maintainer: Claus Stadler <cstadler@informatik.uni-leipzig.de>
-Description: SparqlIntegrate Command Line Interfaces
+Description: RDF Processing Toolkit Command Line Interfaces
 Distribution: ldstack-nightly
-Homepage: http://aksw.org/Projects/SparqlIntegrate
-Vcs-Git: git://github.com/SmartDataAnalytics/SparqlIntegrate.git
-Vcs-Browser: https://github.com/SmartDataAnalytics/SparqlIntegrate
+Homepage: http://aksw.org/Projects/RdfProcessingToolkit
+Vcs-Git: git://github.com/SmartDataAnalytics/RdfProcessingToolkit.git
+Vcs-Browser: https://github.com/SmartDataAnalytics/RdfProcessingToolkit

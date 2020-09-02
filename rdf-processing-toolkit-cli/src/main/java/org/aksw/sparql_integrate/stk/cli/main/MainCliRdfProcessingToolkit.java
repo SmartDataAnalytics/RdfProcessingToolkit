@@ -1,7 +1,7 @@
 package org.aksw.sparql_integrate.stk.cli.main;
 
 import org.aksw.commons.util.exception.ExceptionUtils;
-import org.aksw.rpt.cli.cmd.CmdRptMain;
+import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
 
 import picocli.CommandLine;
 

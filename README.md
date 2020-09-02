@@ -2,8 +2,8 @@
 
 RDF/SPARQL Workflows on the Command Line made easy. The toolkit provides the following commands for running SPARQL-queries on triple and quad based data
 
-* `sparql-integrate`: Ad-hoc querying and transformation of datasets featuring SPARQL-extensions for CSV, XML and JSON processing and JSON output that allows for building bash pipes in a breeze
-* `ngs`: Process collections of named graphs in streaming fashion. Process huge datasets without running into memory issues.
+* [sparql-integrate](README-SI.md): Ad-hoc querying and transformation of datasets featuring SPARQL-extensions for CSV, XML and JSON processing and JSON output that allows for building bash pipes in a breeze
+* [ngs](README-NGS.md): Processor for named graph streams (ngs) which enables processing for collections of named graphs in streaming fashion. Process huge datasets without running into memory issues.
 
 
 ## Example Usage
@@ -30,28 +30,39 @@ ngs wc file.trig
 ./produce-graphs.sh | ngs head -n 3
 ```
 
-## Detailed Documentation
-
-* [sparql-integrate](README-SI.md)
-* [ngs](README-NGS.md)
-
-
 ## Example Use Cases
 
 * [Lodservatory](https://github.com/SmartDataAnalytics/lodservatory) implements SPARQL endpoint monitoring uses these tools in this [script](https://github.com/SmartDataAnalytics/lodservatory/blob/master/update-status.sh) called from this [git action](https://github.com/SmartDataAnalytics/lodservatory/blob/master/.github/workflows/main.yml).
 * [Linked Sparql Queries](https://github.com/AKSW/LSQ) provides tools to RDFize SPARQL query logs and run benchmark on the resulting RDF. The triples related to a query represent an instance of a sophisticated domain model and are grouped in a named graph. Depending on the input size one can end up with millions of named graphs describing queries amounting to billions of triples. With ngs one can easily extract complete samples of the queries' models without a related triple being left behind.
 
 
+## Building
+The build requires maven. 
+
+```bash
+mvn clean install
+```
+
+The all-in-one jar is built in the `rdf-processing-toolkit-bundle` folder, which is also the jar file available in the [Releases Section](https://github.com/SmartDataAnalytics/RdfProcessingToolkit/releases).
+```
+java -cp rdf-processing-toolkit-bundle/target/rdf-processing-toolkit-bundle-VERSION-jar-with-dependencies.jar rpt
+```
+
+Installing the Debian packages can be easily accomplished using:
+```
+sudo dpkg -i $(find . -name "rdf-processing-toolkit*.deb")
+```
+
+The bare-metal approach is to manually start the tool from the 'rdf-processing-toolkit-cli/target` folder using:
+```bash
+java -cp ".:lib/*" "-Dloader.main=org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit" "org.springframework.boot.loader.PropertiesLauncher" "your" "args"
+```
+
+
 ## License
 The source code of this repo is published under the [Apache License Version 2.0](LICENSE).
 Dependencies may be licensed under different terms. When in doubt please refer to the licenses of the dependencies declared in the pom.xml files.
 
-## Related projects
-
-* [TARQL](https://github.com/tarql/tarql)
-* [JARQL](https://github.com/linked-solutions/jarql)
-* [RML](http://rml.io)
-* [SPARQLGenerate](http://w3id.org/sparql-generate)
 
 ## Acknowledgements
 

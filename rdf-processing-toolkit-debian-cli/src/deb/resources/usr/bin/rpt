@@ -3,7 +3,7 @@
 #WORK_DIR=`dirname "$0"`
 
 LIB_DIR="/usr/share/lib/sparql-integrate-cli/"
-MAIN_CLASS="org.aksw.stk.cli.main.MainCliSparqlToolkit"
+MAIN_CLASS="org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit"
 
 java $JAVA_OPTS -cp "$LIB_DIR:$LIB_DIR/lib/*" "$MAIN_CLASS" "$@"
 
