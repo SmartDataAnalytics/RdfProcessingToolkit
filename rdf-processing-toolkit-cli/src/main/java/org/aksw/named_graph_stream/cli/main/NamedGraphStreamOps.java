@@ -19,7 +19,6 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdfconnection.SparqlQueryConnection;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.engine.http.Service;
@@ -30,13 +29,15 @@ import io.reactivex.rxjava3.core.FlowableTransformer;
 import joptsimple.internal.Strings;
 
 public class NamedGraphStreamOps {
+    public static final String BASE_IRI_BNODE = "urn:bnode:";
+    public static final String BASE_IRI_LITERAL = "urn:literal:";
 
     public static String craftIriForNode(Node node) {
         String result = node.isURI()
                 ? node.getURI()
                 : node.isBlank()
-                    ? "x-bnode://" + node.getBlankNodeLabel()
-                    : "x-literal:// " + StringUtils.urlEncode(node.getLiteralLexicalForm());
+                    ? BASE_IRI_BNODE + node.getBlankNodeLabel()
+                    : BASE_IRI_LITERAL + StringUtils.urlEncode(node.getLiteralLexicalForm());
         return result;
     }
 
@@ -120,7 +121,7 @@ public class NamedGraphStreamOps {
 
 //
         Flowable<Throwable> tmp = flow.buffer(1)
-                .compose(RDFDataMgrRx.createDatasetBatchWriter(out, RDFFormat.TRIG_PRETTY));
+                .compose(RDFDataMgrRx.createBatchWriterDataset(out, RDFFormat.TRIG_PRETTY));
 
         Throwable e = tmp.singleElement().blockingGet();
         if (e != null) {

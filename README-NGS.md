@@ -14,8 +14,7 @@ Commands:
   probe     Determine content type based on input
   sort      Sort named graphs by key
   subjects  Group triples with consecutive subjects into named graphs
-  until     Yield items up to and including the first one that satisfies the
-              condition
+  until     Yield items up to and including the first one that satisfies the condition
   wc        Mimicks the wordcount (wc) command; counts graphs or quads
   while     Yield items up to but excluding the one that satisfies the condition
 ```
@@ -27,9 +26,8 @@ The tool suite is akin to well know shell scripting tools, such as head, tail, j
 Named graphs can be used to denote data records, i.e. sets of triples that form a logical unit for the task at hand.
 
 ### Building
-NGS is part of the Sparql-Integrate build. Installing the debian package also makes the command `ngs` tool available.
+NGS is part of the rdf-processing-toolkit build. Installing the debian package also makes the command `ngs` tool available.
 
-TODO Setup a bundle github release process
 
 ### Implementation status
 

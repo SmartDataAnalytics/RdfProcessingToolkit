@@ -38,7 +38,6 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
 import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.sparql.core.Quad;
@@ -126,7 +125,7 @@ public class NgsCmdImpls {
      *
      * @param cmdMap
      */
-    public static int mapQuads(CmdNgsMap cmdMap) {
+    public static int mapQuads(CmdNgsMap cmdMap) throws Exception {
         List<String> args = preprocessArgs(cmdMap.nonOptionArgs);
         validate(args, MainCliNamedGraphStream.quadLangs, true);
 
@@ -135,14 +134,16 @@ public class NgsCmdImpls {
 
         Function<Quad, Quad> quadMapper = q -> new Quad(g, q.asTriple());
 
-        Flowable.fromIterable(args)
-            .flatMap(arg -> {
+        Flowable<Quad> quadFlow = Flowable.fromIterable(args)
+            .concatMap(arg -> {
                 Flowable<Quad> r = RDFDataMgrRx.createFlowableQuads(() ->
                     RDFDataMgrEx.open(arg, MainCliNamedGraphStream.quadLangs))
                 .map(quad -> quadMapper.apply(quad));
                 return r;
-            })
-            .forEach(q -> RDFDataMgr.writeQuads(MainCliNamedGraphStream.out, Collections.singleton(q).iterator()));
+            });
+
+        RDFDataMgrRx.writeQuads(quadFlow, MainCliNamedGraphStream.out, RDFFormat.NQUADS);
+            //.forEach(q -> RDFDataMgr.writeQuads(MainCliNamedGraphStream.out, Collections.singleton(q).iterator()));
 //            .forEach(q -> NQuadsWriter.write(MainCliNamedGraphStream.out, Collections.singleton(q).iterator()));
 
         return 0;
