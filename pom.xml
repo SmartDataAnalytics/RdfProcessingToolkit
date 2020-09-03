@@ -23,7 +23,7 @@
 		<module>rdf-processing-toolkit-bundle</module>
 		<module>rdf-processing-toolkit-dummy</module>
 
-		<module>use-case-sportal-analysis</module>
+<!--		<module>use-case-sportal-analysis</module> -->
 	</modules>
 
 	<issueManagement>
