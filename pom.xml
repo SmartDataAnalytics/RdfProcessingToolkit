@@ -64,7 +64,7 @@
 		<jena-sparql-api.version>${jena.version}-${jena-sparql-api.subversion}</jena-sparql-api.version>
 		<!-- <jena-sparql-api.version>3.14.0-2-SNAPSHOT</jena-sparql-api.version> -->
 
-		<spring-boot.version>1.5.8.RELEASE</spring-boot.version>
+		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
 		<!-- Project Settings -->
 		<maven.compiler.source>1.8</maven.compiler.source>
