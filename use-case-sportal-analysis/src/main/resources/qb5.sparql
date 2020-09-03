@@ -1,0 +1,1 @@
+CONSTRUCT { <D> v:distinctObjects ?x }WHERE { SELECT (COUNT(DISTINCT ?o) AS ?x) WHERE { ?s ?p ?o } }

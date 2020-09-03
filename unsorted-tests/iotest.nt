@@ -1,0 +1,5 @@
+<http://www.example.org/a> <http://www.example.org/b> "4"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<http://www.example.org/a> <http://www.example.org/b> "3"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<http://www.example.org/a> <http://www.example.org/b> "2"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<http://www.example.org/a> <http://www.example.org/b> "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<http://www.example.org/a> <http://www.example.org/b> "0"^^<http://www.w3.org/2001/XMLSchema#integer> .

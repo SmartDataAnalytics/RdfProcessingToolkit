@@ -1,0 +1,7 @@
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+<http://www.example.org/alfa>
+    {
+       _:a foaf:name "Alfa" .
+       _:a foaf:mbox <mailto:alfa@work.example.org> .
+    }

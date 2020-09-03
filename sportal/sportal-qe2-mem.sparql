@@ -1,0 +1,18 @@
+PREFIX v: <http://rdfs.org/ns/void#>
+
+CONSTRUCT {
+#  <env://D>
+  <http://my.data/set>
+    v:classPartition [
+      v:class ?c ;
+      v:propertyPartition [
+        v:property ?p ;
+        v:triples ?x
+      ]
+    ]
+}
+WHERE {
+  { SELECT (COUNT(?o) AS ?x) ?p {
+      ?s a ?c ; ?p ?o
+  } GROUP BY ?c ?p }
+}

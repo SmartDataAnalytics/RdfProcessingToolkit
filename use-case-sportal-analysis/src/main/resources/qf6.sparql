@@ -1,0 +1,1 @@
+CONSTRUCT { <D> e:distinctBlankNodes ?x }WHERE { SELECT (COUNT(DISTINCT ?b ) AS ?x)WHERE { { ?s ?p ?b } UNION { ?b ?p ?o } FILTER(isBlank(?b)) } }

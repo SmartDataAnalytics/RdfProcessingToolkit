@@ -1,0 +1,15 @@
+PREFIX s: <http://rdfs.org/ns/void#>
+
+CONSTRUCT {
+  <env://D> s:distinctRDFNodes ?x
+}
+{
+  SELECT (COUNT(DISTINCT ?n ) AS ?x)
+  {
+      { ?n ?p ?o }
+    UNION
+      { ?s ?n ?o }
+    UNION
+      { ?s ?p ?n }
+  }
+}

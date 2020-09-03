@@ -1,0 +1,2 @@
+_:a <http://xmlns.com/foaf/0.1/name> "Alfa" <http://www.example.org/alfa> .
+_:a <http://xmlns.com/foaf/0.1/mbox> <mailto:alfa@work.example.org> <http://www.example.org/alfa> .

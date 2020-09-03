@@ -1,0 +1,27 @@
+PREFIX v: <http://rdfs.org/ns/void#>
+
+CONSTRUCT {
+  <env://D>
+    v:classPartition ?k .
+
+  ?k
+    v:class ?t ;
+    v:triples ?x ;
+    v:properties ?b ;
+    v:distinctObjects ?c
+}
+{
+  {
+    SELECT
+      (IRI(CONCAT('x-cp://', ENCODE_FOR_URI(STR(?t)))) AS ?k)
+      (COUNT(?s) AS ?x)
+      (COUNT(DISTINCT ?p) AS ?b)
+      (COUNT(DISTINCT ?o) AS ?c)
+    {
+      ?s
+        a ?t ;
+        ?p ?o
+    }
+    GROUP BY ?k ?t
+  }
+}

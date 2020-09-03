@@ -1,0 +1,15 @@
+CONSTRUCT {
+  ?s eg:value ?o
+}
+{
+  {
+    BIND(1 AS ?o)
+  }
+  UNION {
+    [] eg:value ?y
+    BIND(?y + 1 AS ?o)
+  }
+  BIND(IRI(CONCAT(STR(eg:), 's', STR(?o))) AS ?s)
+}
+
+SELECT * { ?s ?p ?o }

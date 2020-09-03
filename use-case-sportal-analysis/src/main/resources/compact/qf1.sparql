@@ -1,0 +1,8 @@
+PREFIX s: <http://rdfs.org/ns/void#>
+
+CONSTRUCT {
+  <env://D> s:distinctIRIReferenceSubjects ?x
+}
+{
+  SELECT (COUNT(DISTINCT ?s ) AS ?x) WHERE { ?s ?p ?o  FILTER(isIri(?s)) }
+}

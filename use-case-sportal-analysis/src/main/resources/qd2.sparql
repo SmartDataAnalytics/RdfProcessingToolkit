@@ -1,0 +1,1 @@
+CONSTRUCT { <D> v:propertyPartition [ v:property ?p ; v:triples ?x ] }WHERE { SELECT (COUNT(?o) AS ?x) ?p  WHERE { ?s ?p ?o } GROUP BY ?p }

@@ -1,0 +1,7 @@
+CONSTRUCT {
+  <D> e:distinctIRIReferences ?x
+} {
+  SELECT (COUNT(DISTINCT ?u ) AS ?x) {
+    { ?u ?p ?o } UNION { ?s ?u ?o } UNION { ?s ?p ?u } FILTER(isIri(?u))
+  }
+}

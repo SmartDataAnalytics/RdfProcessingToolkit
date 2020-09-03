@@ -1,0 +1,11 @@
+PREFIX s: <http://rdfs.org/ns/void#>
+
+CONSTRUCT {
+  <env://D> s:distinctBlankNodeSubjects ?x
+}
+{
+  SELECT (COUNT(DISTINCT ?s) AS ?x) {
+    ?s ?p ?o
+    FILTER(isBlank(?s))
+  }
+}

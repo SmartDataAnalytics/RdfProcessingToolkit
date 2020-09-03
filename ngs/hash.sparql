@@ -1,0 +1,20 @@
+PREFIX eg: <http://www.example.org/>
+CONSTRUCT {
+  GRAPH ?g {
+    ?s
+      ?p ?o ;
+      eg:hash ?hash
+  }
+} {
+  { SELECT * {
+    SELECT ?g ?s ?p ?hash {
+    GRAPH ?g {
+      ?s
+        ?p ?o ;
+        eg:idx ?key
+    }
+    BIND(SHA256(STR(?key)) AS ?hash)
+    }
+  } ORDER BY ?key ?g }
+}
+

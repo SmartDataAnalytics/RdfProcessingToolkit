@@ -1,0 +1,30 @@
+PREFIX v: <http://rdfs.org/ns/void#>
+PREFIX s: <http://rdfs.org/ns/void#>
+
+CONSTRUCT {
+  <env://D>
+    v:propertyPartition ?l .
+
+  ?l
+    v:property ?p ;
+    s:subjectTypes ?k .
+
+  ?k
+    s:subjectClass ?t ;
+    s:distinctMembers ?x
+}
+{
+  SELECT
+    (IRI(CONCAT('x-pp://', ENCODE_FOR_URI(STR(?p)))) AS ?l)
+    (IRI(CONCAT('x-ppcp://', ENCODE_FOR_URI(STR(?p)), '-', ENCODE_FOR_URI(STR(?t)))) AS ?k)
+    ?p ?t ?x
+  {
+    SELECT ?p ?t (COUNT(?o) AS ?x)
+    {
+      ?s
+        a ?t ;
+        ?p ?o
+    }
+    GROUP BY ?p ?t
+  }
+}

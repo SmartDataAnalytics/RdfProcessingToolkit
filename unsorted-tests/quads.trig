@@ -1,0 +1,3 @@
+@prefix q: <http://www.example.org/quad/> .
+q:a q:b q:c .
+q:w { q:x q:y q:z }

@@ -1,0 +1,13 @@
+CONSTRUCT {
+  <D>
+    v:classPartition [
+      v:class ?c ;
+      v:distinctObjects ?x
+    ]
+} {
+  SELECT ?c (COUNT(DISTINCT ?o) AS ?x) {
+    ?s
+      a ?c ;
+      ?p ?o
+  } GROUP BY ?c
+}

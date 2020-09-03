@@ -1,0 +1,11 @@
+PREFIX s: <http://rdfs.org/ns/void#>
+
+CONSTRUCT {
+  <env://D> s:distinctLiterals ?x
+}
+{
+  SELECT (COUNT(DISTINCT ?o) AS ?x) {
+    ?s ?p ?o
+    FILTER(isLiteral(?o))
+  }
+}
