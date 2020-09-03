@@ -111,6 +111,12 @@
 			</dependency>
 
 			<dependency>
+				<groupId>org.aksw.jena-sparql-api</groupId>
+				<artifactId>jena-sparql-api-io-hdt</artifactId>
+				<version>${jena-sparql-api.version}</version>
+			</dependency>
+
+			<dependency>
 				<groupId>org.aksw.rdf-processing-toolkit</groupId>
 				<artifactId>rdf-processing-toolkit-cli</artifactId>
 				<version>${project.version}</version>

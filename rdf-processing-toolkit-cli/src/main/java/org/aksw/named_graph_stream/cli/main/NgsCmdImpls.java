@@ -126,8 +126,10 @@ public class NgsCmdImpls {
      * @param cmdMap
      */
     public static int mapQuads(CmdNgsMap cmdMap) throws Exception {
+        Iterable<Lang> probeLangs = MainCliNamedGraphStream.quadAndTripleLangs;
+
         List<String> args = preprocessArgs(cmdMap.nonOptionArgs);
-        validate(args, MainCliNamedGraphStream.quadLangs, true);
+        validate(args, probeLangs, true);
 
         String graphIri = cmdMap.mapSpec.graph;
         Node g = NodeFactory.createURI(graphIri);
@@ -137,7 +139,7 @@ public class NgsCmdImpls {
         Flowable<Quad> quadFlow = Flowable.fromIterable(args)
             .concatMap(arg -> {
                 Flowable<Quad> r = RDFDataMgrRx.createFlowableQuads(() ->
-                    RDFDataMgrEx.open(arg, MainCliNamedGraphStream.quadLangs))
+                    RDFDataMgrEx.open(arg, probeLangs))
                 .map(quad -> quadMapper.apply(quad));
                 return r;
             });
@@ -177,7 +179,7 @@ public class NgsCmdImpls {
             // Do not output the arg if there is less-than-or-equal 1
             String prefix = args.size() <= 1 ? "" :  arg + ": ";
 
-            try(TypedInputStream tin = RDFDataMgrEx.open(arg, RDFLanguagesEx.getQuadAndTripleLangs())) {
+            try(TypedInputStream tin = RDFDataMgrEx.open(arg, MainCliNamedGraphStream.quadAndTripleLangs)) {
 
                 String r = tin.getContentType();
                 System.out.println(prefix + "[ OK ] " + r);
@@ -290,7 +292,7 @@ public class NgsCmdImpls {
      * @throws Exception
      */
     public static int groupTriplesByComponent(CmdNgsSubjects cmdSubjects, Function<? super Triple, ? extends Node> getFieldValue) throws Exception {
-        List<Lang> tripleLangs = RDFLanguagesEx.getTripleLangs();
+        Iterable<Lang> tripleLangs = MainCliNamedGraphStream.tripleLangs;
         RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdSubjects.outFormat);
 
         List<String> args = preprocessArgs(cmdSubjects.nonOptionArgs);

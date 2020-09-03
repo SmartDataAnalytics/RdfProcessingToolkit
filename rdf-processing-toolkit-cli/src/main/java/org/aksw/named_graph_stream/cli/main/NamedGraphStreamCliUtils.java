@@ -1,15 +1,12 @@
 package org.aksw.named_graph_stream.cli.main;
 
-import java.util.Collection;
 import java.util.List;
 
 import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
-import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
 import org.aksw.jena_sparql_api.transform.result_set.QueryExecutionTransformResult;
 import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.riot.Lang;
 import org.apache.jena.shared.PrefixMapping;
 
 import io.reactivex.rxjava3.core.Flowable;

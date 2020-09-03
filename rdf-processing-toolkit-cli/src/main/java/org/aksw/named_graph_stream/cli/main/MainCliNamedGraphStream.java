@@ -15,9 +15,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
+import org.aksw.jena_sparql_api.io.hdt.JenaPluginHdt;
 import org.aksw.jena_sparql_api.rx.FlowableTransformerLocalOrdering;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
@@ -61,6 +63,10 @@ import picocli.CommandLine;
 public class MainCliNamedGraphStream {
 
     public static Collection<Lang> quadLangs = Arrays.asList(Lang.TRIG, Lang.NQUADS);
+    public static Collection<Lang> tripleLangs = Arrays.asList(Lang.TURTLE, JenaPluginHdt.LANG_HDT);
+
+    public static Collection<Lang> quadAndTripleLangs = Stream.concat(quadLangs.stream(), tripleLangs.stream())
+            .collect(Collectors.toList());
 
     public static final OutputStream out = new CloseShieldOutputStream(new FileOutputStream(FileDescriptor.out));
 //    public static final OutputStream out = new FileOutputStream(FileDescriptor.out);
