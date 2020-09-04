@@ -7,14 +7,20 @@ import picocli.CommandLine;
 
 
 public class MainCliRdfProcessingToolkit {
-    public static void main(String[] args) {
-        int exitCode = new CommandLine(new CmdRptMain())
-                .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                    ExceptionUtils.rethrowIfNotBrokenPipe(ex);
-                    return 0;
-                })
-                .execute(args);
 
+    public static void main(String[] args) {
+        int exitCode = mainCore(args);
         System.exit(exitCode);
     }
+
+    public static int mainCore(String[] args) {
+        int result = new CommandLine(new CmdRptMain())
+            .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
+                ExceptionUtils.rethrowIfNotBrokenPipe(ex);
+                return 0;
+            })
+            .execute(args);
+        return result;
+    }
+
 }

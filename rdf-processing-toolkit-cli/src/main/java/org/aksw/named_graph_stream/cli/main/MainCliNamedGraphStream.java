@@ -83,16 +83,20 @@ public class MainCliNamedGraphStream {
 
     static final Logger logger = LoggerFactory.getLogger(MainCliNamedGraphStream.class);
 
+    public static void main(String[] args) {
+        int exitCode = mainCore(args);
+        System.exit(exitCode);
+    }
 
-    public static void main(String[] args) throws Exception {
-        int exitCode = new CommandLine(new CmdNgsMain())
+    public static int mainCore(String[] args) {
+        int result = new CommandLine(new CmdNgsMain())
                 .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
                     org.aksw.commons.util.exception.ExceptionUtils.rethrowIfNotBrokenPipe(ex);
                     return 0;
                 })
                 .execute(args);
 
-        System.exit(exitCode);
+        return result;
     }
 
     public static Predicate<Dataset> createPredicate(Query query) {
@@ -164,7 +168,7 @@ public class MainCliNamedGraphStream {
                 MainCliSparqlStream.createProcessor(sparqlSrcs, pm, true);
 
 
-        // Wrap the core processor with modifiers for theo context
+        // Wrap the core processor with modifiers for the context
         BiConsumer<RDFConnection, SPARQLResultSink> processor = (coreConn, sink) -> {
             RDFConnection c = contextHandler == null
                 ? coreConn

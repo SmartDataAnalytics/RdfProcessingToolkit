@@ -3,8 +3,12 @@ package org.aksw.named_graph_stream.cli.main;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -30,6 +34,7 @@ import org.aksw.named_graph_stream.cli.cmd.CmdNgsTail;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsUntil;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsWc;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsWhile;
+import org.apache.commons.io.input.CloseShieldInputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.graph.Node;
@@ -117,8 +122,6 @@ public class NgsCmdImpls {
 
         return 0;
     }
-
-
 
     /**
      * Quad-based mapping (rather than Dataset-based).
@@ -218,6 +221,30 @@ public class NgsCmdImpls {
             throw new RuntimeException("If STDIN (denoted by '-') is used no further input sources may be used");
         }
     }
+
+    public static Callable<TypedInputStream> validate(String filenameOrIri, Iterable<Lang> probeLangs, boolean displayProbeResult) {
+        Callable<TypedInputStream> result;
+        if (RDFDataMgrEx.isStdIn(filenameOrIri)) {
+            TypedInputStream tin = RDFDataMgrEx.forceBuffered(RDFDataMgrEx.open(filenameOrIri, probeLangs));
+
+            // Beware that each invocation of the supplier returns the same underlying input stream
+            // however with a fresh close shield! The purpose is to allow probing on stdin
+            result = () -> RDFDataMgrEx.wrapInputStream(new CloseShieldInputStream(tin.getInputStream()), tin);
+        } else {
+            try(TypedInputStream tin = RDFDataMgrEx.open(filenameOrIri, probeLangs)) {
+                String ct = tin.getContentType();
+                Lang lang = RDFLanguages.contentTypeToLang(ct);
+                if (displayProbeResult) {
+                    MainCliNamedGraphStream.logger.info("Detected format: " + filenameOrIri + " " + ct);
+                }
+
+                result = () -> RDFDataMgrEx.forceBuffered(RDFDataMgrEx.open(filenameOrIri, Arrays.asList(lang)));
+            }
+        }
+
+        return result;
+    }
+
     /**
      * Validate whether all given arguments can be opened.
      * This is similar to probe() except that an exception is raised on error
@@ -225,34 +252,31 @@ public class NgsCmdImpls {
      * @param args
      * @param probeLangs
      */
-    public static void validate(List<String> args, Iterable<Lang> probeLangs, boolean displayProbeResults) {
+    public static Map<String, Callable<TypedInputStream>> validate(List<String> args, Iterable<Lang> probeLangs, boolean displayProbeResults) {
+
+        Map<String, Callable<TypedInputStream>> result = new LinkedHashMap<>();
 
         validateStdIn(args);
 
         int violationCount = 0;
         for (String arg : args) {
-            if (!arg.equals("-")) {
 
-                // Do not output the arg if there is less-than-or-equal 1
-                String prefix = args.size() <= 1 ? "" :  arg + ": ";
+            try {
+                Callable<TypedInputStream> inSupp = validate(arg, probeLangs, displayProbeResults);
+                result.put(arg, inSupp);
+            } catch(Exception e) {
+                String msg = ExceptionUtils.getRootCauseMessage(e);
+                MainCliNamedGraphStream.logger.info(arg + ": " + msg);
 
-                try(TypedInputStream tin = RDFDataMgrEx.open(arg, probeLangs)) {
-                    if (displayProbeResults) {
-                        MainCliNamedGraphStream.logger.info("Detected format: " + prefix + " " + tin.getContentType());
-                    }
-                    // success
-                } catch(Exception e) {
-                    String msg = ExceptionUtils.getRootCauseMessage(e);
-                    System.err.println(prefix + msg);
-
-                    ++violationCount;
-                }
+                ++violationCount;
             }
         }
 
         if (violationCount != 0) {
             throw new IllegalArgumentException("Some arguments failed to validate");
         }
+
+        return result;
     }
 
 
