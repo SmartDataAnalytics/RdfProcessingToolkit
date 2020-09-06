@@ -1,0 +1,291 @@
+package org.aksw.sparql_integrate.cli;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
+
+import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
+import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
+import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
+import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
+import org.aksw.jena_sparql_api.stmt.SparqlStmt;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtIterator;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtMgr;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtParser;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtUpdate;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
+import org.aksw.jena_sparql_api.stmt.SparqlUpdateParser;
+import org.aksw.jena_sparql_api.stmt.SparqlUpdateParserImpl;
+import org.aksw.jena_sparql_api.syntax.UpdateRequestUtils;
+import org.aksw.jena_sparql_api.utils.NodeUtils;
+import org.apache.jena.atlas.web.TypedInputStream;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.query.Syntax;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.shared.PrefixMapping;
+import org.apache.jena.sparql.core.Prologue;
+import org.apache.jena.update.UpdateRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.StandardSystemProperty;
+
+
+/**
+ * Super-convenient SPARQL statement loader. Probes arguments whether they are inline SPARQL statements or refer to files.
+ * Referred files may contain RDF or sequences of SPARQL statements.
+ * RDF files are loaded fully into memory as UpdateModify statements.
+ *
+ * Usually the SparqlQueryParserWrapperSelectShortForm should be active which allows omitting the SELECT keyword making
+ * querying even less verbose
+ *
+ * Prefixes from an input source carry over to the next. Hence, if an RDF file is loaded, its prefixes can be used in
+ * subsequent SPARQL statements without need for declaration.
+ *
+ *
+ * For example assuming that mydata defines a foo prefix
+ * ad-hoc querying becomes possible simply using the arguments ["people.ttl", "?s { ?s a foaf:Person }"]
+ *
+ * Arguments that start with cwd=/some/path sets the current working directory on which SPARQL queries operate.
+ * Effectively it sets the base URL of the following SPARQL queries.
+ * Relative paths are resolved against the current working directory as reported by the JVM.
+ * Use "cwd=" (with an empty string) to reset the CWD to that of the JVM
+ *
+ * @author raven
+ *
+ */
+public class SparqlScriptProcessor {
+
+    public static class Provenance {
+        public Provenance(String arg) {
+            this(arg, null, null);
+        }
+
+        public Provenance(String argStr, Long line, Long column) {
+            super();
+            this.argStr = argStr;
+            this.line = line;
+            this.column = column;
+        }
+
+
+//    	protected int argIdx;
+
+        /**
+         *  The orginal argument string
+         */
+        protected String argStr;
+
+        protected Long line;
+
+        protected Long column;
+
+        @Override
+        public String toString() {
+            String result = argStr +
+                    (line == null ? (column == null ? "" : ":") : ":" + line) +
+                    (column == null ? "" : ":" + column);
+            return result;
+        }
+    }
+
+    public static final String cwdKey = "cwd=";
+    public static final String cwdResetCwd = "cwd";
+
+    private static final Logger logger = LoggerFactory.getLogger(SparqlScriptProcessor.class);
+
+    protected SparqlStmtParser sparqlParser ;
+    protected PrefixMapping globalPrefixes;
+    protected Path cwd = null;
+    protected List<Entry<SparqlStmt, Provenance>> sparqlStmts = new ArrayList<>();
+
+
+    public SparqlScriptProcessor(SparqlStmtParser sparqlParser, PrefixMapping globalPrefixes) {
+        super();
+        this.sparqlParser = sparqlParser;
+        this.globalPrefixes = globalPrefixes;
+    }
+
+    public List<Entry<SparqlStmt, Provenance>> getSparqlStmts() {
+        return sparqlStmts;
+    }
+
+    public static SparqlScriptProcessor create(PrefixMapping pm) {
+        Prologue p = new Prologue(pm);
+        SparqlQueryParser queryParser = SparqlQueryParserWrapperSelectShortForm.wrap(
+                SparqlQueryParserImpl.create(Syntax.syntaxARQ, p));
+
+        SparqlUpdateParser updateParser = SparqlUpdateParserImpl
+                .create(Syntax.syntaxARQ, new Prologue(p));
+
+        SparqlStmtParser sparqlParser =
+                SparqlStmtParser.wrapWithTransform(
+                        new SparqlStmtParserImpl(queryParser, updateParser, false),
+                        stmt -> SparqlStmtUtils.applyNodeTransform(stmt, x -> NodeUtils.substWithLookup(x, System::getenv)));
+
+        SparqlScriptProcessor result = new SparqlScriptProcessor(sparqlParser, pm);
+        return result;
+    }
+
+    public void process(List<String> filenames) {
+        for (String filename : filenames) {
+            process(filename);
+        }
+    }
+
+    public void process(String filename) {
+        process(filename, sparqlStmts);
+    }
+
+    public void process(String filename, List<Entry<SparqlStmt, Provenance>> result) {
+        logger.info("Processing argument '" + filename + "'");
+
+        if(filename.startsWith(cwdKey)) {
+            String cwdValue = filename.substring(cwdKey.length()).trim();
+
+            if(cwd == null) {
+                cwd = Paths.get(StandardSystemProperty.USER_DIR.value());
+            }
+
+            cwd = cwd.resolve(cwdValue);
+            logger.info("Pinned working directory to " + cwd);
+        } else if(filename.equals(cwdResetCwd)) {
+            // If cwdValue is an empty string, reset the working directory
+            logger.info("Unpinned working directory");
+
+            cwd = null;
+        } else {
+
+            boolean isProcessed = false;
+            try {
+                Provenance prov = new Provenance(filename);
+                UpdateRequest ur = tryLoadFileAsUpdateRequest(filename, globalPrefixes);
+                result.add(new SimpleEntry<>(new SparqlStmtUpdate(ur), prov));
+
+                isProcessed = true;
+            } catch (Exception e) {
+                logger.debug("Probing " + filename + " as RDF data file failed", e);
+            }
+
+            if(!isProcessed) {
+
+                String baseIri = cwd == null ? null : cwd.toUri().toString();
+                try {
+                    Iterator<SparqlStmt> it = SparqlStmtMgr.loadSparqlStmts(filename, globalPrefixes, sparqlParser, baseIri);
+
+                    if(it != null) {
+                        SparqlStmtIterator itWithPos = it instanceof SparqlStmtIterator
+                                ? (SparqlStmtIterator)it
+                                : null;
+
+                        while(it.hasNext()) {
+                            Provenance prov;
+                            if(itWithPos != null) {
+                                prov = new Provenance(filename, (long)itWithPos.getLine(), (long)itWithPos.getColumn());
+                                logger.info("Processing SPARQL statement at line " + itWithPos.getLine() + ", column " + itWithPos.getColumn());
+                            } else {
+                                prov = new Provenance(filename);
+                                logger.info("Processing inline SPARQL argument " + filename);
+                            }
+
+                            SparqlStmt stmt = it.next();
+
+                            PrefixMapping stmtPrefixes = stmt.getPrefixMapping();
+                            if(stmtPrefixes != null) {
+                                globalPrefixes.setNsPrefixes(stmtPrefixes);
+                            }
+
+                            SparqlStmtUtils.optimizePrefixes(stmt);
+
+                            result.add(new SimpleEntry<>(stmt, prov));
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to process");
+                }
+            }
+        }
+
+    }
+
+
+    public static UpdateRequest tryLoadFileAsUpdateRequest(String filename, PrefixMapping globalPrefixes) throws IOException {
+        UpdateRequest result = null;
+
+        // Try as RDF file
+        try(TypedInputStream tmpIn = RDFDataMgrEx.open(filename, Arrays.asList(Lang.TRIG, Lang.NQUADS))) {
+//            if(tmpIn == null) {
+//                throw new FileNotFoundException(filename);
+//            }
+
+            InputStream in = tmpIn.getInputStream();
+
+
+            String contentType = tmpIn.getContentType();
+            logger.info("Detected format: " + contentType);
+            Lang rdfLang = contentType == null ? null : RDFLanguages.contentTypeToLang(contentType);
+
+            //Lang rdfLang = RDFDataMgr.determineLang(filename, null, null);
+            if(rdfLang != null) {
+
+                if(RDFLanguages.isTriples(rdfLang)) {
+
+                    Model tmp = ModelFactory.createDefaultModel();
+                    //InputStream in = SparqlStmtUtils.openInputStream(filename);
+                    // FIXME Validate we are really using turtle here
+                    RDFDataMgrEx.parseTurtleAgainstModel(tmp, globalPrefixes, in);
+                    // Copy any prefixes from the parse back to our global prefix mapping
+                    globalPrefixes.setNsPrefixes(tmp);
+
+                    // Convert the model to a SPARQL insert statement
+                    result = UpdateRequestUtils.createUpdateRequest(tmp, null);
+
+                } else if(RDFLanguages.isQuads(rdfLang)) {
+                    Dataset tmp = DatasetFactory.create();
+                    // InputStream in = SparqlStmtUtils.openInputStream(filename);
+
+                    // FIXME Validate we are really using turtle here
+                    RDFDataMgrEx.parseTrigAgainstDataset(tmp, globalPrefixes, in);
+                    // Copy any prefixes from the parse back to our global prefix mapping
+
+                    Model m = tmp.getDefaultModel();
+                    if(m != null) {
+                        globalPrefixes.setNsPrefixes(m);
+                    }
+
+                    logger.info("Gathering prefixes from named graphs...");
+                    int i = 0;
+                    Iterator<String> it = tmp.listNames();
+                    while(it.hasNext()) {
+                        String name = it.next();
+                        m = tmp.getNamedModel(name);
+                        if(m != null) {
+                            ++i;
+                            globalPrefixes.setNsPrefixes(m);
+                        }
+                    }
+                    logger.info("Gathered prefixes from " + i + " named graphs");
+
+                    result = UpdateRequestUtils.createUpdateRequest(tmp, null);
+
+                } else {
+                    throw new RuntimeException("Unknown lang: " + rdfLang);
+                }
+
+            }
+        }
+        return result;
+    }
+}

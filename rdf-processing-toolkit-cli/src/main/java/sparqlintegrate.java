@@ -1,7 +1,7 @@
-import org.aksw.sparql_integrate.cli.MainCliSparqlIntegrate;
+import org.aksw.sparql_integrate.cli.MainCliSparqlIntegrateOld;
 
 public class sparqlintegrate {
 	public static void main(String[] args) throws Exception {
-		MainCliSparqlIntegrate.main(args);
+		MainCliSparqlIntegrateOld.main(args);
 	}
 }

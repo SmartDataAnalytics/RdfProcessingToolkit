@@ -1,11 +1,12 @@
 package org.aksw.rdf_processing_toolkit.cli.cmd;
 
-import org.aksw.sparql_integrate.cli.MainCliSparqlIntegrate;
+import org.aksw.sparql_integrate.cli.MainCliSparqlIntegrateOld;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+// Old cmd / remove it!
 @Command(name="integrate", description = "Sparql Integrate")
 public class CmdSparqlIntegrateMain
     implements Runnable
@@ -17,6 +18,6 @@ public class CmdSparqlIntegrateMain
 
     @Override
     public void run() {
-        MainCliSparqlIntegrate.main(all);
+        MainCliSparqlIntegrateOld.main(all);
     }
 }

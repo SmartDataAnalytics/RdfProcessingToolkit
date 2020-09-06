@@ -78,11 +78,11 @@ public class MainCliSparqlStream {
                         .findFirst()
                         .orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + availableOutRdfFormats));
 
-                Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm, outDataset);
+                Sink<Quad> quadSink = SparqlStmtUtils.createSinkQuads(outFormat, operationalOut, pm, () -> outDataset);
                 result = new SPARQLResultSinkQuads(quadSink);
             }
         } else {
-            Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, pm, outDataset);
+            Sink<Quad> quadSink = SparqlStmtUtils.createSinkQuads(outFormat, operationalOut, pm, () -> outDataset);
             result = new SPARQLResultSinkQuads(quadSink);
         }
 
@@ -118,8 +118,8 @@ public class MainCliSparqlStream {
         for (String filename : args) {
             logger.info("Loading argument '" + filename + "'");
 
-            if(filename.startsWith(MainCliSparqlIntegrate.cwdKey)) {
-                String cwdValue = filename.substring(MainCliSparqlIntegrate.cwdKey.length()).trim();
+            if(filename.startsWith(MainCliSparqlIntegrateOld.cwdKey)) {
+                String cwdValue = filename.substring(MainCliSparqlIntegrateOld.cwdKey.length()).trim();
 
                 if(cwd == null) {
                     cwd = Paths.get(StandardSystemProperty.USER_DIR.value());
@@ -127,7 +127,7 @@ public class MainCliSparqlStream {
 
                 cwd = cwd.resolve(cwdValue);
                 logger.info("Pinned working directory to " + cwd);
-            } else if(filename.equals(MainCliSparqlIntegrate.cwdResetCwd)) {
+            } else if(filename.equals(MainCliSparqlIntegrateOld.cwdResetCwd)) {
                 // If cwdValue is an empty string, reset the working directory
                 logger.info("Unpinned working directory");
 
@@ -229,7 +229,7 @@ public class MainCliSparqlStream {
 
         // TODO Reuse code from sparql integrate
 
-        MainCliSparqlIntegrate.configureGlobalSettings();
+        MainCliSparqlIntegrateOld.configureGlobalSettings();
 
         PrefixMapping pm = new PrefixMappingImpl();
         pm.setNsPrefixes(DefaultPrefixes.prefixes);

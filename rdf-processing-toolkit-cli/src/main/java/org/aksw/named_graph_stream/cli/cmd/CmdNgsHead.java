@@ -1,7 +1,9 @@
 package org.aksw.named_graph_stream.cli.cmd;
 
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 
 import org.aksw.named_graph_stream.cli.main.NgsCmdImpls;
@@ -27,10 +29,15 @@ public class CmdNgsHead implements Callable<Integer> {
      *
      */
     @Option(names = { "-n" }, description = "numRecords")
-    public long numRecords = 10;
+    public Entry<Boolean, Long> numRecords = new SimpleEntry<>(false, 10l);
+
+    static class ConsumerNumRecords extends IParameterConsumerFlaggedLong {
+        @Override
+        protected String getFlag() { return "-"; };
+    }
 
     @Option(names = { "-o", "--out-format" })
-    public String outFormat = "trig/pretty";
+    public String outFormat = "trig/blocks";
 
     @Parameters(arity = "0..*", description = "Input files")
     public List<String> nonOptionArgs = new ArrayList<>();

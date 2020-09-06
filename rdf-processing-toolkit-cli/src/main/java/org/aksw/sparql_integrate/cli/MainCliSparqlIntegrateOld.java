@@ -96,9 +96,9 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 
 @SpringBootApplication
-public class MainCliSparqlIntegrate {
+public class MainCliSparqlIntegrateOld {
 
-    private static final Logger logger = LoggerFactory.getLogger(MainCliSparqlIntegrate.class);
+    private static final Logger logger = LoggerFactory.getLogger(MainCliSparqlIntegrateOld.class);
 
     public static final String cwdKey = "cwd=";
     public static final String cwdResetCwd = "cwd";
@@ -236,11 +236,11 @@ public class MainCliSparqlIntegrate {
                             .findFirst()
                             .orElseThrow(() -> new RuntimeException("Unknown format: " + optOutFormat + " Available: " + availableOutRdfFormats));
 
-                    Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, globalPrefixes, outputDataset);
+                    Sink<Quad> quadSink = SparqlStmtUtils.createSinkQuads(outFormat, operationalOut, globalPrefixes, () -> outputDataset);
                     sink = new SPARQLResultSinkQuads(quadSink);
                 }
             } else {
-                Sink<Quad> quadSink = SparqlStmtUtils.createSink(outFormat, operationalOut, globalPrefixes, outputDataset);
+                Sink<Quad> quadSink = SparqlStmtUtils.createSinkQuads(outFormat, operationalOut, globalPrefixes, () -> outputDataset);
                 sink = new SPARQLResultSinkQuads(quadSink);
             }
 

@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -95,12 +96,17 @@ public class NgsCmdImpls {
         RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdHead.outFormat);
 
         // parse the numRecord option
-        if(cmdHead.numRecords < 0) {
-            throw new RuntimeException("Negative values not yet supported");
+        Entry<Boolean, Long> e = cmdHead.numRecords;
+        boolean negated = e.getKey();
+        long val = e.getValue();
+
+        if (negated) {
+            throw new RuntimeException("Excluding the last n items not yet supported");
         }
 
+
         Flowable<Dataset> flow = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdHead.nonOptionArgs, null, MainCliNamedGraphStream.pm)
-            .take(cmdHead.numRecords);
+            .take(val);
 
         RDFDataMgrRx.writeDatasets(flow, MainCliNamedGraphStream.out, outFormat);
 
@@ -110,13 +116,15 @@ public class NgsCmdImpls {
     public static int tail(CmdNgsTail cmdTail) throws Exception {
         RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdTail.outFormat);
 
-        // parse the numRecord option
-        if(cmdTail.numRecords < 0) {
-            throw new RuntimeException("Negative values not yet supported");
+        Entry<Boolean, Long> e = cmdTail.numRecords;
+        boolean negated = e.getKey();
+        long val = e.getValue();
+        if(!negated) {
+            throw new RuntimeException("Currently only skipping (via ngs tail -n-123) is supported");
         }
 
         Flowable<Dataset> flow = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdTail.nonOptionArgs, null, MainCliNamedGraphStream.pm)
-            .skip(cmdTail.numRecords);
+            .skip(val);
 
         RDFDataMgrRx.writeDatasets(flow, MainCliNamedGraphStream.out, outFormat);
 
