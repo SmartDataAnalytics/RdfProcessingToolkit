@@ -22,7 +22,7 @@ public class CmdSbsQuery
      * sparql-pattern file
      *
      */
-    @Option(names = { "-q", "--query" }, description = "queries")
+    @Option(names = { "-s", "--sparql" }, description = "SPARQL statement; only queries allowed")
     public List<String> queries;
     // public long numRecords = 10;
 
