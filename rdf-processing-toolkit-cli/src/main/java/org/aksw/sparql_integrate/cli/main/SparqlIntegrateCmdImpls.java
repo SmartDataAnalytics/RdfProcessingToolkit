@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -50,11 +51,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonElement;
-
-//interface Output {
-//	void flush();
-//
-//}
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
@@ -264,14 +260,7 @@ public class SparqlIntegrateCmdImpls {
         effectiveHandler.start();
 
         try(RDFConnection conn = configConnection(cmd)) {
-            for (Entry<SparqlStmt, Provenance> workload : workloads) {
-                SparqlStmt stmt = workload.getKey();
-                Provenance prov = workload.getValue();
-                logger.info("Processing " + prov);
-                try(SPARQLResultEx sr = SparqlStmtUtils.execAny(conn, stmt)) {
-                    effectiveHandler.forwardEx(sr);
-                }
-            }
+            execStmts(conn, workloads, effectiveHandler);
         }
 
         effectiveHandler.finish();
@@ -312,6 +301,22 @@ public class SparqlIntegrateCmdImpls {
 
 
         return 0;
+    }
+
+    public static void execStmts(
+            RDFConnection conn,
+            Collection<? extends Entry<? extends SparqlStmt, ? extends Provenance>> workloads,
+            SPARQLResultExVisitor<?> resultProcessor) {
+        for (Entry<? extends SparqlStmt, ? extends Provenance> workload : workloads) {
+            SparqlStmt stmt = workload.getKey();
+            Provenance prov = workload.getValue();
+            logger.info("Processing " + prov);
+            try(SPARQLResultEx sr = SparqlStmtUtils.execAny(conn, stmt)) {
+                resultProcessor.forward(sr);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public static SPARQLResultExProcessor configureProcessor(
@@ -362,7 +367,7 @@ public class SparqlIntegrateCmdImpls {
         // RDFLanguagesEx.findRdfFormat(cmd.outFormat, probeFormats)
         List<Var> selectVars = SparqlStmtUtils.getUnionProjectVars(stmts);
 
-        SPARQLResultExProcessorImpl coreHandler = SPARQLResultExProcessorImpl.configureForOutputMode(
+        SPARQLResultExProcessorImpl coreProcessor = SPARQLResultExProcessorImpl.configureForOutputMode(
                 outputMode,
                 MainCliNamedGraphStream.out,
                 System.err,
@@ -372,24 +377,24 @@ public class SparqlIntegrateCmdImpls {
                 selectVars);
 
 
-        // TODO The design with SPARQLResultExProcessorForwarding seems overly complex
+        // TODO The design with SPARQLResultExProcessorForwarding seems a bit overly complex
         // Perhaps allow setting up the jq stuff on SPARQLResultExProcessorImpl directly?
-        SPARQLResultExProcessor effectiveHandler;
+        SPARQLResultExProcessor effectiveProcessor;
         if (jqMode) {
-            effectiveHandler = new SPARQLResultExProcessorForwarding<SPARQLResultExProcessorImpl>(coreHandler) {
+            effectiveProcessor = new SPARQLResultExProcessorForwarding<SPARQLResultExProcessorImpl>(coreProcessor) {
                 @Override
                 public Void onResultSet(ResultSet it) {
                     while (it.hasNext()) {
                         QuerySolution qs = it.next();
                         JsonElement json = RdfJsonUtils.toJson(qs, jqDepth, jqFlatMode);
-                        coreHandler.getJsonSink().send(json);
+                        coreProcessor.getJsonSink().send(json);
                     }
                     return null;
                 }
             };
         } else {
-            effectiveHandler = coreHandler;
+            effectiveProcessor = coreProcessor;
         }
-        return effectiveHandler;
+        return effectiveProcessor;
     }
 }

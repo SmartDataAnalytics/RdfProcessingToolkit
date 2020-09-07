@@ -10,19 +10,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
+import org.aksw.jena_sparql_api.stmt.SPARQLResultEx;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsCat;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsFilter;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsHead;
@@ -35,6 +39,11 @@ import org.aksw.named_graph_stream.cli.cmd.CmdNgsTail;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsUntil;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsWc;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsWhile;
+import org.aksw.sparql_integrate.cli.SparqlScriptProcessor;
+import org.aksw.sparql_integrate.cli.SparqlScriptProcessor.Provenance;
+import org.aksw.sparql_integrate.cli.main.OutputMode;
+import org.aksw.sparql_integrate.cli.main.SPARQLResultExProcessor;
+import org.aksw.sparql_integrate.cli.main.SparqlIntegrateCmdImpls;
 import org.apache.commons.io.input.CloseShieldInputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jena.atlas.web.TypedInputStream;
@@ -43,15 +52,22 @@ import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
+import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.shared.PrefixMapping;
+import org.apache.jena.sparql.algebra.TransformUnionQuery;
+import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.engine.http.Service;
+import org.apache.jena.sparql.util.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.FlowableTransformer;
+import joptsimple.internal.Strings;
 
 /**
  * Implementation of all named graph stream commands as static methods.
@@ -171,10 +187,66 @@ public class NgsCmdImpls {
         if (cmdMap.mapSpec.graph != null) {
             mapQuads(cmdMap);
         } else {
-            NamedGraphStreamOps.map(MainCliNamedGraphStream.pm, cmdMap, MainCliNamedGraphStream.out);
+            // NamedGraphStreamOps.map(MainCliNamedGraphStream.pm, cmdMap, MainCliNamedGraphStream.out);
+            execMap(MainCliNamedGraphStream.pm, cmdMap);
         }
 
         return 0;
+    }
+
+
+
+    public static void execMap(PrefixMapping pm, CmdNgsMap cmdFlatMap) {
+
+        String timeoutSpec = cmdFlatMap.serviceTimeout;
+        Consumer<Context> contextHandler = cxt -> {
+            if (!Strings.isNullOrEmpty(timeoutSpec)) {
+                cxt.set(Service.queryTimeout, timeoutSpec);
+            }
+        };
+
+        SparqlScriptProcessor scriptProcessor = SparqlScriptProcessor.create(pm);
+
+        // Register a (best-effort) union default graph transform
+        scriptProcessor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,
+                op -> Transformer.transformSkipService(new TransformUnionQuery(), op)));
+
+
+        scriptProcessor.process(cmdFlatMap.mapSpec.stmts);
+        List<Entry<SparqlStmt, Provenance>> workloads = scriptProcessor.getSparqlStmts();
+
+        List<SparqlStmt> stmts = workloads.stream().map(Entry::getKey).collect(Collectors.toList());
+
+        OutputMode outputMode = SparqlIntegrateCmdImpls.detectOutputMode(stmts);
+
+        // This is the final output sink
+        SPARQLResultExProcessor resultProcessor = SparqlIntegrateCmdImpls.configureProcessor(
+                cmdFlatMap.outFormat,
+                stmts,
+                pm,
+                false,
+                0,
+                false);
+
+        Function<RDFConnection, SPARQLResultEx> mapper = SparqlMappers.createMapperFromDataset(outputMode, stmts, resultProcessor);
+
+        Flowable<SPARQLResultEx> flow =
+                // Create a stream of Datasets
+                NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdFlatMap.nonOptionArgs, null, pm)
+                    // Map the datasets in parallel
+                    .compose(SparqlMappers.createParallelMapperOrdered(
+                        // Map the dataset to a connection
+                        SparqlMappers.datasetAsConnection(
+                                // Set context attributes on the connection, e.g. timeouts
+                                SparqlMappers.applyContextHandler(contextHandler)
+                                    // Finally invoke the mapper
+                                    .andThen(mapper))));
+
+        resultProcessor.start();
+        flow.blockingForEach(item -> resultProcessor.forward(item));
+        resultProcessor.finish();
+        resultProcessor.flush();
+        resultProcessor.close();
     }
 
 

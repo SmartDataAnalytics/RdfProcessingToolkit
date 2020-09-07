@@ -28,7 +28,7 @@ public class CmdNgsHead implements Callable<Integer> {
      * sparql-pattern file
      *
      */
-    @Option(names = { "-n" }, description = "numRecords")
+    @Option(names = { "-n" }, parameterConsumer = ConsumerNumRecords.class, description = "numRecords")
     public Entry<Boolean, Long> numRecords = new SimpleEntry<>(false, 10l);
 
     static class ConsumerNumRecords extends IParameterConsumerFlaggedLong {

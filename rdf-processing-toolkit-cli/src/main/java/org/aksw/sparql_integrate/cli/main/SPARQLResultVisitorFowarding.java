@@ -21,8 +21,8 @@ public abstract class SPARQLResultVisitorFowarding<T>
     }
 
     @Override
-    public T onJson(Iterator<JsonObject> it) {
-        return getDelegate().onJson(it);
+    public T onJsonItems(Iterator<JsonObject> it) {
+        return getDelegate().onJsonItems(it);
     }
 
 }

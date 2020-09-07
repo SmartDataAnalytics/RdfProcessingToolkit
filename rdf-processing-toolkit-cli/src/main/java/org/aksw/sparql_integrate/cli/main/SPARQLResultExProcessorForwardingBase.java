@@ -59,7 +59,7 @@ public abstract class SPARQLResultExProcessorForwardingBase<D extends SPARQLResu
     }
 
     @Override
-    public Void onJson(Iterator<JsonObject> it) {
-        return getDelegate().onJson(it);
+    public Void onJsonItems(Iterator<JsonObject> it) {
+        return getDelegate().onJsonItems(it);
     }
 }

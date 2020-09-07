@@ -10,6 +10,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
@@ -110,12 +113,20 @@ public class SparqlScriptProcessor {
     protected PrefixMapping globalPrefixes;
     protected Path cwd = null;
     protected List<Entry<SparqlStmt, Provenance>> sparqlStmts = new ArrayList<>();
-
+    protected List<Function<? super SparqlStmt, ? extends SparqlStmt>> postTransformers = new ArrayList<>();
 
     public SparqlScriptProcessor(SparqlStmtParser sparqlParser, PrefixMapping globalPrefixes) {
         super();
         this.sparqlParser = sparqlParser;
         this.globalPrefixes = globalPrefixes;
+    }
+
+    public void addPostTransformer(Function<? super SparqlStmt, ? extends SparqlStmt> transformer) {
+        postTransformers.add(transformer);
+    }
+
+    public void addPostMutator(Consumer<? super SparqlStmt> mutator) {
+        postTransformers.add(stmt -> { mutator.accept(stmt); return stmt; });
     }
 
     public List<Entry<SparqlStmt, Provenance>> getSparqlStmts() {
@@ -207,7 +218,13 @@ public class SparqlScriptProcessor {
                                 globalPrefixes.setNsPrefixes(stmtPrefixes);
                             }
 
+                            // Move optimizePrefixes to transformers?
                             SparqlStmtUtils.optimizePrefixes(stmt);
+
+                            for (Function<? super SparqlStmt, ? extends SparqlStmt> postTransformer : postTransformers) {
+                                SparqlStmt tmp = postTransformer.apply(stmt);
+                                stmt = Objects.requireNonNull(tmp, "Transformations yeld null " + postTransformer);
+                            }
 
                             result.add(new SimpleEntry<>(stmt, prov));
                         }

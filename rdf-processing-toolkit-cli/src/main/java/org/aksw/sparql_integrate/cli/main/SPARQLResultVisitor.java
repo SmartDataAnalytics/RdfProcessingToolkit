@@ -9,7 +9,7 @@ import org.apache.jena.sparql.resultset.SPARQLResult;
 public interface SPARQLResultVisitor<T> {
     T onBooleanResult(Boolean value);
     T onResultSet(ResultSet it);
-    T onJson(Iterator<JsonObject> it);
+    T onJsonItems(Iterator<JsonObject> it);
 
     default T forward(SPARQLResult sr) {
         T result;

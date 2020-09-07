@@ -39,6 +39,7 @@ public class SPARQLResultExProcessorImpl
     protected SinkStreaming<JsonElement> jsonSink;
     protected SinkStreaming<Binding> bindingSink;
 
+
     public SPARQLResultExProcessorImpl(
             SinkStreaming<Quad> quadSink,
             SinkStreaming<JsonElement> jsonSink,
@@ -81,7 +82,7 @@ public class SPARQLResultExProcessorImpl
 
 
     @Override
-    public Void onJson(Iterator<JsonObject> it) {
+    public Void onJsonItems(Iterator<JsonObject> it) {
         while (it.hasNext()) {
             JsonObject json = it.next();
             String jsonStr = json.toString();
