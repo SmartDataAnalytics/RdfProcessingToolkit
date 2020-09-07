@@ -243,7 +243,7 @@ public class NgsCmdImpls {
                                     .andThen(mapper))));
 
         resultProcessor.start();
-        flow.blockingForEach(item -> resultProcessor.forward(item));
+        flow.blockingForEach(item -> resultProcessor.forwardEx(item));
         resultProcessor.finish();
         resultProcessor.flush();
         resultProcessor.close();
