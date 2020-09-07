@@ -246,17 +246,81 @@ public class SparqlIntegrateCmdImpls {
         List<SparqlStmt> stmts = workloads.stream().map(Entry::getKey).collect(Collectors.toList());
 
         // Create the union of variables used in select queries
-        List<Var> selectVars = SparqlStmtUtils.getUnionProjectVars(stmts);
 
         boolean jqMode = cmd.jqDepth != null;
         int jqDepth = jqMode ? cmd.jqDepth : 3;
         boolean jqFlatMode = cmd.jqFlatMode;
 
-
-        OutputMode outputMode;
-
         String outFormat = cmd.outFormat;
 
+
+        SPARQLResultExProcessor effectiveHandler = configureProcessor(
+                outFormat,
+                stmts,
+                prefixMapping,
+                jqMode, jqDepth, jqFlatMode);
+
+
+        effectiveHandler.start();
+
+        try(RDFConnection conn = configConnection(cmd)) {
+            for (Entry<SparqlStmt, Provenance> workload : workloads) {
+                SparqlStmt stmt = workload.getKey();
+                Provenance prov = workload.getValue();
+                logger.info("Processing " + prov);
+                try(SPARQLResultEx sr = SparqlStmtUtils.execAny(conn, stmt)) {
+                    effectiveHandler.forwardEx(sr);
+                }
+            }
+        }
+
+        effectiveHandler.finish();
+
+        operationalOut.flush();
+
+        if(outFile != null) {
+            operationalOut.close();
+            Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        logger.info("SPARQL overall execution finished after " + sw.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
+
+//        if (cmd.startServer) {
+//            SparqlService sparqlService = FluentSparqlService.from(actualConn).create();
+//
+//            Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
+//                    globalPrefixes, false);// .getQueryParser();
+//
+//            int port = 7532;
+//            Server server = FactoryBeanSparqlServer.newInstance()
+//                    .setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
+//                    .setSparqlStmtParser(sparqlStmtParser).setPort(port).create();
+//
+//            server.start();
+//
+//            URI browseUri = new URI("http://localhost:" + port + "/sparql");
+//            if (Desktop.isDesktopSupported()) {
+//                Desktop.getDesktop().browse(browseUri);
+//            } else {
+//                System.err.println("SPARQL service with in-memory result dataset running at " + browseUri);
+//            }
+//
+//            server.join();
+//        }
+
+
+
+
+        return 0;
+    }
+
+    public static SPARQLResultExProcessor configureProcessor(
+            String outFormat,
+            List<SparqlStmt> stmts,
+            PrefixMapping prefixMapping,
+            boolean jqMode, int jqDepth, boolean jqFlatMode) {
+
+        OutputMode outputMode;
         RDFFormat outRdfFormat = null;
         Lang outLang = null;
 
@@ -295,12 +359,10 @@ public class SparqlIntegrateCmdImpls {
         }
 
 
-
-
-
         // RDFLanguagesEx.findRdfFormat(cmd.outFormat, probeFormats)
+        List<Var> selectVars = SparqlStmtUtils.getUnionProjectVars(stmts);
 
-        SPARQLResultExProcessor handler = SPARQLResultExProcessor.configureForOutputMode(
+        SPARQLResultExProcessorImpl coreHandler = SPARQLResultExProcessorImpl.configureForOutputMode(
                 outputMode,
                 MainCliNamedGraphStream.out,
                 System.err,
@@ -309,79 +371,25 @@ public class SparqlIntegrateCmdImpls {
                 outLang,
                 selectVars);
 
-        handler.start();
 
-        SPARQLResultExVisitor<Void> effectiveHandler;
+        // TODO The design with SPARQLResultExProcessorForwarding seems overly complex
+        // Perhaps allow setting up the jq stuff on SPARQLResultExProcessorImpl directly?
+        SPARQLResultExProcessor effectiveHandler;
         if (jqMode) {
-            effectiveHandler = new SPARQLResultExVisitorFowarding<Void>() {
-                @Override
-                protected SPARQLResultExVisitor<Void> getDelegate() {
-                    return handler;
-                }
-
+            effectiveHandler = new SPARQLResultExProcessorForwarding<SPARQLResultExProcessorImpl>(coreHandler) {
                 @Override
                 public Void onResultSet(ResultSet it) {
                     while (it.hasNext()) {
                         QuerySolution qs = it.next();
                         JsonElement json = RdfJsonUtils.toJson(qs, jqDepth, jqFlatMode);
-                        handler.getJsonSink().send(json);
+                        coreHandler.getJsonSink().send(json);
                     }
                     return null;
                 }
             };
         } else {
-            effectiveHandler = handler;
+            effectiveHandler = coreHandler;
         }
-
-
-        try(RDFConnection conn = configConnection(cmd)) {
-            for (Entry<SparqlStmt, Provenance> workload : workloads) {
-                SparqlStmt stmt = workload.getKey();
-                Provenance prov = workload.getValue();
-                logger.info("Processing " + prov);
-                try(SPARQLResultEx sr = SparqlStmtUtils.execAny(conn, stmt)) {
-                    effectiveHandler.forwardEx(sr);
-                }
-            }
-        }
-
-        handler.finish();
-
-        operationalOut.flush();
-
-        if(outFile != null) {
-            operationalOut.close();
-            Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
-        }
-
-        logger.info("SPARQL overall execution finished after " + sw.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
-
-//        if (cmd.startServer) {
-//            SparqlService sparqlService = FluentSparqlService.from(actualConn).create();
-//
-//            Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
-//                    globalPrefixes, false);// .getQueryParser();
-//
-//            int port = 7532;
-//            Server server = FactoryBeanSparqlServer.newInstance()
-//                    .setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
-//                    .setSparqlStmtParser(sparqlStmtParser).setPort(port).create();
-//
-//            server.start();
-//
-//            URI browseUri = new URI("http://localhost:" + port + "/sparql");
-//            if (Desktop.isDesktopSupported()) {
-//                Desktop.getDesktop().browse(browseUri);
-//            } else {
-//                System.err.println("SPARQL service with in-memory result dataset running at " + browseUri);
-//            }
-//
-//            server.join();
-//        }
-
-
-
-
-        return 0;
+        return effectiveHandler;
     }
 }
