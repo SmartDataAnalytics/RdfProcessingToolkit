@@ -15,7 +15,8 @@ import picocli.CommandLine.Option;
         CmdNgsSubjects.class,
         CmdNgsUntil.class,
         CmdNgsWc.class,
-        CmdNgsWhile.class
+        CmdNgsWhile.class,
+        CmdNgsGit.class
 })
 public class CmdNgsMain {
     @Option(names = { "-h", "--help" }, usageHelp = true)

@@ -45,6 +45,8 @@ import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.riot.resultset.ResultSetWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
+import org.apache.jena.sparql.algebra.TransformUnionQuery;
+import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sys.JenaSystem;
 import org.slf4j.Logger;
@@ -186,6 +188,8 @@ public class SparqlIntegrateCmdImpls {
         PrefixMapping prefixMapping = configPrefixMapping(cmd);
 
         SparqlScriptProcessor processor = SparqlScriptProcessor.create(prefixMapping);
+        processor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,
+                op -> Transformer.transformSkipService(new TransformUnionQuery(), op)));
 
         List<String> args = cmd.nonOptionArgs;
 
@@ -312,7 +316,7 @@ public class SparqlIntegrateCmdImpls {
             Provenance prov = workload.getValue();
             logger.info("Processing " + prov);
             try(SPARQLResultEx sr = SparqlStmtUtils.execAny(conn, stmt)) {
-                resultProcessor.forward(sr);
+                resultProcessor.forwardEx(sr);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

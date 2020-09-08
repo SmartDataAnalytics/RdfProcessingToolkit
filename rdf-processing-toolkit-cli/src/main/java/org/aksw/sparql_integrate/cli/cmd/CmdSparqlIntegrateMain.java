@@ -31,6 +31,9 @@ public class CmdSparqlIntegrateMain
     public boolean showAlgebra = false;
     // public long numRecords = 10;
 
+    @Option(names = { "-u", "--u" }, description = "Union default graph mode")
+    public boolean unionDefaultGraph = false;
+
     // TODO Make port configurable
     @Option(names = { "--server" }, description = "Start a SPARQL endpoint")
     public boolean server = false;

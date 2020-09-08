@@ -10,8 +10,8 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "query", description = "Run a query over bindings")
-public class CmdSbsQuery
+@Command(name = "map", description = "Map bindings via queries")
+public class CmdSbsMap
     implements Callable<Integer>
 {
 

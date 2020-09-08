@@ -77,6 +77,9 @@ import joptsimple.internal.Strings;
  *
  */
 public class NgsCmdImpls {
+    // FIXME Clean this up (use spring boot?)
+    static { SparqlIntegrateCmdImpls.configureGlobalSettings(); }
+
     private static final Logger logger = LoggerFactory.getLogger(NgsCmdImpls.class);
 
     public static int cat(CmdNgsCat cmdCat) throws Exception {
@@ -136,7 +139,7 @@ public class NgsCmdImpls {
         boolean negated = e.getKey();
         long val = e.getValue();
         if(!negated) {
-            throw new RuntimeException("Currently only skipping (via ngs tail -n-123) is supported");
+            throw new RuntimeException("Currently only skipping (via ngs tail -n +123) is supported");
         }
 
         Flowable<Dataset> flow = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdTail.nonOptionArgs, null, MainCliNamedGraphStream.pm)
@@ -156,20 +159,33 @@ public class NgsCmdImpls {
         Iterable<Lang> probeLangs = MainCliNamedGraphStream.quadAndTripleLangs;
 
         List<String> args = preprocessArgs(cmdMap.nonOptionArgs);
-        validate(args, probeLangs, true);
+        Map<String, Callable<TypedInputStream>> map = validate(args, probeLangs, true);
 
         String graphIri = cmdMap.mapSpec.graph;
         Node g = NodeFactory.createURI(graphIri);
 
         Function<Quad, Quad> quadMapper = q -> new Quad(g, q.asTriple());
 
-        Flowable<Quad> quadFlow = Flowable.fromIterable(args)
-            .concatMap(arg -> {
-                Flowable<Quad> r = RDFDataMgrRx.createFlowableQuads(() ->
-                    RDFDataMgrEx.open(arg, probeLangs))
-                .map(quad -> quadMapper.apply(quad));
-                return r;
-            });
+        Flowable<Quad> quadFlow = Flowable.fromIterable(map.entrySet())
+                .flatMap(arg -> {
+                    String argName = arg.getKey();
+                    logger.info("Loading stream for arg " + argName);
+                    Callable<TypedInputStream> inSupp = arg.getValue();
+                    Flowable<Quad> r = RDFDataMgrRx.createFlowableQuads(inSupp)
+                    // TODO Decoding of distinguished names should go into the util method
+                        .map(quad -> quadMapper.apply(quad));
+                    return r;
+                });
+
+
+
+//        Flowable<Quad> quadFlow = Flowable.fromIterable(args)
+//            .concatMap(arg -> {
+//                Flowable<Quad> r = RDFDataMgrRx.createFlowableQuads(() ->
+//                    RDFDataMgrEx.open(arg, probeLangs))
+//                .map(quad -> quadMapper.apply(quad));
+//                return r;
+//            });
 
         RDFDataMgrRx.writeQuads(quadFlow, MainCliNamedGraphStream.out, RDFFormat.NQUADS);
             //.forEach(q -> RDFDataMgr.writeQuads(MainCliNamedGraphStream.out, Collections.singleton(q).iterator()));

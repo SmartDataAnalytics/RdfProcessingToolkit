@@ -1,12 +1,10 @@
 package org.aksw.named_graph_stream.cli.cmd;
 
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 
-import org.aksw.named_graph_stream.cli.main.NgsCmdImpls;
+import org.aksw.named_graph_stream.cli.main.NgsGitCmdImpls;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -18,19 +16,16 @@ import picocli.CommandLine.Parameters;
  * @author raven
  *
  */
-@Command(name = "tail", description = "Output the last named graphs")
-public class CmdNgsTail implements Callable<Integer> {
+@Command(name = "git", description = "List all revisions of a RDF file")
+public class CmdNgsGit implements Callable<Integer> {
 
     @Option(names = { "-h", "--help" }, usageHelp = true)
     public boolean help = false;
 
-    @Option(names = { "-n" }, parameterConsumer = ConsumerNumRecords.class, description = "numRecords")
-    public Entry<Boolean, Long> numRecords = new SimpleEntry<>(false, 10l);
-
     static class ConsumerNumRecords extends IParameterConsumerFlaggedLong {
-        @Override protected String getFlag() { return "+"; };
+        @Override
+        protected String getFlag() { return "-"; };
     }
-
 
     @Option(names = { "-o", "--out-format" })
     public String outFormat = "trig/blocks";
@@ -40,6 +35,6 @@ public class CmdNgsTail implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        return NgsCmdImpls.tail(this);
+        return NgsGitCmdImpls.git(this);
     }
 }

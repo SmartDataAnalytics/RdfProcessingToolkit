@@ -24,7 +24,7 @@ import org.aksw.jena_sparql_api.utils.ResultSetUtils;
 import org.aksw.named_graph_stream.cli.main.MainCliNamedGraphStream;
 import org.aksw.named_graph_stream.cli.main.NgsCmdImpls;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsFilter;
-import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsQuery;
+import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsMap;
 import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Query;
@@ -195,7 +195,7 @@ public class SbsCmdImpls {
         return 0;
     }
 
-    public static int query(CmdSbsQuery cmd) throws Exception {
+    public static int query(CmdSbsMap cmd) throws Exception {
 
         List<Lang> resultSetFormats = RDFLanguagesEx.getResultSetFormats();
         Lang outLang = RDFLanguagesEx.findLang(cmd.outFormat, resultSetFormats);

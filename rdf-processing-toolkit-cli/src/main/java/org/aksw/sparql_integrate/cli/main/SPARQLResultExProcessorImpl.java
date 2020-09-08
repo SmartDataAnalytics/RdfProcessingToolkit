@@ -15,6 +15,7 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFFormat;
+import org.apache.jena.riot.ResultSetMgr;
 import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.core.Quad;
@@ -38,7 +39,6 @@ public class SPARQLResultExProcessorImpl
     protected SinkStreaming<Quad> quadSink;
     protected SinkStreaming<JsonElement> jsonSink;
     protected SinkStreaming<Binding> bindingSink;
-
 
     public SPARQLResultExProcessorImpl(
             SinkStreaming<Quad> quadSink,
@@ -167,13 +167,27 @@ public class SPARQLResultExProcessorImpl
             result = new SPARQLResultExProcessorImpl(
                     SinkStreamingQuads.createSinkQuads(outRdfFormat, out, pm, datasetSupp),
                     new SinkStreamingJsonArray(err, false),
-                    new SinkStreamingBinding(err, resultSetVars, ResultSetLang.SPARQLResultSetText));
+                    new SinkStreamingAdapter<>()) { //new SinkStreamingBinding(err, resultSetVars, ResultSetLang.SPARQLResultSetText)) {
+                @Override
+                public Void onResultSet(ResultSet rs) {
+                    ResultSetMgr.write(err, rs, ResultSetLang.SPARQLResultSetText);
+                    return null;
+                }
+            };
+
             break;
         case JSON:
             result = new SPARQLResultExProcessorImpl(
                     SinkStreamingQuads.createSinkQuads(RDFFormat.TRIG_PRETTY, err, pm, datasetSupp),
                     new SinkStreamingJsonArray(out),
-                    new SinkStreamingBinding(err, resultSetVars, ResultSetLang.SPARQLResultSetText));
+                    //new SinkStreamingBinding(err, resultSetVars, ResultSetLang.SPARQLResultSetText));
+                    new SinkStreamingAdapter<>()) {
+                @Override
+                public Void onResultSet(ResultSet rs) {
+                    ResultSetMgr.write(err, rs, ResultSetLang.SPARQLResultSetText);
+                    return null;
+                }
+            };
             break;
         case BINDING:
             Objects.requireNonNull(outLang);

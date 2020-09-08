@@ -4,7 +4,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 @Command(name="sbs", description = "SPARQL Binding Streams Subcommands", subcommands = {
-        CmdSbsQuery.class,
+        CmdSbsMap.class,
         CmdSbsFilter.class
 })
 public class CmdSbsMain {
