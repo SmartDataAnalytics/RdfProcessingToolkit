@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
+import org.aksw.commons.util.exception.ExceptionUtils;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.io.hdt.JenaPluginHdt;
@@ -94,7 +95,7 @@ public class MainCliNamedGraphStream {
     public static int mainCore(String[] args) {
         int result = new CommandLine(new CmdNgsMain())
                 .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                    org.aksw.commons.util.exception.ExceptionUtils.rethrowIfNotBrokenPipe(ex);
+                    ExceptionUtils.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtils::isBrokenPipeException);
                     return 0;
                 })
                 .execute(args);

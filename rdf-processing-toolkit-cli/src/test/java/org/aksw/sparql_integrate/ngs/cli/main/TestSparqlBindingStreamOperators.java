@@ -12,10 +12,12 @@ public class TestSparqlBindingStreamOperators {
 
         // cat js-query-3.srj | bs query 'SELECT ...'
         // bs query -o txt -q 'SELECT (SUM(?X) AS ?sum) (<foo> AS ?Y) {}' js-query-3.srj
-        MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "query", "-o", "txt", "-q", "SELECT * {}", "js-query-3.srj"});
-        MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "query", "-o", "txt", "-q", "SELECT (SUM(?X) AS ?sum) {}", "js-query-3.srj"});
-        MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "query", "-o", "txt", "-q", "SELECT (COUNT(*) AS ?count) {}", "js-query-3.srj"});
-        MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "query", "-o", "txt", "-q", "SELECT (SUM(?X) AS ?sum) (<foo> AS ?Y) {}", "js-query-3.srj"});
+        MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "map", "-o", "txt", "-s", "SELECT * {}", "js-query-3.srj"});
+        MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "map", "-o", "txt", "-s", "SELECT (SUM(?X) AS ?sum) {}", "js-query-3.srj"});
+        MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "map", "-o", "txt", "-s", "SELECT (COUNT(*) AS ?count) {}", "js-query-3.srj"});
+        MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "map", "-o", "txt", "-s", "SELECT (SUM(?X) AS ?sum) (<foo> AS ?Y) {}", "js-query-3.srj"});
+
+        MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "map", "-o", "txt", "-s", "SELECT * {", "js-query-3.srj"});
 
 //        MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "query", "-o", "txt", "-q", "SELECT ?x (SUM(?v + 1) AS ?s) {} GROUP BY ?x ORDER BY DESC(SUM(?v))", "/home/raven/Projects/EclipseOld2/jena-asf/jena-arq/testing/ARQ/Optimization/opt-top-03.srj"});
 //      MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "query", "-o", "txt", "-q", "SELECT COUNT(*) {}"});

@@ -3,10 +3,13 @@ package org.aksw.sparql_binding_stream.cli.main;
 import org.aksw.commons.util.exception.ExceptionUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsMain;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import picocli.CommandLine;
 
 public class MainCliSparqlBindingStream {
+    private static final Logger logger = LoggerFactory.getLogger(MainCliSparqlBindingStream.class);
 
     static { CliUtils.configureGlobalSettings(); }
 
@@ -18,7 +21,7 @@ public class MainCliSparqlBindingStream {
     public static int mainCore(String[] args) {
         int result = new CommandLine(new CmdSbsMain())
             .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                ExceptionUtils.rethrowIfNotBrokenPipe(ex);
+                ExceptionUtils.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtils::isBrokenPipeException);
                 return 0;
             })
             .execute(args);
