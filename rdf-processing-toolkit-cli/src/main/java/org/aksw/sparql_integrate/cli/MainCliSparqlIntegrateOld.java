@@ -31,7 +31,6 @@ import org.aksw.jena_sparql_api.json.RdfJsonUtils;
 import org.aksw.jena_sparql_api.json.SPARQLResultVisitorSelectJsonOutput;
 import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
-import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
 import org.aksw.jena_sparql_api.sparql.ext.fs.JenaExtensionFs;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
@@ -78,12 +77,12 @@ import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.core.Prologue;
 import org.apache.jena.sparql.core.Quad;
-import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.Banner;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -485,11 +484,11 @@ public class MainCliSparqlIntegrateOld {
                         globalPrefixes, false);// .getQueryParser();
 
                 int port = 7532;
-                Server server = FactoryBeanSparqlServer.newInstance()
-                        .setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
-                        .setSparqlStmtParser(sparqlStmtParser).setPort(port).create();
-
-                server.start();
+//                Server server = FactoryBeanSparqlServer.newInstance()
+//                        .setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
+//                        .setSparqlStmtParser(sparqlStmtParser).setPort(port).create();
+//
+//                server.start();
 
                 URI browseUri = new URI("http://localhost:" + port + "/sparql");
                 if (Desktop.isDesktopSupported()) {
@@ -498,7 +497,7 @@ public class MainCliSparqlIntegrateOld {
                     System.err.println("SPARQL service with in-memory result dataset running at " + browseUri);
                 }
 
-                server.join();
+//                server.join();
             }
             }
         }
@@ -554,7 +553,7 @@ public class MainCliSparqlIntegrateOld {
             .bannerMode(Banner.Mode.OFF)
             // If true, Desktop.isDesktopSupported() will return false, meaning we can't
             // launch a browser
-            .headless(false).web(false).run(args)) {
+            .headless(false).web(WebApplicationType.NONE).run(args)) {
         }
     }
 
