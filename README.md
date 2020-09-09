@@ -4,7 +4,7 @@ RDF/SPARQL Workflows on the Command Line made easy. The toolkit provides the fol
 
 * [sparql-integrate](README-SI.md): Ad-hoc querying and transformation of datasets featuring SPARQL-extensions for CSV, XML and JSON processing and JSON output that allows for building bash pipes in a breeze
 * [ngs](README-NGS.md): Processor for named graph streams (ngs) which enables processing for collections of named graphs in streaming fashion. Process huge datasets without running into memory issues.
-* [sbs](README-SBS.md): Processor for SPARQL binding streams (sgs) which enables processing of SPARQL result sets in streaming fashion. Most prominently for use in aggregating the output of a `ngs map` operation.
+* [sbs](README-SBS.md): Processor for SPARQL binding streams (sbs) which enables processing of SPARQL result sets in streaming fashion. Most prominently for use in aggregating the output of a `ngs map` operation.
 
 
 ## Example Usage
