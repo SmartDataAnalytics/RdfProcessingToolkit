@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.aksw.jena_sparql_api.core.SparqlService;
@@ -23,7 +22,6 @@ import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultEx;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.named_graph_stream.cli.main.MainCliNamedGraphStream;
@@ -39,12 +37,13 @@ import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
-import org.apache.jena.query.Syntax;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
 import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.riot.resultset.ResultSetWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
@@ -60,6 +59,14 @@ import com.google.gson.JsonElement;
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
 
+    /**
+     * Set up a 'DataSource' for RDF.
+     *
+     * TODO The result should be closable as we may e.g. start a docker container here in the future
+     *
+     * @param cmd
+     * @return
+     */
     public static Callable<RDFConnection> configConnection(CmdSparqlIntegrateMain cmd) {
         Dataset dataset = DatasetFactory.create();
         Callable<RDFConnection> result = () -> RDFConnectionFactory.connect(dataset);
@@ -163,6 +170,10 @@ public class SparqlIntegrateCmdImpls {
 
         List<String> args = cmd.nonOptionArgs;
 
+
+        String outFormat = cmd.outFormat;
+
+
         // If an in/out file is given prepend it to the arguments
         Path outFile = null;
         String outFilename = null;
@@ -178,10 +189,19 @@ public class SparqlIntegrateCmdImpls {
         }
 
         OutputStream operationalOut;
-        if(!Strings.isNullOrEmpty(outFilename)) {
+        if (!Strings.isNullOrEmpty(outFilename)) {
             outFile = Paths.get(outFilename).toAbsolutePath();
             if(Files.exists(outFile) && !Files.isWritable(outFile)) {
                 throw new RuntimeException("Cannot write to specified output file: " + outFile.toAbsolutePath());
+            }
+
+            if (outFormat == null) {
+                Lang lang = RDFDataMgr.determineLang(outFilename, null, null);
+                if (lang != null) {
+                    RDFFormat fmt = RDFWriterRegistry.defaultSerialization(lang);
+                    outFormat = fmt == null ? null : fmt.toString();
+                    logger.info("Inferred output format from " + outFilename + ": " + outFormat);
+                }
             }
 
             Path parent = outFile.getParent();
@@ -221,13 +241,14 @@ public class SparqlIntegrateCmdImpls {
         int jqDepth = jqMode ? cmd.jqDepth : 3;
         boolean jqFlatMode = cmd.jqFlatMode;
 
-        String outFormat = cmd.outFormat;
 
 
         SPARQLResultExProcessor effectiveHandler = configureProcessor(
+                operationalOut, System.err,
                 outFormat,
                 stmts,
                 prefixMapping,
+                RDFFormat.NQUADS,
                 jqMode, jqDepth, jqFlatMode);
 
 
@@ -245,7 +266,7 @@ public class SparqlIntegrateCmdImpls {
 //                Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
 //                        prefixMapping, false);// .getQueryParser();
 
-                int port = 7532;
+                int port = cmd.serverPort;
                 server = FactoryBeanSparqlServer.newInstance()
                         .setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
                         .setSparqlStmtParser(processor.getSparqlParser())
@@ -257,7 +278,7 @@ public class SparqlIntegrateCmdImpls {
                 if (Desktop.isDesktopSupported()) {
                     Desktop.getDesktop().browse(browseUri);
                 } else {
-                    System.err.println("SPARQL service with in-memory result dataset running at " + browseUri);
+                    logger.info("SPARQL service with in-memory result dataset running at " + browseUri);
                 }
 
             }
@@ -267,6 +288,10 @@ public class SparqlIntegrateCmdImpls {
             }
 
             effectiveHandler.finish();
+
+            // Sinks such as SinkQuadOutput may use their own caching / flushing strategy
+            // therefore calling flush is mandatory!
+            effectiveHandler.flush();
 
             operationalOut.flush();
 
@@ -279,6 +304,7 @@ public class SparqlIntegrateCmdImpls {
 
 
             if (server != null) {
+                logger.info("Server still up. Terminate with CTRL+C");
                 server.join();
             }
         }
@@ -302,10 +328,25 @@ public class SparqlIntegrateCmdImpls {
         }
     }
 
+
+    /**
+     *
+     * @param outFormat
+     * @param stmts
+     * @param prefixMapping
+     * @param quadFormat Allows to preset a streaming format in case quads were requested
+     * @param jqMode
+     * @param jqDepth
+     * @param jqFlatMode
+     * @return
+     */
     public static SPARQLResultExProcessor configureProcessor(
+            OutputStream out,
+            OutputStream err,
             String outFormat,
             List<SparqlStmt> stmts,
             PrefixMapping prefixMapping,
+            RDFFormat quadFormat,
             boolean jqMode, int jqDepth, boolean jqFlatMode) {
 
         OutputMode outputMode;
@@ -334,7 +375,7 @@ public class SparqlIntegrateCmdImpls {
                 outLang = ResultSetLang.SPARQLResultSetJSON;
                 break;
             case QUAD:
-                outRdfFormat = RDFFormat.TRIG_BLOCKS;
+                outRdfFormat = quadFormat;
                 outLang = outRdfFormat.getLang();
                 break;
             case JSON:
@@ -352,8 +393,8 @@ public class SparqlIntegrateCmdImpls {
 
         SPARQLResultExProcessorImpl coreProcessor = SPARQLResultExProcessorImpl.configureForOutputMode(
                 outputMode,
-                MainCliNamedGraphStream.out,
-                System.err,
+                out,
+                err,
                 prefixMapping,
                 outRdfFormat,
                 outLang,

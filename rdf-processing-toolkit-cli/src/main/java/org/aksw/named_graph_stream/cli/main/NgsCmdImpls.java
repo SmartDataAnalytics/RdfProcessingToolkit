@@ -239,12 +239,12 @@ public class NgsCmdImpls {
 
         // This is the final output sink
         SPARQLResultExProcessor resultProcessor = SparqlIntegrateCmdImpls.configureProcessor(
+                MainCliNamedGraphStream.out, System.err,
                 cmdFlatMap.outFormat,
                 stmts,
                 pm,
-                false,
-                0,
-                false);
+                RDFFormat.TRIG_BLOCKS,
+                false, 0, false);
 
         Function<RDFConnection, SPARQLResultEx> mapper = SparqlMappers.createMapperFromDataset(outputMode, stmts, resultProcessor);
 

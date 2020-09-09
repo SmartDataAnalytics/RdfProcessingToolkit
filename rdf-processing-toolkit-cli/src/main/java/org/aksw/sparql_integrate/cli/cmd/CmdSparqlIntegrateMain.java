@@ -41,8 +41,11 @@ public class CmdSparqlIntegrateMain
     public boolean unionDefaultGraph = false;
 
     // TODO Make port configurable
-    @Option(names = { "--server" }, description = "Start a SPARQL endpoint")
+    @Option(names = { "--server" }, description = "Start a SPARQL server")
     public boolean server = false;
+
+    @Option(names = { "--port" }, description = "Server port")
+    public int serverPort = 7531;
 
     @ArgGroup(exclusive = true, multiplicity = "0..1")
     public OutputSpec outputSpec;

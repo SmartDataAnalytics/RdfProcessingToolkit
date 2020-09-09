@@ -147,6 +147,7 @@ public class SPARQLResultExProcessorImpl
     }
 
 
+    // TODO Wrap as a builder
     public static SPARQLResultExProcessorImpl configureForOutputMode(
             OutputMode outputMode,
             OutputStream out,

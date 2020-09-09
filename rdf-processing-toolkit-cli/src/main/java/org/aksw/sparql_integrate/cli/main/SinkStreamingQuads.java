@@ -2,17 +2,22 @@ package org.aksw.sparql_integrate.cli.main;
 
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.aksw.jena_sparql_api.utils.GraphUtils;
 import org.aksw.jena_sparql_api.utils.PrefixUtils;
+import org.apache.jena.ext.com.google.common.collect.Iterators;
 import org.apache.jena.ext.com.google.common.collect.Streams;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
+import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.lang.SinkQuadsToDataset;
 import org.apache.jena.riot.out.SinkQuadOutput;
 import org.apache.jena.shared.PrefixMapping;
@@ -80,7 +85,22 @@ public class SinkStreamingQuads
                     });
 
                     dataset.getDefaultModel().setNsPrefixes(usedPrefixes);
-                    RDFDataMgr.write(out, dataset, format);
+
+                    if (RDFLanguages.isTriples(format.getLang())) {
+                        Iterator<String> it = dataset.listNames();
+                        if (it.hasNext()) {
+                            int maxShow = 5;
+                            List<String> graphNames = Streams.stream(it).limit(maxShow).collect(Collectors.toList());
+                            int headCount = graphNames.size();
+                            int totalCount = headCount + Iterators.size(it);
+
+                            throw new RuntimeException("Requested triple-based format " + format + " but named graphs in dataset. Showing " + headCount + " out of " + totalCount + ": " + graphNames);
+                        }
+
+                        RDFDataMgr.write(out, dataset.getDefaultModel(), format);
+                    } else {
+                        RDFDataMgr.write(out, dataset, format);
+                    }
                 }
             };
         }
