@@ -155,8 +155,11 @@ public class SparqlIntegrateCmdImpls {
         PrefixMapping prefixMapping = CliUtils.configPrefixMapping(cmd);
 
         SparqlScriptProcessor processor = SparqlScriptProcessor.create(prefixMapping);
-        processor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,
-                op -> Transformer.transformSkipService(new TransformUnionQuery(), op)));
+
+        if (cmd.unionDefaultGraph) {
+            processor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,
+                    op -> Transformer.transformSkipService(new TransformUnionQuery(), op)));
+        }
 
         List<String> args = cmd.nonOptionArgs;
 
