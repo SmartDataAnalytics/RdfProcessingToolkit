@@ -1,7 +1,9 @@
 package org.aksw.sparql_integrate.cli.main;
 
+import java.awt.Desktop;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -10,14 +12,20 @@ import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.aksw.jena_sparql_api.core.SparqlService;
 import org.aksw.jena_sparql_api.json.RdfJsonUtils;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
+import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultEx;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
+import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.named_graph_stream.cli.main.MainCliNamedGraphStream;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.SparqlScriptProcessor;
@@ -26,10 +34,12 @@ import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.ext.com.google.common.base.Strings;
+import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
+import org.apache.jena.query.Syntax;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
 import org.apache.jena.riot.Lang;
@@ -41,6 +51,7 @@ import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.Var;
+import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,8 +60,9 @@ import com.google.gson.JsonElement;
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
 
-    public static RDFConnection configConnection(CmdSparqlIntegrateMain cmd) {
-        RDFConnection result = RDFConnectionFactory.connect(DatasetFactory.create());
+    public static Callable<RDFConnection> configConnection(CmdSparqlIntegrateMain cmd) {
+        Dataset dataset = DatasetFactory.create();
+        Callable<RDFConnection> result = () -> RDFConnectionFactory.connect(dataset);
         return result;
 //    	Dataset ds = DatasetFactory.create;
 //    	RDFConnection conn =
@@ -218,46 +230,55 @@ public class SparqlIntegrateCmdImpls {
 
         effectiveHandler.start();
 
-        try(RDFConnection conn = configConnection(cmd)) {
-            execStmts(conn, workloads, effectiveHandler);
+        Callable<RDFConnection> connSupp = configConnection(cmd);
+
+
+        try (RDFConnection serverConn = (cmd.server ? connSupp.call() : null)) {
+
+            Server server = null;
+            if (cmd.server) {
+                SparqlService sparqlService = FluentSparqlService.from(serverConn).create();
+
+//                Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
+//                        prefixMapping, false);// .getQueryParser();
+
+                int port = 7532;
+                server = FactoryBeanSparqlServer.newInstance()
+                        .setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
+                        .setSparqlStmtParser(processor.getSparqlParser())
+                        .setPort(port).create();
+
+                server.start();
+
+                URI browseUri = new URI("http://localhost:" + port + "/sparql");
+                if (Desktop.isDesktopSupported()) {
+                    Desktop.getDesktop().browse(browseUri);
+                } else {
+                    System.err.println("SPARQL service with in-memory result dataset running at " + browseUri);
+                }
+
+            }
+
+            try(RDFConnection conn = connSupp.call()) {
+                execStmts(conn, workloads, effectiveHandler);
+            }
+
+            effectiveHandler.finish();
+
+            operationalOut.flush();
+
+            if(outFile != null) {
+                operationalOut.close();
+                Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            logger.info("SPARQL overall execution finished after " + sw.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
+
+
+            if (server != null) {
+                server.join();
+            }
         }
-
-        effectiveHandler.finish();
-
-        operationalOut.flush();
-
-        if(outFile != null) {
-            operationalOut.close();
-            Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
-        }
-
-        logger.info("SPARQL overall execution finished after " + sw.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
-
-//        if (cmd.startServer) {
-//            SparqlService sparqlService = FluentSparqlService.from(actualConn).create();
-//
-//            Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
-//                    globalPrefixes, false);// .getQueryParser();
-//
-//            int port = 7532;
-//            Server server = FactoryBeanSparqlServer.newInstance()
-//                    .setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
-//                    .setSparqlStmtParser(sparqlStmtParser).setPort(port).create();
-//
-//            server.start();
-//
-//            URI browseUri = new URI("http://localhost:" + port + "/sparql");
-//            if (Desktop.isDesktopSupported()) {
-//                Desktop.getDesktop().browse(browseUri);
-//            } else {
-//                System.err.println("SPARQL service with in-memory result dataset running at " + browseUri);
-//            }
-//
-//            server.join();
-//        }
-
-
-
 
         return 0;
     }

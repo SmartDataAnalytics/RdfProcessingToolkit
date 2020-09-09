@@ -133,6 +133,10 @@ public class SparqlScriptProcessor {
         return sparqlStmts;
     }
 
+    public SparqlStmtParser getSparqlParser() {
+        return sparqlParser;
+    }
+
     public static SparqlScriptProcessor create(PrefixMapping pm) {
         Prologue p = new Prologue(pm);
         SparqlQueryParser queryParser = SparqlQueryParserWrapperSelectShortForm.wrap(

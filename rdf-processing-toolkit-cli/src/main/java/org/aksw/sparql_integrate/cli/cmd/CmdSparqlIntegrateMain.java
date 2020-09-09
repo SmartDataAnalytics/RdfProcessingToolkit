@@ -67,7 +67,7 @@ public class CmdSparqlIntegrateMain
      * If given, the output mode is determined by the argument
      *
      */
-    @Option(names = { "--w" }, description = "Output format")
+    @Option(names = { "-o", "--out-format", "--w" }, description = "Output format")
     public String outFormat = null;
 
     // Subsume jq stuff under -w jq ?
