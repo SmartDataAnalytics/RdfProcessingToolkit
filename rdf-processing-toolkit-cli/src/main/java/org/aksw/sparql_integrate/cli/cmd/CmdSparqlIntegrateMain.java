@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Stack;
 import java.util.concurrent.Callable;
 
+import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 import org.aksw.sparql_integrate.cli.main.SparqlIntegrateCmdImpls;
 
 import picocli.CommandLine.ArgGroup;
@@ -16,7 +17,9 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 
-@Command(name = "sparql-integrate", description = "Run sequences of SPARQL queries and stream triples, quads and bindings")
+@Command(name = "sparql-integrate",
+    versionProvider = VersionProviderRdfProcessingToolkit.class,
+    description = "Run sequences of SPARQL queries and stream triples, quads and bindings")
 public class CmdSparqlIntegrateMain
     implements Callable<Integer>
 {
