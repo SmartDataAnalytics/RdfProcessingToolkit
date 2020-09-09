@@ -230,7 +230,7 @@ public class SparqlScriptProcessor {
                         }
                     }
                 } catch (Exception e) {
-                    throw new RuntimeException("Failed to process");
+                    throw new RuntimeException("Failed to process argument " + filename, e);
                 }
             }
         }
