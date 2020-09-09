@@ -1,6 +1,5 @@
 package org.aksw.sparql_integrate.ngs.cli.main;
 
-import org.aksw.named_graph_stream.cli.main.MainCliNamedGraphStream;
 import org.junit.Test;
 
 public class TestCliNgs {

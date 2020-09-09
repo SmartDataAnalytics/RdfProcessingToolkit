@@ -18,7 +18,7 @@
 		<module>rdf-processing-toolkit-cli</module>
 		<module>rdf-processing-toolkit-debian-cli</module>
 
-<!--		<module>rdf-processing-toolkit-web-service</module> -->
+		<!-- <module>rdf-processing-toolkit-web-service</module> -->
 
 		<module>rdf-processing-toolkit-bundle</module>
 		<module>rdf-processing-toolkit-dummy</module>
@@ -65,6 +65,9 @@
 		<!-- <jena-sparql-api.version>3.14.0-2-SNAPSHOT</jena-sparql-api.version> -->
 
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
+
+		<timestamp>${maven.build.timestamp}</timestamp>
+		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
 
 		<!-- Project Settings -->
 		<maven.compiler.source>1.8</maven.compiler.source>
@@ -181,6 +184,7 @@
 				<version>1.78</version>
 			</dependency>
 
+<!--
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot</artifactId>
@@ -198,13 +202,15 @@
 				<artifactId>spring-boot-loader</artifactId>
 				<version>${spring-boot.version}</version>
 			</dependency>
+-->
 
+<!--
 			<dependency>
 				<groupId>eu.trentorise.opendata</groupId>
 				<artifactId>jackan</artifactId>
 				<version>0.4.2</version>
 			</dependency>
-
+-->
 			<dependency>
 				<groupId>org.eclipse.jgit</groupId>
 				<artifactId>org.eclipse.jgit</artifactId>
@@ -246,6 +252,16 @@
 
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>src/main/resources-filtered</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+
 		<plugins>
 			<plugin>
 				<groupId>com.amashchenko.maven.plugin</groupId>

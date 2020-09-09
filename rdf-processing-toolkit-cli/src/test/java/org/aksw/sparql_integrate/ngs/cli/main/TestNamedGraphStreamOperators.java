@@ -7,9 +7,7 @@ import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsSort;
 import org.aksw.named_graph_stream.cli.main.DatasetFlowOps;
-import org.aksw.named_graph_stream.cli.main.MainCliNamedGraphStream;
 import org.aksw.named_graph_stream.cli.main.ResourceInDatasetFlowOps;
-import org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
@@ -22,17 +20,16 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sys.JenaSystem;
 import org.junit.Assert;
 import org.junit.Test;
 
 
 public class TestNamedGraphStreamOperators {
 
-    @Test
-    public void test1() {
-        MainCliNamedGraphStream.mainCore(new String[] {"map", "-o", "nquads", "-s", "CONSTRUCT WHERE { ?s <urn:git:name> ?o ; <urn:git:timestamp> ?t }", "/tmp/stream.trig"});
-    }
+//    @Test
+//    public void test1() {
+//        MainCliNamedGraphStream.mainCore(new String[] {"map", "-o", "nquads", "-s", "CONSTRUCT WHERE { ?s <urn:git:name> ?o ; <urn:git:timestamp> ?t }", "/tmp/stream.trig"});
+//    }
 
     @Test
     public void testInsertOrderRetainingGraph() {

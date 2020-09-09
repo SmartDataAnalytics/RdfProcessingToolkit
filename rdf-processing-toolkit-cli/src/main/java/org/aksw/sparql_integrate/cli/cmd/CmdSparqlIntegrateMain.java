@@ -23,6 +23,9 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "-h", "--help" }, usageHelp = true)
     public boolean help = false;
 
+    @Option(names = { "-v", "--version" }, versionHelp = true)
+    public boolean version = false;
+
     /**
      * sparql-pattern file
      *

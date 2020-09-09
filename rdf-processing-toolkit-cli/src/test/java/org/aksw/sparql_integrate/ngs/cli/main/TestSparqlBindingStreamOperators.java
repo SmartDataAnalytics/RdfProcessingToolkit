@@ -1,7 +1,6 @@
 package org.aksw.sparql_integrate.ngs.cli.main;
 
 import org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit;
-import org.apache.jena.sys.JenaSystem;
 import org.junit.Test;
 
 public class TestSparqlBindingStreamOperators {
