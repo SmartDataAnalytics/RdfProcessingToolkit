@@ -20,6 +20,7 @@ import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
+import org.aksw.jena_sparql_api.rx.query_flow.RxUtils;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultEx;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
@@ -39,6 +40,7 @@ import org.aksw.named_graph_stream.cli.cmd.CmdNgsTail;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsUntil;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsWc;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsWhile;
+import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.SparqlScriptProcessor;
 import org.aksw.sparql_integrate.cli.SparqlScriptProcessor.Provenance;
 import org.aksw.sparql_integrate.cli.main.OutputMode;
@@ -78,7 +80,7 @@ import joptsimple.internal.Strings;
  */
 public class NgsCmdImpls {
     // FIXME Clean this up (use spring boot?)
-    static { SparqlIntegrateCmdImpls.configureGlobalSettings(); }
+    static { CliUtils.configureGlobalSettings(); }
 
     private static final Logger logger = LoggerFactory.getLogger(NgsCmdImpls.class);
 
@@ -259,10 +261,15 @@ public class NgsCmdImpls {
                                     .andThen(mapper))));
 
         resultProcessor.start();
-        flow.blockingForEach(item -> resultProcessor.forwardEx(item));
-        resultProcessor.finish();
-        resultProcessor.flush();
-        resultProcessor.close();
+        try {
+            RxUtils.consume(flow.map(item -> { resultProcessor.forwardEx(item); return item; }));
+            resultProcessor.finish();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            resultProcessor.flush();
+            resultProcessor.close();
+        }
     }
 
 

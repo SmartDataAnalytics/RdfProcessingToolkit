@@ -8,8 +8,6 @@ public class TestSparqlBindingStreamOperators {
 
     @Test
     public void test1() {
-        JenaSystem.init();
-
         // TODO Make the output stream of the mainCore functions configurable so that we can intercept the results
 
         // cat js-query-3.srj | bs query 'SELECT ...'

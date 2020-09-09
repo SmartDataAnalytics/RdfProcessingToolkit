@@ -13,25 +13,19 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.json.RdfJsonUtils;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
-import org.aksw.jena_sparql_api.sparql.ext.fs.JenaExtensionFs;
-import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
-import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultEx;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.named_graph_stream.cli.main.MainCliNamedGraphStream;
+import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.SparqlScriptProcessor;
 import org.aksw.sparql_integrate.cli.SparqlScriptProcessor.Provenance;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.ext.com.google.common.base.Strings;
-import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
-import org.apache.jena.query.ARQ;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QuerySolution;
@@ -44,11 +38,9 @@ import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.riot.resultset.ResultSetWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
-import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.Var;
-import org.apache.jena.sys.JenaSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,43 +48,6 @@ import com.google.gson.JsonElement;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
-
-    public static PrefixMapping configPrefixMapping(CmdSparqlIntegrateMain cmd) {
-        PrefixMapping result = new PrefixMappingImpl();
-        result.setNsPrefixes(DefaultPrefixes.prefixes);
-        JenaExtensionUtil.addPrefixes(result);
-
-        JenaExtensionHttp.addPrefixes(result);
-
-        return result;
-    }
-
-    public static void configureGlobalSettings() {
-        JenaSystem.init();
-
-        RDFLanguages.register(ResultSetLang.SPARQLResultSetText);
-
-        // Disable creation of a derby.log file ; triggered by the GeoSPARQL module
-        System.setProperty("derby.stream.error.field", "org.aksw.sparql_integrate.cli.DerbyUtil.DEV_NULL");
-
-        // Init geosparql module
-        GeoSPARQLConfig.setupNoIndex();
-
-        // Retain blank node labels
-        // Note, that it is not sufficient to enable only input or output bnode labels
-        ARQ.enableBlankNodeResultLabels();
-
-        // Jena (at least up to 3.11.0) handles pseudo iris for blank nodes on the parser level
-        // {@link org.apache.jena.sparql.lang.ParserBase}
-        // This means, that blank nodes in SERVICE clauses would not be passed on as such
-        ARQ.setFalse(ARQ.constantBNodeLabels);
-
-        JenaExtensionHttp.register(() -> HttpClientBuilder.create().build());
-
-        // Extended SERVICE <> keyword implementation
-        JenaExtensionFs.registerFileServiceHandler();
-    }
-
 
     public static RDFConnection configConnection(CmdSparqlIntegrateMain cmd) {
         RDFConnection result = RDFConnectionFactory.connect(DatasetFactory.create());
@@ -181,11 +136,11 @@ public class SparqlIntegrateCmdImpls {
 
 
     public static int sparqlIntegrate(CmdSparqlIntegrateMain cmd) throws Exception {
-        configureGlobalSettings();
+        CliUtils.configureGlobalSettings();
 
         Stopwatch sw = Stopwatch.createStarted();
 
-        PrefixMapping prefixMapping = configPrefixMapping(cmd);
+        PrefixMapping prefixMapping = CliUtils.configPrefixMapping(cmd);
 
         SparqlScriptProcessor processor = SparqlScriptProcessor.create(prefixMapping);
         processor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,

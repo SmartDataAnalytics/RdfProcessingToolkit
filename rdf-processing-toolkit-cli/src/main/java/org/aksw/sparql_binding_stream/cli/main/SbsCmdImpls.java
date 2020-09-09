@@ -34,7 +34,6 @@ import org.apache.jena.query.Syntax;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.ResultSetMgr;
-import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.ARQConstants;
 import org.apache.jena.sparql.core.Prologue;
@@ -52,12 +51,6 @@ import io.reactivex.rxjava3.core.Flowable;
 
 public class SbsCmdImpls {
 
-
-    public static List<Lang> getResultSetProbeLangs() {
-        List<Lang> result = RDFLanguagesEx.getResultSetLangs();
-        result.remove(ResultSetLang.SPARQLResultSetCSV);
-        return result;
-    }
 
     /**
      *
@@ -120,6 +113,13 @@ public class SbsCmdImpls {
         return result;
     }
 
+    /**
+     * Create a union ResultSetRx from multiple ones.
+     * The header variables become the union of those of the members
+     *
+     * @param members
+     * @return
+     */
     public static ResultSetRx union(Collection<ResultSetRx> members) {
         ResultSetRx result;
 
@@ -149,7 +149,7 @@ public class SbsCmdImpls {
     public static ResultSetRx createResultSetRxFromArgs(List<String> rawArgs) {
         List<String> args = NgsCmdImpls.preprocessArgs(rawArgs);
 
-        List<Lang> resultSetProbeLangs = getResultSetProbeLangs();
+        List<Lang> resultSetProbeLangs = RDFLanguagesEx.getResultSetProbeLangs();
 
         List<ResultSetRx> rss = args.stream()
             .map(arg -> SbsCmdImpls.createResultSetRx(arg, resultSetProbeLangs))

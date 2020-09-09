@@ -28,6 +28,7 @@ import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
 import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMain;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMap;
+import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.jena.ext.com.google.common.base.Strings;
@@ -61,6 +62,8 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 import picocli.CommandLine;
 
 public class MainCliNamedGraphStream {
+
+    static { CliUtils.configureGlobalSettings(); }
 
     public static Collection<Lang> quadLangs = Arrays.asList(Lang.TRIG, Lang.NQUADS);
     public static Collection<Lang> tripleLangs = Arrays.asList(Lang.TURTLE, JenaPluginHdt.LANG_HDT);
