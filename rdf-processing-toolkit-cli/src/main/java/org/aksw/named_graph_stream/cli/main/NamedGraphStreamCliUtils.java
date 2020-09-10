@@ -53,7 +53,7 @@ public class NamedGraphStreamCliUtils {
 
 
             Flowable<Dataset> result = Flowable.fromIterable(map.entrySet())
-                    .flatMap(arg -> {
+                    .concatMap(arg -> {
 //                        TypedInputStream tmp = RDFDataMgrEx.open(arg, MainCliNamedGraphStream.quadLangs);
 
                         String argName = arg.getKey();

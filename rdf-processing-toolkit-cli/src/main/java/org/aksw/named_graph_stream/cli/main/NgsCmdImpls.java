@@ -262,7 +262,11 @@ public class NgsCmdImpls {
 
         resultProcessor.start();
         try {
-            RxUtils.consume(flow.map(item -> { resultProcessor.forwardEx(item); return item; }));
+//            for(SPARQLResultEx item : flow.blockingIterable(16)) {
+//                System.out.println(item);
+//                resultProcessor.forwardEx(item);
+//            }
+             RxUtils.consume(flow.map(item -> { resultProcessor.forwardEx(item); return item; }));
             resultProcessor.finish();
         } catch (Exception e) {
             throw new RuntimeException(e);

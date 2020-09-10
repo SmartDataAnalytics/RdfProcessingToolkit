@@ -2,8 +2,11 @@ package org.aksw.sparql_integrate.cli.main;
 
 import java.io.OutputStream;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import org.aksw.jena_sparql_api.rx.ResultSetRxImpl;
+import org.aksw.jena_sparql_api.rx.query_flow.RxUtils;
 import org.apache.jena.atlas.io.IO;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.ResultSet;
@@ -11,8 +14,9 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.ResultSetMgr;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.Binding;
+import org.apache.jena.sparql.engine.binding.BindingFactory;
 
-import io.reactivex.rxjava3.core.BackpressureStrategy;
+import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 
 /**
@@ -23,7 +27,7 @@ import io.reactivex.rxjava3.subjects.PublishSubject;
  *
  * As the ResultSet blocks until items become available the ResultSetWriter runs in a another thread
  *
- * Uses a {@link PublishSubject}
+ * Uses a {@link PublishSubject} wrapped with ugly synchronization
  *
  * @author raven
  *
@@ -35,8 +39,13 @@ public class SinkStreamingBinding
     protected List<Var> resultVars;
     protected Lang lang;
 
-    protected PublishSubject<Binding> subject = null;
-    protected Thread thread;
+    protected BlockingQueue<Binding> blockingQueue = new ArrayBlockingQueue<Binding>(Flowable.bufferSize());
+
+    protected Thread thread = null;
+    protected Throwable threadException = null;
+    protected boolean closed = false;
+
+    public static final Binding POISON = BindingFactory.create();
 
     public SinkStreamingBinding(OutputStream out, List<Var> resultVars, Lang lang) {
         super();
@@ -50,38 +59,79 @@ public class SinkStreamingBinding
         IO.flush(out);
     }
 
+    protected void checkThread() {
+        if (threadException != null) {
+            throw new IllegalStateException("Consumer thread terminated exceptionally", threadException);
+        } else if (!thread.isAlive()) {
+            throw new IllegalStateException("Consumer thread already terminated (without exception)");
+        }
+    }
+
     @Override
     public void close() {
-        if (subject != null && !subject.hasComplete()) {
-            subject.onError(new RuntimeException("Closing incomplete result set (finish() was not called)"));
-        }
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        if (thread != null) {
+
+            boolean closedIncompleteResult = false;
+            if (thread.isAlive()) {
+                closedIncompleteResult = !blockingQueue.isEmpty();
+                if (closedIncompleteResult) {
+                    if (!blockingQueue.contains(POISON)) {
+                        try {
+                            blockingQueue.put(POISON);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException("Failed to put poison into queue");
+                        }
+                    }
+                }
+            }
+
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+            if (threadException != null) {
+                throw new RuntimeException("Consumer thread terminated exceptionally", threadException);
+            }
+
+            if (closedIncompleteResult) {
+                throw new RuntimeException("Closed incomplete result set (finish() was not called)");
+            }
         }
     }
 
     @Override
     protected void startActual() {
-        subject = PublishSubject.create();
-
+        Flowable<Binding> flowable = RxUtils.fromBlockingQueue(blockingQueue, item -> item == POISON);
         thread = new Thread(() -> {
-            try(QueryExecution qe = new ResultSetRxImpl(resultVars, subject.toFlowable(BackpressureStrategy.BUFFER)).asQueryExecution()) {
+            try(QueryExecution qe = new ResultSetRxImpl(resultVars, flowable).asQueryExecution()) {
                 ResultSet resultSet = qe.execSelect();
                 ResultSetMgr.write(out, resultSet, lang);
             }
         });
+        thread.setUncaughtExceptionHandler((t, e) -> threadException = e);
         thread.start();
     }
 
     @Override
     protected void sendActual(Binding item) {
-        subject.onNext(item);
+        checkThread();
+        try {
+            blockingQueue.put(item);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
+
 
     @Override
     public void finishActual() {
-        subject.onComplete();
+        checkThread();
+        try {
+            blockingQueue.put(POISON);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

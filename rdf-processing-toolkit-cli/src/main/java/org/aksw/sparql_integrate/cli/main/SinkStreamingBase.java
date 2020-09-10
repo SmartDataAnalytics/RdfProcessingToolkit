@@ -5,10 +5,7 @@ public abstract class SinkStreamingBase<T>
     implements SinkStreaming<T>
 {
     public final void send(T item) {
-        if (!State.STARTED.equals(state)) {
-            throw new IllegalStateException("send() may only be called in state STARTED; was" + state);
-        }
-
+        expectStarted();
         sendActual(item);
     }
 

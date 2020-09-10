@@ -12,10 +12,10 @@ import java.util.stream.LongStream;
 
 import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.json.RdfJsonUtils;
-import org.aksw.jena_sparql_api.rx.FlowableTransformerLocalOrdering;
 import org.aksw.jena_sparql_api.rx.ResultSetRx;
 import org.aksw.jena_sparql_api.rx.ResultSetRxImpl;
 import org.aksw.jena_sparql_api.rx.SparqlRx;
+import org.aksw.jena_sparql_api.rx.op.OperatorLocalOrder;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultEx;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
@@ -66,6 +66,13 @@ public class SparqlMappers {
     }
 
 
+    public static <I, O> FlowableTransformer<I, O> createParallelMapperOrdered(boolean parallel,
+            Function<? super I, O> mapper) {
+        return parallel
+                ? createParallelMapperOrdered(mapper)
+                : upstream -> upstream.map(mapper::apply);
+    }
+
     /**
      * Factory method for yielding a FlowableTransformer that applies a given flatMap function in parallel
      * but apply local ordering so that items are emitted in order
@@ -78,6 +85,7 @@ public class SparqlMappers {
     public static <I, O> FlowableTransformer<I, O> createParallelMapperOrdered(
             Function<? super I, O> mapper) {
         return in -> in
+//            .map(x -> Maps.immutableEntry(x, 0l))
             .zipWith(() -> LongStream.iterate(0, i -> i + 1).iterator(), Maps::immutableEntry)
             .parallel() //Runtime.getRuntime().availableProcessors(), 8) // Prefetch only few items
             .runOn(Schedulers.io())
@@ -89,7 +97,7 @@ public class SparqlMappers {
                 return r;
             })
             .sequential()
-            .compose(FlowableTransformerLocalOrdering.transformer(0l, i -> i + 1, (a, b) -> a - b, Entry::getValue))
+            .lift(OperatorLocalOrder.create(0l, i -> i + 1, (a, b) -> a - b, Entry::getValue))
             .map(Entry::getKey);
     }
 

@@ -22,7 +22,7 @@ public abstract class LifeCycleBase
      *
      */
     protected void expectStarted() {
-        if (State.STARTED.equals(state)) {
+        if (!State.STARTED.equals(state)) {
             throw new IllegalStateException("expected state to be STARTED; was: " + state);
         }
     }

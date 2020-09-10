@@ -10,6 +10,7 @@ public class TestCliNgs {
 //        MainCliNamedGraphStream.mainCore(new String[] {"map", "--sparql", "* { ?s foaf:name ?o }", "ngs-nato-phonetic-alphabet.trig"});
 //        MainCliNamedGraphStream.mainCore(new String[] {"map", "--sparql", "CONSTRUCT WHERE { ?s foaf:name ?o }", "ngs-nato-phonetic-alphabet.trig"});
 //        MainCliNamedGraphStream.mainCore(new String[] {"git", "/home/raven/Projects/Eclipse/lodservatory/latest-status.ttl"});
+//        MainCliNamedGraphStream.mainCore(new String[] {"map", "-s", "* { GRAPH ?g { ?s ?p ?o } }", "/home/raven/tmp/sorttest/subjects.trig"});
     }
 
 }

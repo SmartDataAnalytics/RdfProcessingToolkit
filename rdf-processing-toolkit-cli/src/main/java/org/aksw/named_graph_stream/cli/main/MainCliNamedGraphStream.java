@@ -21,7 +21,7 @@ import org.aksw.commons.util.exception.ExceptionUtils;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.io.hdt.JenaPluginHdt;
-import org.aksw.jena_sparql_api.rx.FlowableTransformerLocalOrdering;
+import org.aksw.jena_sparql_api.rx.op.OperatorLocalOrder;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
@@ -95,7 +95,8 @@ public class MainCliNamedGraphStream {
     public static int mainCore(String[] args) {
         int result = new CommandLine(new CmdNgsMain())
                 .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                    ExceptionUtils.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtils::isBrokenPipeException);
+                    ExceptionUtils.rethrowIfNotBrokenPipe(ex);
+                    // ExceptionUtils.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtils::isBrokenPipeException);
                     return 0;
                 })
                 .execute(args);
@@ -204,7 +205,7 @@ public class MainCliNamedGraphStream {
     //				return Maps.immutableEntry(str, e.getValue());
     //			})
             .sequential()
-            .compose(FlowableTransformerLocalOrdering.transformer(0l, i -> i + 1, (a, b) -> a - b, Entry::getValue))
+            .lift(OperatorLocalOrder.create(0l, i -> i + 1, (a, b) -> a - b, Entry::getValue))
             //.sorted((a, b) -> Objects.compare(a.getValue(), b.getValue(), Ordering.natural().re))
             // .sequential()
 //            .doAfterNext(item -> System.err.println("GOT AFTER SEQUENTIAL: " + item.getValue() + " in thread " + Thread.currentThread()))
