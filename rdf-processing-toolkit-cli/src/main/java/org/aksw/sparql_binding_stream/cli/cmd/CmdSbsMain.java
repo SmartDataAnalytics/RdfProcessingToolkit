@@ -18,6 +18,9 @@ public class CmdSbsMain {
     @Option(names = { "-v", "--version" }, versionHelp = true)
     public boolean version = false;
 
+    @Option(names = { "-X" }, description = "Debug output such as full stacktraces")
+    public boolean debugMode = false;
+
 //    @Parameter(names={"-o", "--out-format"})
 //    public String format = "trig/pretty";
 

@@ -176,7 +176,7 @@ public class MainPlaygroundScanTrig {
 
             long maxRegionLength = 10l * 1024l * 1024l * 1024l;
             int availableRegionLength = isFwd
-                    ? Ints.saturatedCast(pageManager.getEndPos() - absMatcherStartPos)
+                    ? Ints.saturatedCast(pageManager.size() - absMatcherStartPos)
                     : Ints.saturatedCast(absMatcherStartPos + 1);
 
 

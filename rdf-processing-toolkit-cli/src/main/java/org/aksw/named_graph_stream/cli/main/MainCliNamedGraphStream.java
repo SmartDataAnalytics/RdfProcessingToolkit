@@ -30,6 +30,7 @@ import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMain;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMap;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
+import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
 import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.jena.ext.com.google.common.base.Strings;
@@ -95,8 +96,12 @@ public class MainCliNamedGraphStream {
     public static int mainCore(String[] args) {
         int result = new CommandLine(new CmdNgsMain())
                 .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                    ExceptionUtils.rethrowIfNotBrokenPipe(ex);
-                    // ExceptionUtils.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtils::isBrokenPipeException);
+                    boolean debugMode = false;
+                    if (debugMode) {
+                        ExceptionUtils.rethrowIfNotBrokenPipe(ex);
+                    } else {
+                        ExceptionUtils.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtils::isBrokenPipeException);
+                    }
                     return 0;
                 })
                 .execute(args);

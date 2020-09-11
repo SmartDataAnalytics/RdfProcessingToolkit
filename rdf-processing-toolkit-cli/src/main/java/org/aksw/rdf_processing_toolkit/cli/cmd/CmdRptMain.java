@@ -18,4 +18,7 @@ public class CmdRptMain {
 
     @Option(names = { "-v", "--version" }, versionHelp = true)
     public boolean version = false;
+
+    @Option(names = { "-X" }, description = "Debug output such as full stacktraces")
+    public boolean debugMode = false;
 }

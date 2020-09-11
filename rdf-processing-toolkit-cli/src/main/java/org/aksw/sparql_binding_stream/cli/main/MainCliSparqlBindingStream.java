@@ -2,6 +2,7 @@ package org.aksw.sparql_binding_stream.cli.main;
 
 import org.aksw.commons.util.exception.ExceptionUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
+import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,12 @@ public class MainCliSparqlBindingStream {
     public static int mainCore(String[] args) {
         int result = new CommandLine(new CmdSbsMain())
             .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                ExceptionUtils.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtils::isBrokenPipeException);
+                boolean debugMode = false;
+                if (debugMode) {
+                    ExceptionUtils.rethrowIfNotBrokenPipe(ex);
+                } else {
+                    ExceptionUtils.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtils::isBrokenPipeException);
+                }
                 return 0;
             })
             .execute(args);
