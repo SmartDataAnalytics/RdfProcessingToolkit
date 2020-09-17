@@ -179,7 +179,7 @@ public class SPARQLResultExProcessorImpl
             break;
         case JSON:
             result = new SPARQLResultExProcessorImpl(
-                    SinkStreamingQuads.createSinkQuads(RDFFormat.TRIG_PRETTY, err, pm, datasetSupp),
+                    SinkStreamingQuads.createSinkQuads(RDFFormat.TRIG_BLOCKS, err, pm, datasetSupp),
                     new SinkStreamingJsonArray(out),
                     //new SinkStreamingBinding(err, resultSetVars, ResultSetLang.SPARQLResultSetText));
                     new SinkStreamingAdapter<>()) {
@@ -194,7 +194,7 @@ public class SPARQLResultExProcessorImpl
             Objects.requireNonNull(outLang);
 
             result = new SPARQLResultExProcessorImpl(
-                    SinkStreamingQuads.createSinkQuads(RDFFormat.TRIG_PRETTY, err, pm, datasetSupp),
+                    SinkStreamingQuads.createSinkQuads(RDFFormat.TRIG_BLOCKS, err, pm, datasetSupp),
                     new SinkStreamingJsonArray(err, false),
                     new SinkStreamingBinding(out, resultSetVars, outLang));
             break;

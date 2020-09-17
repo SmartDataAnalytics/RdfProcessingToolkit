@@ -148,7 +148,7 @@ public class NgsGitCmdImpls {
                         .addLiteral(ResourceFactory.createProperty("urn:git:name"), revCommit.getName());
 
                     tgt.add(model);
-                    RDFDataMgr.write(out, dataset, RDFFormat.TRIG_PRETTY);
+                    RDFDataMgr.write(out, dataset, RDFFormat.TRIG_BLOCKS);
     //                System.out.println("Triples: " + model.size());
                 }
             }

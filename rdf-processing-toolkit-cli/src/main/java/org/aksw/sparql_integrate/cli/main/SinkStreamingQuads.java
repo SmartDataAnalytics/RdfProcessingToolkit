@@ -1,7 +1,6 @@
 package org.aksw.sparql_integrate.cli.main;
 
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Supplier;
@@ -14,12 +13,13 @@ import org.apache.jena.ext.com.google.common.collect.Iterators;
 import org.apache.jena.ext.com.google.common.collect.Streams;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.riot.Lang;
+import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.lang.SinkQuadsToDataset;
-import org.apache.jena.riot.out.SinkQuadOutput;
+import org.apache.jena.riot.system.StreamRDF;
+import org.apache.jena.riot.system.StreamRDFWriter;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.core.Quad;
@@ -40,12 +40,18 @@ public class SinkStreamingQuads
      * @return
      */
     public static SinkStreaming<Quad> createSinkQuads(RDFFormat format, OutputStream out, PrefixMapping pm, Supplier<Dataset> datasetSupp) {
-        boolean useStreaming = format == null ||
-                Arrays.asList(Lang.NTRIPLES, Lang.NQUADS).contains(format.getLang());
-
+//        boolean useStreaming = format == null ||
+//                Arrays.asList(Lang.NTRIPLES, Lang.NQUADS).contains(format.getLang());
         SinkStreaming<Quad> result;
+
+        boolean useStreaming = true;
         if(useStreaming) {
-            result = SinkStreamingWrapper.wrap(new SinkQuadOutput(out, null, null));
+            StreamRDF writer = StreamRDFWriter.getWriterStream(out, format, null);
+            Dataset header = DatasetFactory.create();
+            header.getDefaultModel().setNsPrefixes(pm);
+            result = new SinkStreamingStreamRDF(writer, header);
+
+            // result = SinkStreamingWrapper.wrap(new SinkQuadOutput(out, null, null));
         } else {
             Dataset dataset = datasetSupp.get();
             SinkQuadsToDataset core = new SinkQuadsToDataset(false, dataset.asDatasetGraph());

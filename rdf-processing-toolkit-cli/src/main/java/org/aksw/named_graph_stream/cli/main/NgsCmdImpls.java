@@ -388,7 +388,7 @@ public class NgsCmdImpls {
 
 
     public static int sort(CmdNgsSort cmdSort) throws Exception {
-        RDFFormat fmt = RDFFormat.TRIG_PRETTY;
+        RDFFormat fmt = RDFFormat.TRIG_BLOCKS;
 
         SparqlQueryParser keyQueryParser = SparqlQueryParserWrapperSelectShortForm.wrap(
                 SparqlQueryParserImpl.create(MainCliNamedGraphStream.pm));

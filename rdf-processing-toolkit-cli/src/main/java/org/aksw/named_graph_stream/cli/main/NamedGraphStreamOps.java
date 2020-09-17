@@ -121,7 +121,7 @@ public class NamedGraphStreamOps {
 
 //
         Flowable<Throwable> tmp = flow.buffer(1)
-                .compose(RDFDataMgrRx.createBatchWriterDataset(out, RDFFormat.TRIG_PRETTY));
+                .compose(RDFDataMgrRx.createBatchWriterDataset(out, RDFFormat.TRIG_BLOCKS));
 
         Throwable e = tmp.singleElement().blockingGet();
         if (e != null) {
