@@ -209,10 +209,10 @@ public class SparqlScriptProcessor {
                             Provenance prov;
                             if(itWithPos != null) {
                                 prov = new Provenance(filename, (long)itWithPos.getLine(), (long)itWithPos.getColumn());
-                                logger.info("Processing SPARQL statement at line " + itWithPos.getLine() + ", column " + itWithPos.getColumn());
+                                logger.info("Preparing SPARQL statement at line " + itWithPos.getLine() + ", column " + itWithPos.getColumn());
                             } else {
                                 prov = new Provenance(filename);
-                                logger.info("Processing inline SPARQL argument " + filename);
+                                logger.info("Preparing inline SPARQL argument " + filename);
                             }
 
                             SparqlStmt stmt = it.next();
