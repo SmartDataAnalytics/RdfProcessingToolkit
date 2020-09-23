@@ -300,11 +300,11 @@ public class SparqlIntegrateCmdImpls {
                 Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
             }
 
-            logger.info("SPARQL overall execution finished after " + sw.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
+            logger.info("SPARQL overall execution finished after " + sw.stop());
 
 
             if (server != null) {
-                logger.info("Server still up. Terminate with CTRL+C");
+                logger.info("Server still running on port " + cmd.serverPort + ". Terminate with CTRL+C");
                 server.join();
             }
         }

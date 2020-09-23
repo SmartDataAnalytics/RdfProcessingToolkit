@@ -10,7 +10,9 @@ import org.aksw.named_graph_stream.cli.main.DatasetFlowOps;
 import org.aksw.named_graph_stream.cli.main.ResourceInDatasetFlowOps;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
+import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
@@ -25,6 +27,16 @@ import org.junit.Test;
 
 
 public class TestNamedGraphStreamOperators {
+
+//    @Test
+//    public void testBlankNodesInQueries() {
+//        ARQ.enableBlankNodeResultLabels(true);
+//        ARQ.getContext().set(ARQ.constantBNodeLabels, true);
+//        ARQ.setNormalMode();
+//        Query query = QueryFactory.create("SELECT * { ?s a _:foobar }");
+//        System.out.println(query);
+//
+//    }
 
 //    @Test
 //    public void test1() {

@@ -49,6 +49,11 @@ public class SinkStreamingStreamRDF
     }
 
     @Override
+    protected void finishActual() {
+        streamRDF.finish();
+    }
+
+    @Override
     public void triple(Triple triple) {
         Quad quad = Quad.create(Quad.defaultGraphNodeGenerated, triple);
         sendActual(quad);

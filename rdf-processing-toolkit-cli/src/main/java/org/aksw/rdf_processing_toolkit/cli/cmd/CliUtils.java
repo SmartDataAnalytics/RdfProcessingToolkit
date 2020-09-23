@@ -50,7 +50,7 @@ public class CliUtils {
     // We need a flag + heuristic - e.g. disable reordering when SERVICE is involved
     public static void registerFileServiceHandler() {
         QC.setFactory(ARQ.getContext(), execCxt -> {
-            execCxt.getContext().set(ARQ.stageGenerator, StageBuilder.executeInline);
+//            execCxt.getContext().set(ARQ.stageGenerator, StageBuilder.executeInline);
             return new OpExecutorServiceOrFile(execCxt);
         });
     }

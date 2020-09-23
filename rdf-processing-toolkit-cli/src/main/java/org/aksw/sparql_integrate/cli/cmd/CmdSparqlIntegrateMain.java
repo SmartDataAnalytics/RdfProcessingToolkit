@@ -58,10 +58,10 @@ public class CmdSparqlIntegrateMain
          * sparql-pattern file
          *
          */
-        @Option(names = { "--o" }, description = "output file") // legacy option
+        @Option(names = { "--o" }, description = "output file (legacy; avoid use)") // legacy option
         public String outFile;
 
-        @Option(names = { "--io", },  description = "input/output file")
+        @Option(names = { "--io", },  description = "overwrites input file on success with output; use with care")
         public String inOutFile = null;
     }
 
@@ -121,7 +121,7 @@ public class CmdSparqlIntegrateMain
 
 
 
-    @Parameters(arity = "0..*", description = "Arguments")
+    @Parameters(arity = "0..*", description = "File names with RDF/SPARQL content and/or SPARQL statements")
     public List<String> nonOptionArgs = new ArrayList<>();
 
     @Override
