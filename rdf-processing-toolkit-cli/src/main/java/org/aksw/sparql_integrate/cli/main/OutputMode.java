@@ -11,6 +11,7 @@ public enum OutputMode
 {
     UNKOWN,
     QUAD,
+    TRIPLE,
     BINDING,
     JSON
 }

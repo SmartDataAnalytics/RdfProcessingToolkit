@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 
 import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 import org.aksw.sparql_integrate.cli.main.SparqlIntegrateCmdImpls;
+import org.apache.jena.ext.com.google.common.base.StandardSystemProperty;
 
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
@@ -34,6 +35,16 @@ public class CmdSparqlIntegrateMain
 
     @Option(names = { "--db", "--db-path" }, description="Path to database directory or file (for disk-based engines)")
     public String dbPath = null;
+
+    @Option(names = { "-T", "--temporary-directory" }, description="Temporary directory")
+    public String tempPath = StandardSystemProperty.JAVA_IO_TMPDIR.value();
+
+    @Option(names = { "--db-keep" }, description="Keep generated database files")
+    public boolean dbKeep = false;
+
+
+    @Option(names = { "--split" }, description="Create corresponding output files for each file argument with SPARQL queries")
+    public String splitFolder = null;
 
 
     @Option(names = { "-X" }, description = "Debug output such as full stacktraces")

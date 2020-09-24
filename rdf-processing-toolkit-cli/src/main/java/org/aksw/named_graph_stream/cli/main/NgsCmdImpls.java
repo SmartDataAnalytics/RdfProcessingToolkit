@@ -243,8 +243,10 @@ public class NgsCmdImpls {
                 cmdFlatMap.outFormat,
                 stmts,
                 pm,
+                RDFFormat.TURTLE_BLOCKS,
                 RDFFormat.TRIG_BLOCKS,
-                false, 0, false);
+                false, 0, false,
+                () -> {});
 
         Function<RDFConnection, SPARQLResultEx> mapper = SparqlMappers.createMapperFromDataset(outputMode, stmts, resultProcessor);
 

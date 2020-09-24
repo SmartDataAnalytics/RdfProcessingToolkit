@@ -1,5 +1,7 @@
 package org.aksw.sparql_integrate.cli.main;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.List;
@@ -39,15 +41,18 @@ public class SPARQLResultExProcessorImpl
     protected SinkStreaming<Quad> quadSink;
     protected SinkStreaming<JsonElement> jsonSink;
     protected SinkStreaming<Binding> bindingSink;
+    protected Closeable closeAction;
 
     public SPARQLResultExProcessorImpl(
             SinkStreaming<Quad> quadSink,
             SinkStreaming<JsonElement> jsonSink,
-            SinkStreaming<Binding> bindingSink) {
+            SinkStreaming<Binding> bindingSink,
+            Closeable closeAction) {
         super();
         this.quadSink = quadSink;
         this.jsonSink = jsonSink;
         this.bindingSink = bindingSink;
+        this.closeAction = closeAction;
     }
 
 
@@ -144,6 +149,13 @@ public class SPARQLResultExProcessorImpl
         quadSink.close();
         bindingSink.close();
         jsonSink.close();
+        if (closeAction != null) {
+            try {
+                closeAction.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
 
@@ -155,20 +167,23 @@ public class SPARQLResultExProcessorImpl
             PrefixMapping pm,
             RDFFormat outRdfFormat,
             Lang outLang,
-            List<Var> resultSetVars
+            List<Var> resultSetVars,
+            Closeable closeAction
             ) {
 
         SPARQLResultExProcessorImpl result;
 
         Supplier<Dataset> datasetSupp = () -> DatasetFactoryEx.createInsertOrderPreservingDataset();
         switch (outputMode) {
+        case TRIPLE:
         case QUAD:
             Objects.requireNonNull(outRdfFormat);
 
             result = new SPARQLResultExProcessorImpl(
                     SinkStreamingQuads.createSinkQuads(outRdfFormat, out, pm, datasetSupp),
                     new SinkStreamingJsonArray(err, false),
-                    new SinkStreamingAdapter<>()) { //new SinkStreamingBinding(err, resultSetVars, ResultSetLang.SPARQLResultSetText)) {
+                    new SinkStreamingAdapter<>(),
+                    closeAction) { //new SinkStreamingBinding(err, resultSetVars, ResultSetLang.SPARQLResultSetText)) {
                 @Override
                 public Void onResultSet(ResultSet rs) {
                     ResultSetMgr.write(err, rs, ResultSetLang.SPARQLResultSetText);
@@ -182,7 +197,8 @@ public class SPARQLResultExProcessorImpl
                     SinkStreamingQuads.createSinkQuads(RDFFormat.TRIG_BLOCKS, err, pm, datasetSupp),
                     new SinkStreamingJsonArray(out),
                     //new SinkStreamingBinding(err, resultSetVars, ResultSetLang.SPARQLResultSetText));
-                    new SinkStreamingAdapter<>()) {
+                    new SinkStreamingAdapter<>(),
+                    closeAction) {
                 @Override
                 public Void onResultSet(ResultSet rs) {
                     ResultSetMgr.write(err, rs, ResultSetLang.SPARQLResultSetText);
@@ -196,7 +212,8 @@ public class SPARQLResultExProcessorImpl
             result = new SPARQLResultExProcessorImpl(
                     SinkStreamingQuads.createSinkQuads(RDFFormat.TRIG_BLOCKS, err, pm, datasetSupp),
                     new SinkStreamingJsonArray(err, false),
-                    new SinkStreamingBinding(out, resultSetVars, outLang));
+                    new SinkStreamingBinding(out, resultSetVars, outLang),
+                    closeAction);
             break;
         default:
             throw new IllegalArgumentException("Unknown output mode: " + outputMode);

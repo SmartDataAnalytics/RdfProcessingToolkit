@@ -226,7 +226,7 @@ public class SparqlMappers {
                                 r = SparqlRx.execConstructQuads(conn, query);
                             } else {
                                 r = SparqlRx.execConstructTriples(conn, query)
-                                        .map(t -> new Quad(Quad.defaultGraphIRI, t));
+                                        .map(t -> new Quad(Quad.defaultGraphNodeGenerated, t));
                             }
                         }
                     }
@@ -272,6 +272,7 @@ public class SparqlMappers {
         Function<RDFConnection, SPARQLResultEx> result;
 
         switch (outputMode) {
+        case TRIPLE:
         case QUAD:
             result = createMapperQuad(stmts, sparqlResultVisitor)
                 .andThen(quads -> quads

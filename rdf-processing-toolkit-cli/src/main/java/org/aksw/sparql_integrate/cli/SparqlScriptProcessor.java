@@ -44,6 +44,7 @@ import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.core.Prologue;
 import org.apache.jena.sparql.modify.request.UpdateLoad;
 import org.apache.jena.update.UpdateRequest;
+import org.apache.jena.util.SplitIRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,11 +86,12 @@ public class SparqlScriptProcessor {
             this.argStr = argStr;
             this.line = line;
             this.column = column;
+            this.sparqlPath = "";
         }
 
 
-//    	protected int argIdx;
-
+        // non-null if the query orginated from a sparql file
+        protected String sparqlPath;
         /**
          *  The orginal argument string
          */
@@ -98,6 +100,14 @@ public class SparqlScriptProcessor {
         protected Long line;
 
         protected Long column;
+
+        public String getSparqlPath() {
+            return sparqlPath;
+        }
+
+        public void setSparqlPath(String sparqlPath) {
+            this.sparqlPath = sparqlPath;
+        }
 
         @Override
         public String toString() {
@@ -205,6 +215,10 @@ public class SparqlScriptProcessor {
                     Iterator<SparqlStmt> it = SparqlStmtMgr.loadSparqlStmts(filename, globalPrefixes, sparqlParser, baseIri);
 
                     if(it != null) {
+                        //Path sparqlPath = Paths.get(filename).toAbsolutePath();
+                        String sparqlFileName = SplitIRI.localname(filename);
+
+
                         SparqlStmtIterator itWithPos = it instanceof SparqlStmtIterator
                                 ? (SparqlStmtIterator)it
                                 : null;
@@ -218,6 +232,7 @@ public class SparqlScriptProcessor {
                                 prov = new Provenance(filename);
                                 logger.info("Preparing inline SPARQL argument " + filename);
                             }
+                            prov.setSparqlPath(sparqlFileName);
 
                             SparqlStmt stmt = it.next();
 

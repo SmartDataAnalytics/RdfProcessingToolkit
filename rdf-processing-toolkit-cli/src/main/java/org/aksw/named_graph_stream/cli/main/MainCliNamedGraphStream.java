@@ -30,7 +30,6 @@ import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMain;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMap;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
-import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
 import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.jena.ext.com.google.common.base.Strings;
@@ -73,7 +72,14 @@ public class MainCliNamedGraphStream {
     public static Collection<Lang> quadAndTripleLangs = Stream.concat(quadLangs.stream(), tripleLangs.stream())
             .collect(Collectors.toList());
 
+    @Deprecated
     public static final OutputStream out = new CloseShieldOutputStream(new FileOutputStream(FileDescriptor.out));
+
+    public static OutputStream openStdout() {
+        return new CloseShieldOutputStream(new FileOutputStream(FileDescriptor.out));
+    }
+
+
 //    public static final OutputStream out = new FileOutputStream(FileDescriptor.out);
     public static final PrefixMapping pm = new PrefixMappingImpl();
 

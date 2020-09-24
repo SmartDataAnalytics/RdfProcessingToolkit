@@ -1,6 +1,7 @@
 package org.aksw.sparql_integrate.cli.main;
 
 import java.awt.Desktop;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -12,7 +13,9 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -34,12 +37,16 @@ import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.ext.com.google.common.base.Strings;
+import org.apache.jena.ext.com.google.common.collect.Iterables;
 import org.apache.jena.ext.com.google.common.collect.Maps;
+import org.apache.jena.ext.com.google.common.collect.Multimap;
+import org.apache.jena.ext.com.google.common.collect.Multimaps;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
+import org.apache.jena.query.TxnType;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
 import org.apache.jena.riot.Lang;
@@ -67,7 +74,7 @@ public class SparqlIntegrateCmdImpls {
     // https://stackoverflow.com/questions/35988192/java-nio-most-concise-recursive-directory-delete
     public static void deleteFolder(Path rootPath) throws IOException {
         if (Files.exists(rootPath)) {
-            logger.info("Deleting " + rootPath);
+            logger.info("Deleting recursively " + rootPath);
             // before you copy and paste the snippet
             // - read the post till the end
             // - read the javadoc to understand what the code will do
@@ -79,7 +86,7 @@ public class SparqlIntegrateCmdImpls {
             // the snippet below
             try (Stream<Path> walk = Files.walk(rootPath)) {
                 walk.sorted(Comparator.reverseOrder())
-                    .peek(path -> logger.info("Deleting " + path))
+//                    .peek(path -> logger.info("Deleting " + path))
                     .map(Path::toFile)
                     .forEach(File::delete);
     //                .forEach(System.err::println);
@@ -96,37 +103,49 @@ public class SparqlIntegrateCmdImpls {
      * @return
      * @throws IOException
      */
-    public static Entry<Dataset, Callable<Void>> configEngine(CmdSparqlIntegrateMain cmd) throws IOException {
+    public static Entry<Dataset, Closeable> configEngine(CmdSparqlIntegrateMain cmd) throws IOException {
 
         String engine = cmd.engine;
 
-        Entry<Dataset, Callable<Void>> result;
+        Entry<Dataset, Closeable> result;
         // TODO Create a registry for engines / should probably go to the conjure project
         if (engine == null || engine.equals("mem")) {
-            result = Maps.immutableEntry(DatasetFactory.create(), () -> null);
+            result = Maps.immutableEntry(DatasetFactory.create(), () -> {});
         } else if (engine.equalsIgnoreCase("tdb2")) {
+
+            boolean createdDbDir = false;
             Path dbPath;
             String pathStr = cmd.dbPath;
+
             if (Strings.isNullOrEmpty(pathStr)) {
-                dbPath = Files.createTempDirectory("sparql-integrate");
+                Path tempDir = Paths.get(cmd.tempPath);
+                dbPath = Files.createTempDirectory(tempDir, "sparql-integrate-tdb2-").toAbsolutePath();
+                createdDbDir = true;
             } else {
-                dbPath = Paths.get(pathStr);
+                dbPath = Paths.get(pathStr).toAbsolutePath();
+                if (!Files.exists(dbPath)) {
+                    Files.createDirectories(dbPath);
+                    createdDbDir = true;
+                }
             }
 
-
-            Callable<Void> deleteAction;
-            Path finalDbPath = dbPath.toAbsolutePath();
-            if (!Files.exists(finalDbPath)) {
-                logger.info("Created new directory (its content will deleted when done): " + finalDbPath);
-                Files.createDirectories(finalDbPath);
-                deleteAction = () -> { deleteFolder(finalDbPath); return null; };
+            Path finalDbPath = dbPath;
+            Closeable deleteAction;
+            if (createdDbDir) {
+                if (cmd.dbKeep) {
+                    logger.info("Created new directory (will be kept after done): " + dbPath);
+                    deleteAction = () -> {};
+                } else {
+                    logger.info("Created new directory (its content will deleted when done): " + dbPath);
+                    deleteAction = () -> deleteFolder(finalDbPath);
+                }
             } else {
-                logger.warn("Folder already exists - delete action disabled: " + finalDbPath);
-                deleteAction = () -> null;
+                logger.warn("Folder already existed - delete action disabled: " + dbPath);
+                deleteAction = () -> {};
             }
 
             logger.info("Connecting to TDB2 database in folder " + dbPath);
-            Callable<Void> finalDeleteAction = deleteAction;
+            Closeable finalDeleteAction = deleteAction;
             result = Maps.immutableEntry(TDB2Factory.connectDataset(finalDbPath.toString()), finalDeleteAction);
         } else {
             throw new RuntimeException("Unknown engine: " + engine);
@@ -145,7 +164,7 @@ public class SparqlIntegrateCmdImpls {
     public static OutputMode detectOutputMode(List<SparqlStmt> stmts) {
         OutputMode result = null;
         if (stmts.isEmpty()) {
-            result = OutputMode.QUAD;
+            result = OutputMode.TRIPLE;
         } else {
             SparqlStmt last = stmts.get(stmts.size() - 1);
             if (last.isQuery()) {
@@ -156,15 +175,21 @@ public class SparqlIntegrateCmdImpls {
             }
 
 
+            int tripleCount = 0;
             int quadCount = 0;
             int bindingCount = 0;
+
             if (result == null) {
                 for (SparqlStmt stmt : stmts) {
                     if (stmt.isQuery()) {
                         Query q = stmt.getQuery();
 
                         if (q.isConstructType()) {
-                            ++quadCount;
+                            if (q.isConstructQuad()) {
+                                ++quadCount;
+                            } else {
+                                ++tripleCount;
+                            }
                         } else if (q.isSelectType()) {
                             ++bindingCount;
                         }
@@ -173,6 +198,8 @@ public class SparqlIntegrateCmdImpls {
 
                 if (quadCount != 0) {
                     result = OutputMode.QUAD;
+                } else if (tripleCount != 0) {
+                    result = OutputMode.TRIPLE;
                 } else if (bindingCount != 0) {
                     result = OutputMode.BINDING;
                 }
@@ -180,7 +207,7 @@ public class SparqlIntegrateCmdImpls {
 
 
             if(result == null) {
-                result = OutputMode.QUAD;
+                result = OutputMode.TRIPLE;
             }
         }
 
@@ -205,6 +232,9 @@ public class SparqlIntegrateCmdImpls {
 
 
     public static int sparqlIntegrate(CmdSparqlIntegrateMain cmd) throws Exception {
+        int exitCode = 0; // success unless error
+
+
         CliUtils.configureGlobalSettings();
 
 
@@ -275,7 +305,7 @@ public class SparqlIntegrateCmdImpls {
             }));
 
         } else {
-            operationalOut = MainCliNamedGraphStream.out;
+            operationalOut = MainCliNamedGraphStream.openStdout();
             outFile = null;
             tmpFile = null;
         }
@@ -283,40 +313,98 @@ public class SparqlIntegrateCmdImpls {
 
         processor.process(args);
 
+
+
+        Path splitFolder = cmd.splitFolder == null
+                ? null
+                : Paths.get(cmd.splitFolder);
+
         List<Entry<SparqlStmt, Provenance>> workloads = processor.getSparqlStmts();
 
-        List<SparqlStmt> stmts = workloads.stream().map(Entry::getKey).collect(Collectors.toList());
+        // Workloads clustered by their split target filenames
+        // If there are no splits then there is one cluster whose key is the empty string
+        Multimap<String, Entry<SparqlStmt, Provenance>> clusters;
+
+        if (splitFolder == null) {
+            clusters = Multimaps.index(workloads, item -> "");
+        } else {
+            Files.createDirectories(splitFolder);
+
+            clusters = Multimaps.index(workloads, item -> item.getValue().getSparqlPath());
+        }
+
+
+        Map<String, SPARQLResultExProcessor> clusterToSink = new LinkedHashMap<>();
+
+
+//
+//        if (splitFolder != null) {
+//            Multimap<String, Multimaps.index(workloads, item -> item.getValue().getSparqlPath());
+//        }
+//        List<SparqlStmt> stmts = workloads.stream().map(Entry::getKey).collect(Collectors.toList());
 
         // Create the union of variables used in select queries
-
         boolean jqMode = cmd.jqDepth != null;
         int jqDepth = jqMode ? cmd.jqDepth : 3;
         boolean jqFlatMode = cmd.jqFlatMode;
 
+        RDFFormat tripleFormat = RDFFormat.TURTLE_BLOCKS;
+        RDFFormat quadFormat = RDFFormat.TRIG_BLOCKS;
+
+        for (Entry<String, Collection<Entry<SparqlStmt, Provenance>>> e : clusters.asMap().entrySet()) {
+            List<SparqlStmt> clusterStmts = e.getValue().stream().map(Entry::getKey).collect(Collectors.toList());
+
+            String filename = e.getKey();
+            OutputStream effOut;
+            if (Strings.isNullOrEmpty(filename)) {
+                effOut = operationalOut;
+            } else {
+                OutputFormatSpec spec = OutputFormatSpec.create(outFormat, tripleFormat, quadFormat, clusterStmts, jqMode);
+                String fileExt = spec.getFileExtension();
+                fileExt = fileExt == null ? "dat" : fileExt;
+
+                String baseFilename = org.apache.jena.ext.com.google.common.io.Files.getNameWithoutExtension(filename);
+                String newFilename = baseFilename + "." + fileExt;
+
+                Path clusterOutFile = splitFolder.resolve(newFilename);
+                logger.info("Split: " + filename + " -> " + clusterOutFile);
+                effOut = Files.newOutputStream(clusterOutFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+            }
+
+            SPARQLResultExProcessor effectiveHandler = configureProcessor(
+                    effOut, System.err,
+                    outFormat,
+                    clusterStmts,
+                    prefixMapping,
+                    tripleFormat,
+                    quadFormat,
+                    jqMode, jqDepth, jqFlatMode,
+                    effOut
+                    );
+
+            clusterToSink.put(filename, effectiveHandler);
+        }
 
 
-        SPARQLResultExProcessor effectiveHandler = configureProcessor(
-                operationalOut, System.err,
-                outFormat,
-                stmts,
-                prefixMapping,
-                RDFFormat.NQUADS,
-                jqMode, jqDepth, jqFlatMode);
 
+        // Start the engine (wrooom)
 
-        effectiveHandler.start();
-
-
-        Entry<Dataset, Callable<Void>> datasetAndDelete = configEngine(cmd);
+        Entry<Dataset, Closeable> datasetAndDelete = configEngine(cmd);
         Dataset dataset = datasetAndDelete.getKey();
-        Callable<Void> deleteAction = datasetAndDelete.getValue();
+        Closeable deleteAction = datasetAndDelete.getValue();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
-                deleteAction.call();
+                deleteAction.close();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }));
+
+
+        // Start all sinks
+        for (SPARQLResultExProcessor handler : clusterToSink.values()) {
+            handler.start();
+        }
 
         try {
             Callable<RDFConnection> connSupp = () -> RDFConnectionFactory.connect(dataset);
@@ -349,21 +437,31 @@ public class SparqlIntegrateCmdImpls {
                 }
 
                 try(RDFConnection conn = connSupp.call()) {
-                    Txn.executeWrite(conn, () -> {
-                        execStmts(conn, workloads, effectiveHandler);
-                    });
+                    for (Entry<SparqlStmt, Provenance> stmtEntry : workloads) {
+                        Provenance prov = stmtEntry.getValue();
+                        String clusterId = splitFolder == null ? "" : prov.getSparqlPath();
+
+                        SPARQLResultExProcessor sink = clusterToSink.get(clusterId);
+
+                        try {
+                            execStmt(conn, stmtEntry, sink);
+                        } catch (Exception e) {
+                            logger.error("Error encountered; trying to continue but exit code will be non-zero", e);
+                            exitCode = 1;
+                        }
+                    }
+
                 }
 
-                effectiveHandler.finish();
+                for (SPARQLResultExProcessor sink : clusterToSink.values()) {
+                    sink.finish();
+                    sink.flush();
+                }
+
 
                 // Sinks such as SinkQuadOutput may use their own caching / flushing strategy
                 // therefore calling flush is mandatory!
-                effectiveHandler.flush();
-
-                operationalOut.flush();
-
                 if(outFile != null) {
-                    operationalOut.close();
                     Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
                 }
 
@@ -377,27 +475,142 @@ public class SparqlIntegrateCmdImpls {
             }
         } finally {
             dataset.close();
-            deleteAction.call();
+            deleteAction.close();
+
+            for (SPARQLResultExProcessor sink : clusterToSink.values()) {
+                try {
+                    sink.close();
+                } catch (Exception e) {
+                    logger.warn("Failed to close sink", e);
+                }
+            }
+
         }
 
-        return 0;
+        return exitCode;
     }
 
-    public static void execStmts(
+    public static void execStmt(
             RDFConnection conn,
-            Collection<? extends Entry<? extends SparqlStmt, ? extends Provenance>> workloads,
+            Entry<? extends SparqlStmt, ? extends Provenance> workload,
             SPARQLResultExVisitor<?> resultProcessor) {
-        for (Entry<? extends SparqlStmt, ? extends Provenance> workload : workloads) {
+//        for (Entry<? extends SparqlStmt, ? extends Provenance> workload : workloads) {
             SparqlStmt stmt = workload.getKey();
             Provenance prov = workload.getValue();
             logger.info("Processing " + prov);
-            try(SPARQLResultEx sr = SparqlStmtUtils.execAny(conn, stmt)) {
-                resultProcessor.forwardEx(sr);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+            TxnType txnType = stmt.isQuery() ? TxnType.READ : TxnType.WRITE;
+
+            Txn.exec(conn, txnType, () -> {
+                try(SPARQLResultEx sr = SparqlStmtUtils.execAny(conn, stmt)) {
+                    resultProcessor.forwardEx(sr);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+//        }
+    }
+
+
+    public static class OutputFormatSpec {
+        protected OutputMode outputMode;
+        protected RDFFormat outRdfFormat = null;
+        protected Lang outLang = null;
+
+        public OutputFormatSpec(OutputMode outputMode, RDFFormat outRdfFormat, Lang outLang) {
+            super();
+            this.outputMode = outputMode;
+            this.outRdfFormat = outRdfFormat;
+            this.outLang = outLang;
+        }
+
+        public OutputMode getOutputMode() {
+            return outputMode;
+        }
+
+        public RDFFormat getOutRdfFormat() {
+            return outRdfFormat;
+        }
+
+        public Lang getOutLang() {
+            return outLang;
+        }
+
+        public static OutputFormatSpec create(
+                String outFormat,
+                RDFFormat tripleFormat,
+                RDFFormat quadFormat,
+                List<SparqlStmt> stmts,
+                boolean jqMode
+            ) {
+            OutputMode outputMode;
+            RDFFormat outRdfFormat = null;
+            Lang outLang = null;
+
+            if (outFormat != null) {
+                if ("json".equalsIgnoreCase(outFormat)) {
+                    outputMode = OutputMode.JSON;
+                } else {
+
+                    try {
+                        outRdfFormat = RDFLanguagesEx.findRdfFormat(outFormat);
+                        outLang = outRdfFormat.getLang();
+                    } catch (Exception e) {
+                        outLang = RDFLanguagesEx.findLang(outFormat);
+                    }
+
+                    outputMode = determineOutputMode(outLang);
+                }
+            } else {
+                outputMode = jqMode ? OutputMode.JSON : detectOutputMode(stmts);
+
+                switch (outputMode) {
+                case BINDING:
+                    outLang = ResultSetLang.SPARQLResultSetJSON;
+                    // outRdfFormat = new RDFFormat(outLang);
+                    break;
+                case TRIPLE:
+                    outRdfFormat = tripleFormat;
+                    outLang = outRdfFormat.getLang();
+                    break;
+                case QUAD:
+                    outRdfFormat = quadFormat;
+                    outLang = outRdfFormat.getLang();
+                    break;
+                case JSON:
+                    // Nothing to do
+                    break;
+                default:
+                    throw new IllegalStateException("Unknown output mode");
+                }
+
             }
+
+            return new OutputFormatSpec(outputMode, outRdfFormat, outLang);
+        }
+
+        public String getFileExtension() {
+            String result;
+            if (outputMode.equals(OutputMode.JSON)) {
+                result = "json";
+            } else {
+                Lang lang;
+                if (outRdfFormat != null) {
+                    lang = outRdfFormat.getLang();
+                } else {
+                    lang = outLang;
+                }
+
+                if (lang == null) {
+                    result = null;
+                } else {
+                    result = Iterables.getFirst(lang.getFileExtensions(), null);
+                }
+            }
+
+            return result;
         }
     }
+
 
 
     /**
@@ -417,59 +630,25 @@ public class SparqlIntegrateCmdImpls {
             String outFormat,
             List<SparqlStmt> stmts,
             PrefixMapping prefixMapping,
+            RDFFormat tripleFormat,
             RDFFormat quadFormat,
-            boolean jqMode, int jqDepth, boolean jqFlatMode) {
+            boolean jqMode, int jqDepth, boolean jqFlatMode,
+            Closeable closeAction) {
 
-        OutputMode outputMode;
-        RDFFormat outRdfFormat = null;
-        Lang outLang = null;
-
-        if (outFormat != null) {
-            if ("json".equalsIgnoreCase(outFormat)) {
-                outputMode = OutputMode.JSON;
-            } else {
-
-                try {
-                    outRdfFormat = RDFLanguagesEx.findRdfFormat(outFormat);
-                    outLang = outRdfFormat.getLang();
-                } catch (Exception e) {
-                    outLang = RDFLanguagesEx.findLang(outFormat);
-                }
-
-                outputMode = determineOutputMode(outLang);
-            }
-        } else {
-            outputMode = jqMode ? OutputMode.JSON : detectOutputMode(stmts);
-
-            switch (outputMode) {
-            case BINDING:
-                outLang = ResultSetLang.SPARQLResultSetJSON;
-                break;
-            case QUAD:
-                outRdfFormat = quadFormat;
-                outLang = outRdfFormat.getLang();
-                break;
-            case JSON:
-                // Nothing to do
-                break;
-            default:
-                throw new IllegalStateException("Unkwon outputMode");
-            }
-
-        }
-
+        OutputFormatSpec spec = OutputFormatSpec.create(outFormat, tripleFormat, quadFormat, stmts, jqMode);
 
         // RDFLanguagesEx.findRdfFormat(cmd.outFormat, probeFormats)
         List<Var> selectVars = SparqlStmtUtils.getUnionProjectVars(stmts);
 
         SPARQLResultExProcessorImpl coreProcessor = SPARQLResultExProcessorImpl.configureForOutputMode(
-                outputMode,
+                spec.getOutputMode(),
                 out,
                 err,
                 prefixMapping,
-                outRdfFormat,
-                outLang,
-                selectVars);
+                spec.getOutRdfFormat(),
+                spec.getOutLang(),
+                selectVars,
+                closeAction);
 
 
         // TODO The design with SPARQLResultExProcessorForwarding seems a bit overly complex
