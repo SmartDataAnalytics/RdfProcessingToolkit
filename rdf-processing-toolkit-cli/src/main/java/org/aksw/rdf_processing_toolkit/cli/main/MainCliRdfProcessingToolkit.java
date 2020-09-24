@@ -3,7 +3,6 @@ package org.aksw.rdf_processing_toolkit.cli.main;
 import org.aksw.commons.util.exception.ExceptionUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
-import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

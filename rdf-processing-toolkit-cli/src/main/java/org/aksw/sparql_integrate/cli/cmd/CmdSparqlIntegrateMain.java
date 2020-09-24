@@ -29,6 +29,13 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "-v", "--version" }, versionHelp = true)
     public boolean version = false;
 
+    @Option(names = { "-e", "--engine" }, description="SPARQL Engine. Currently only 'mem' and 'tdb2' supported")
+    public String engine = "mem";
+
+    @Option(names = { "--db", "--db-path" }, description="Path to database directory or file (for disk-based engines)")
+    public String dbPath = null;
+
+
     @Option(names = { "-X" }, description = "Debug output such as full stacktraces")
     public boolean debugMode = false;
 

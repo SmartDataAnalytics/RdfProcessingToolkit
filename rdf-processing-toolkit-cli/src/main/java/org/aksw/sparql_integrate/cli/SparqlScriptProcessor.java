@@ -15,6 +15,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
+import org.aksw.jena_sparql_api.rx.RDFIterator;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
@@ -30,6 +31,7 @@ import org.aksw.jena_sparql_api.stmt.SparqlUpdateParserImpl;
 import org.aksw.jena_sparql_api.syntax.UpdateRequestUtils;
 import org.aksw.jena_sparql_api.utils.NodeUtils;
 import org.apache.jena.atlas.web.TypedInputStream;
+import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Syntax;
@@ -37,8 +39,10 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.riot.system.PrefixMap;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.core.Prologue;
+import org.apache.jena.sparql.modify.request.UpdateLoad;
 import org.apache.jena.update.UpdateRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -243,6 +247,69 @@ public class SparqlScriptProcessor {
 
 
     public static UpdateRequest tryLoadFileAsUpdateRequest(String filename, PrefixMapping globalPrefixes) throws IOException {
+        UpdateRequest result = null;
+
+        // TODO We should map to filename through the stream manager
+//        String str = StreamManager.get().mapURI(filename);
+
+        // Try as RDF file
+        try(TypedInputStream tmpIn = RDFDataMgrEx.open(filename, Arrays.asList(Lang.TRIG, Lang.NQUADS))) {
+//            if(tmpIn == null) {
+//                throw new FileNotFoundException(filename);
+//            }
+
+
+            // Unwrap the input stream for less overhead
+            InputStream in = tmpIn.getInputStream();
+
+
+            String contentType = tmpIn.getContentType();
+            logger.info("Detected format: " + contentType);
+            Lang rdfLang = contentType == null ? null : RDFLanguages.contentTypeToLang(contentType);
+
+            //Lang rdfLang = RDFDataMgr.determineLang(filename, null, null);
+            if(rdfLang != null) {
+
+                RDFIterator<?> itTmp;
+                // FIXME Validate we are really using turtle/trig here
+                if(RDFLanguages.isTriples(rdfLang)) {
+                    itTmp = RDFDataMgrEx.createIteratorTriples(globalPrefixes, in, Lang.TTL);
+                } else if(RDFLanguages.isQuads(rdfLang)) {
+                    itTmp = RDFDataMgrEx.createIteratorQuads(globalPrefixes, in, Lang.TRIG);
+                } else {
+                    throw new RuntimeException("Unknown lang: " + rdfLang);
+                }
+
+
+                int window = 100;
+                try (RDFIterator<?> it = itTmp) {
+                    int remaining = window;
+                    while (it.hasNext()) {
+                        --remaining;
+                        if (remaining == 0) {
+                            PrefixMap pm = it.getPrefixes();
+                            logger.info("Gathered " + pm.size() + " prefixes from " + filename);
+                            globalPrefixes.setNsPrefixes(pm.getMapping());
+                            break;
+                        }
+
+                        if (it.prefixesChanged()) {
+                            remaining = 100;
+                        }
+
+                        it.next();
+                    }
+                }
+
+                // String fileUrl = "file://" + Paths.get(filename).toAbsolutePath().normalize().toString();
+                result = new UpdateRequest(new UpdateLoad(filename, (Node)null));
+            }
+        }
+        return result;
+    }
+
+
+    public static UpdateRequest tryLoadFileAsUpdateRequestOld(String filename, PrefixMapping globalPrefixes) throws IOException {
         UpdateRequest result = null;
 
         // Try as RDF file

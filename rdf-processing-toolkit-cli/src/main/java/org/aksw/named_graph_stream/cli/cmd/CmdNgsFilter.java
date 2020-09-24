@@ -34,7 +34,7 @@ public class CmdNgsFilter implements Callable<Integer> {
     public boolean drop = false;
 
     @Option(names = { "-o", "--out-format" })
-    public String outFormat = "trig/pretty";
+    public String outFormat = "trig/blocks";
 
     @Parameters(arity = "0..*", description = "Input files")
     public List<String> nonOptionArgs = new ArrayList<>();

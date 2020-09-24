@@ -9,8 +9,8 @@ import picocli.CommandLine.IVersionProvider;
 
 public abstract class VersionProviderFromClasspathProperties implements IVersionProvider {
 
-    abstract String getResourceName();
-    abstract Collection<String> getStrings(Properties properties);
+    public abstract String getResourceName();
+    public abstract Collection<String> getStrings(Properties properties);
 
     @Override
     public String[] getVersion() throws Exception {

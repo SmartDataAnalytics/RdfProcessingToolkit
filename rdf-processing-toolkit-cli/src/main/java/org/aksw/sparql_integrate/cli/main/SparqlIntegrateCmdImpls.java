@@ -1,6 +1,7 @@
 package org.aksw.sparql_integrate.cli.main;
 
 import java.awt.Desktop;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
@@ -10,11 +11,12 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.aksw.jena_sparql_api.core.SparqlService;
 import org.aksw.jena_sparql_api.json.RdfJsonUtils;
@@ -32,6 +34,7 @@ import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.ext.com.google.common.base.Strings;
+import org.apache.jena.ext.com.google.common.collect.Maps;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
@@ -50,6 +53,8 @@ import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.Var;
+import org.apache.jena.system.Txn;
+import org.apache.jena.tdb2.TDB2Factory;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +64,29 @@ import com.google.gson.JsonElement;
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
 
+    // https://stackoverflow.com/questions/35988192/java-nio-most-concise-recursive-directory-delete
+    public static void deleteFolder(Path rootPath) throws IOException {
+        if (Files.exists(rootPath)) {
+            logger.info("Deleting " + rootPath);
+            // before you copy and paste the snippet
+            // - read the post till the end
+            // - read the javadoc to understand what the code will do
+            //
+            // a) to follow softlinks (removes the linked file too) use
+            // Files.walk(rootPath, FileVisitOption.FOLLOW_LINKS)
+            //
+            // b) to not follow softlinks (removes only the softlink) use
+            // the snippet below
+            try (Stream<Path> walk = Files.walk(rootPath)) {
+                walk.sorted(Comparator.reverseOrder())
+                    .peek(path -> logger.info("Deleting " + path))
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+    //                .forEach(System.err::println);
+            }
+        }
+    }
+
     /**
      * Set up a 'DataSource' for RDF.
      *
@@ -66,22 +94,44 @@ public class SparqlIntegrateCmdImpls {
      *
      * @param cmd
      * @return
+     * @throws IOException
      */
-    public static Callable<RDFConnection> configConnection(CmdSparqlIntegrateMain cmd) {
-        Dataset dataset = DatasetFactory.create();
-        Callable<RDFConnection> result = () -> RDFConnectionFactory.connect(dataset);
-        return result;
-//    	Dataset ds = DatasetFactory.create;
-//    	RDFConnection conn =
-//
-//        try(RDFConnection actualConn = RDFConnectionFactoryEx.wrapWithContext(
-//                RDFConnectionFactoryEx.wrapWithQueryParser(RDFConnectionFactory.connect(dataset),
-//                str -> {
-//                    SparqlStmt stmt = sparqlParser.apply(str);
-//                    SparqlStmt r = SparqlStmtUtils.applyNodeTransform(stmt, x -> NodeUtils.substWithLookup(x, System::getenv));
-//                    return r;
-//                }))) {
+    public static Entry<Dataset, Callable<Void>> configEngine(CmdSparqlIntegrateMain cmd) throws IOException {
 
+        String engine = cmd.engine;
+
+        Entry<Dataset, Callable<Void>> result;
+        // TODO Create a registry for engines / should probably go to the conjure project
+        if (engine == null || engine.equals("mem")) {
+            result = Maps.immutableEntry(DatasetFactory.create(), () -> null);
+        } else if (engine.equalsIgnoreCase("tdb2")) {
+            Path dbPath;
+            String pathStr = cmd.dbPath;
+            if (Strings.isNullOrEmpty(pathStr)) {
+                dbPath = Files.createTempDirectory("sparql-integrate");
+            } else {
+                dbPath = Paths.get(pathStr);
+            }
+
+
+            Callable<Void> deleteAction;
+            Path finalDbPath = dbPath.toAbsolutePath();
+            if (!Files.exists(finalDbPath)) {
+                logger.info("Created new directory (its content will deleted when done): " + finalDbPath);
+                Files.createDirectories(finalDbPath);
+                deleteAction = () -> { deleteFolder(finalDbPath); return null; };
+            } else {
+                logger.warn("Folder already exists - delete action disabled: " + finalDbPath);
+                deleteAction = () -> null;
+            }
+
+            logger.info("Connecting to TDB2 database in folder " + dbPath);
+            Callable<Void> finalDeleteAction = deleteAction;
+            result = Maps.immutableEntry(TDB2Factory.connectDataset(finalDbPath.toString()), finalDeleteAction);
+        } else {
+            throw new RuntimeException("Unknown engine: " + engine);
+        }
+        return result;
     }
 
 
@@ -157,6 +207,7 @@ public class SparqlIntegrateCmdImpls {
     public static int sparqlIntegrate(CmdSparqlIntegrateMain cmd) throws Exception {
         CliUtils.configureGlobalSettings();
 
+
         Stopwatch sw = Stopwatch.createStarted();
 
         PrefixMapping prefixMapping = CliUtils.configPrefixMapping(cmd);
@@ -229,6 +280,7 @@ public class SparqlIntegrateCmdImpls {
             tmpFile = null;
         }
 
+
         processor.process(args);
 
         List<Entry<SparqlStmt, Provenance>> workloads = processor.getSparqlStmts();
@@ -254,59 +306,78 @@ public class SparqlIntegrateCmdImpls {
 
         effectiveHandler.start();
 
-        Callable<RDFConnection> connSupp = configConnection(cmd);
+
+        Entry<Dataset, Callable<Void>> datasetAndDelete = configEngine(cmd);
+        Dataset dataset = datasetAndDelete.getKey();
+        Callable<Void> deleteAction = datasetAndDelete.getValue();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                deleteAction.call();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }));
+
+        try {
+            Callable<RDFConnection> connSupp = () -> RDFConnectionFactory.connect(dataset);
 
 
-        try (RDFConnection serverConn = (cmd.server ? connSupp.call() : null)) {
+            try (RDFConnection serverConn = (cmd.server ? connSupp.call() : null)) {
 
-            Server server = null;
-            if (cmd.server) {
-                SparqlService sparqlService = FluentSparqlService.from(serverConn).create();
+                Server server = null;
+                if (cmd.server) {
+                    SparqlService sparqlService = FluentSparqlService.from(serverConn).create();
 
-//                Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
-//                        prefixMapping, false);// .getQueryParser();
+    //                Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
+    //                        prefixMapping, false);// .getQueryParser();
 
-                int port = cmd.serverPort;
-                server = FactoryBeanSparqlServer.newInstance()
-                        .setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
-                        .setSparqlStmtParser(processor.getSparqlParser())
-                        .setPort(port).create();
+                    int port = cmd.serverPort;
+                    server = FactoryBeanSparqlServer.newInstance()
+                            .setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
+                            .setSparqlStmtParser(processor.getSparqlParser())
+                            .setPort(port).create();
 
-                server.start();
+                    server.start();
 
-                URI browseUri = new URI("http://localhost:" + port + "/sparql");
-                if (Desktop.isDesktopSupported()) {
-                    Desktop.getDesktop().browse(browseUri);
-                } else {
-                    logger.info("SPARQL service with in-memory result dataset running at " + browseUri);
+                    URI browseUri = new URI("http://localhost:" + port + "/sparql");
+                    if (Desktop.isDesktopSupported()) {
+                        Desktop.getDesktop().browse(browseUri);
+                    } else {
+                        logger.info("SPARQL service with in-memory result dataset running at " + browseUri);
+                    }
+
                 }
 
+                try(RDFConnection conn = connSupp.call()) {
+                    Txn.executeWrite(conn, () -> {
+                        execStmts(conn, workloads, effectiveHandler);
+                    });
+                }
+
+                effectiveHandler.finish();
+
+                // Sinks such as SinkQuadOutput may use their own caching / flushing strategy
+                // therefore calling flush is mandatory!
+                effectiveHandler.flush();
+
+                operationalOut.flush();
+
+                if(outFile != null) {
+                    operationalOut.close();
+                    Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                logger.info("SPARQL overall execution finished after " + sw.stop());
+
+
+                if (server != null) {
+                    logger.info("Server still running on port " + cmd.serverPort + ". Terminate with CTRL+C");
+                    server.join();
+                }
             }
-
-            try(RDFConnection conn = connSupp.call()) {
-                execStmts(conn, workloads, effectiveHandler);
-            }
-
-            effectiveHandler.finish();
-
-            // Sinks such as SinkQuadOutput may use their own caching / flushing strategy
-            // therefore calling flush is mandatory!
-            effectiveHandler.flush();
-
-            operationalOut.flush();
-
-            if(outFile != null) {
-                operationalOut.close();
-                Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
-            }
-
-            logger.info("SPARQL overall execution finished after " + sw.stop());
-
-
-            if (server != null) {
-                logger.info("Server still running on port " + cmd.serverPort + ". Terminate with CTRL+C");
-                server.join();
-            }
+        } finally {
+            dataset.close();
+            deleteAction.call();
         }
 
         return 0;

@@ -7,8 +7,8 @@ import java.util.Properties;
 public class VersionProviderRdfProcessingToolkit
     extends VersionProviderFromClasspathProperties
 {
-    @Override String getResourceName() { return "rdf-processing-toolkit.properties"; }
-    @Override Collection<String> getStrings(Properties p) { return Arrays.asList(
+    @Override public String getResourceName() { return "rdf-processing-toolkit.properties"; }
+    @Override public Collection<String> getStrings(Properties p) { return Arrays.asList(
             p.get("rdf-processing-toolkit.version") + " built at " + p.get("rdf-processing-toolkit.build.timestamp")
     ); }
 

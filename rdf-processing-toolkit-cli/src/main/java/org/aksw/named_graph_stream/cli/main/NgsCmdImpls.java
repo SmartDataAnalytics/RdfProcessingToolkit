@@ -303,7 +303,7 @@ public class NgsCmdImpls {
 
     /**
      * Injects stdin if there are no arguments and checks that stdin is not mixed with
-     * outher input sources
+     * other input sources
      *
      * @param args
      * @return

@@ -15,6 +15,7 @@ import org.apache.jena.riot.ResultSetMgr;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
+import org.apache.jena.sparql.engine.binding.BindingMap;
 
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.subjects.PublishSubject;
@@ -116,9 +117,12 @@ public class SinkStreamingBinding
 
     @Override
     protected void sendActual(Binding item) {
+        BindingMap copy = BindingFactory.create();
+        copy.addAll(item);
+
         checkThread();
         try {
-            blockingQueue.put(item);
+            blockingQueue.put(copy);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
