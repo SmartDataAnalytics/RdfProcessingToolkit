@@ -1,6 +1,6 @@
 package org.aksw.sparql_integrate.cli.main;
 
-import org.aksw.commons.util.exception.ExceptionUtils;
+import org.aksw.commons.util.exception.ExceptionUtilsAksw;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.slf4j.Logger;
@@ -23,9 +23,9 @@ public class MainCliSparqlIntegrate {
             .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
                 boolean debugMode = true;
                 if (debugMode) {
-                    ExceptionUtils.rethrowIfNotBrokenPipe(ex);
+                    ExceptionUtilsAksw.rethrowIfNotBrokenPipe(ex);
                 } else {
-                    ExceptionUtils.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtils::isBrokenPipeException);
+                    ExceptionUtilsAksw.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtilsAksw::isBrokenPipeException);
                 }
                 return 0;
             })

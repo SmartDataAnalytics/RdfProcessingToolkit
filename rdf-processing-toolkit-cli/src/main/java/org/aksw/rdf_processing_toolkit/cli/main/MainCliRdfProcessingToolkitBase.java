@@ -1,12 +1,5 @@
 package org.aksw.rdf_processing_toolkit.cli.main;
 
-import org.aksw.commons.util.exception.ExceptionUtils;
-import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import picocli.CommandLine;
-
 //
 //public abstract class MainCliRdfProcessingToolkitBase {
 //    private static final Logger logger = LoggerFactory.getLogger(MainCliRdfProcessingToolkitBase.class);

@@ -1,6 +1,6 @@
 package org.aksw.rdf_processing_toolkit.cli.main;
 
-import org.aksw.commons.util.exception.ExceptionUtils;
+import org.aksw.commons.util.exception.ExceptionUtilsAksw;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
 import org.slf4j.Logger;
@@ -24,9 +24,9 @@ public class MainCliRdfProcessingToolkit {
             .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
                 boolean debugMode = false;
                 if (debugMode) {
-                    ExceptionUtils.rethrowIfNotBrokenPipe(ex);
+                    ExceptionUtilsAksw.rethrowIfNotBrokenPipe(ex);
                 } else {
-                    ExceptionUtils.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtils::isBrokenPipeException);
+                    ExceptionUtilsAksw.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtilsAksw::isBrokenPipeException);
                 }
                 return 0;
             })
