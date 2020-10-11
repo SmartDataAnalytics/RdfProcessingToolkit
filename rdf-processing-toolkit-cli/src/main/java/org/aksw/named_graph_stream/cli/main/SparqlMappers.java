@@ -10,7 +10,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.LongStream;
 
-import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
+import org.aksw.jena_sparql_api.core.connection.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.json.RdfJsonUtils;
 import org.aksw.jena_sparql_api.rx.ResultSetRx;
 import org.aksw.jena_sparql_api.rx.ResultSetRxImpl;

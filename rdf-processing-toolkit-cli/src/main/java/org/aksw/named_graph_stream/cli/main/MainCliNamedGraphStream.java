@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 
 import org.aksw.commons.util.exception.ExceptionUtilsAksw;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
-import org.aksw.jena_sparql_api.core.RDFConnectionFactoryEx;
+import org.aksw.jena_sparql_api.core.connection.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.io.hdt.JenaPluginHdt;
 import org.aksw.jena_sparql_api.rx.op.OperatorLocalOrder;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;

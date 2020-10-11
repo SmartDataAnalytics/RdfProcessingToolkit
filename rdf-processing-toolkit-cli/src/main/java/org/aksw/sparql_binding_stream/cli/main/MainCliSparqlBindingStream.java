@@ -2,7 +2,6 @@ package org.aksw.sparql_binding_stream.cli.main;
 
 import org.aksw.commons.util.exception.ExceptionUtilsAksw;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
-import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
