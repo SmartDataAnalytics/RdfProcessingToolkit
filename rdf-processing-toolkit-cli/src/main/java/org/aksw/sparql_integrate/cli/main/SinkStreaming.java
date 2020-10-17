@@ -1,5 +1,6 @@
 package org.aksw.sparql_integrate.cli.main;
 
+import org.aksw.commons.util.life_cycle.LifeCycle;
 import org.apache.jena.atlas.lib.Sink;
 
 /**
