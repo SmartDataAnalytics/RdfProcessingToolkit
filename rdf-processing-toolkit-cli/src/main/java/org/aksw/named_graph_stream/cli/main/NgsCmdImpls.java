@@ -223,7 +223,7 @@ public class NgsCmdImpls {
             }
         };
 
-        SparqlScriptProcessor scriptProcessor = SparqlScriptProcessor.create(pm);
+        SparqlScriptProcessor scriptProcessor = SparqlScriptProcessor.createWithEnvSubstitution(pm);
 
         // Register a (best-effort) union default graph transform
         scriptProcessor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,

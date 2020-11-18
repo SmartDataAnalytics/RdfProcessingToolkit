@@ -242,7 +242,7 @@ public class SparqlIntegrateCmdImpls {
 
         PrefixMapping prefixMapping = CliUtils.configPrefixMapping(cmd);
 
-        SparqlScriptProcessor processor = SparqlScriptProcessor.create(prefixMapping);
+        SparqlScriptProcessor processor = SparqlScriptProcessor.createWithEnvSubstitution(prefixMapping);
 
         if (cmd.unionDefaultGraph) {
             processor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,
