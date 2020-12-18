@@ -2,7 +2,6 @@ package org.aksw.sparql_integrate.cli.main;
 
 import java.awt.Desktop;
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
@@ -12,21 +11,24 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import org.aksw.jena_sparql_api.algebra.transform.TransformCollectOps;
+import org.aksw.jena_sparql_api.algebra.visitor.OpVisitorTriplesQuads;
 import org.aksw.jena_sparql_api.core.SparqlService;
+import org.aksw.jena_sparql_api.core.connection.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.json.RdfJsonUtils;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
 import org.aksw.jena_sparql_api.rx.SparqlScriptProcessor;
 import org.aksw.jena_sparql_api.rx.SparqlScriptProcessor.Provenance;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
+import org.aksw.jena_sparql_api.sparql.ext.fs.OpExecutorServiceOrFile;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultEx;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
@@ -41,9 +43,11 @@ import org.apache.jena.ext.com.google.common.collect.Iterables;
 import org.apache.jena.ext.com.google.common.collect.Maps;
 import org.apache.jena.ext.com.google.common.collect.Multimap;
 import org.apache.jena.ext.com.google.common.collect.Multimaps;
+import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.query.TxnType;
@@ -57,42 +61,49 @@ import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.riot.resultset.ResultSetWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
+import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
+import org.apache.jena.sparql.algebra.op.OpService;
 import org.apache.jena.sparql.core.Var;
+import org.apache.jena.sparql.engine.main.QC;
+import org.apache.jena.sparql.engine.main.StageBuilder;
+import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
 import org.apache.jena.system.Txn;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.io.MoreFiles;
 import com.google.gson.JsonElement;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
 
     // https://stackoverflow.com/questions/35988192/java-nio-most-concise-recursive-directory-delete
-    public static void deleteFolder(Path rootPath) throws IOException {
-        if (Files.exists(rootPath)) {
-            logger.info("Deleting recursively " + rootPath);
-            // before you copy and paste the snippet
-            // - read the post till the end
-            // - read the javadoc to understand what the code will do
-            //
-            // a) to follow softlinks (removes the linked file too) use
-            // Files.walk(rootPath, FileVisitOption.FOLLOW_LINKS)
-            //
-            // b) to not follow softlinks (removes only the softlink) use
-            // the snippet below
-            try (Stream<Path> walk = Files.walk(rootPath)) {
-                walk.sorted(Comparator.reverseOrder())
-//                    .peek(path -> logger.info("Deleting " + path))
-                    .map(Path::toFile)
-                    .forEach(File::delete);
-    //                .forEach(System.err::println);
-            }
-        }
-    }
+//    public static void deleteFolder(Path rootPath) throws IOException {
+//        if (Files.exists(rootPath)) {
+//            logger.info("Deleting recursively " + rootPath);
+//            // before you copy and paste the snippet
+//            // - read the post till the end
+//            // - read the javadoc to understand what the code will do
+//            //
+//            // a) to follow softlinks (removes the linked file too) use
+//            // Files.walk(rootPath, FileVisitOption.FOLLOW_LINKS)
+//            //
+//            // b) to not follow softlinks (removes only the softlink) use
+//            // the snippet below
+//            try (Stream<Path> walk = Files.walk(rootPath)) {
+//                walk.sorted(Comparator.reverseOrder())
+////                    .peek(path -> logger.info("Deleting " + path))
+//                    .map(Path::toFile)
+//                    .forEach(File::delete);
+//    //                .forEach(System.err::println);
+//            }
+//        }
+//    }
 
     /**
      * Set up a 'DataSource' for RDF.
@@ -137,7 +148,7 @@ public class SparqlIntegrateCmdImpls {
                     deleteAction = () -> {};
                 } else {
                     logger.info("Created new directory (its content will deleted when done): " + dbPath);
-                    deleteAction = () -> deleteFolder(finalDbPath);
+                    deleteAction = () -> MoreFiles.deleteRecursively(finalDbPath);
                 }
             } else {
                 logger.warn("Folder already existed - delete action disabled: " + dbPath);
@@ -229,6 +240,77 @@ public class SparqlIntegrateCmdImpls {
         return result;
     }
 
+    
+    public static RDFConnection wrapWithAutoDisableReorder(RDFConnection conn) {
+    	return RDFConnectionFactoryEx.wrapWithPostProcessor(conn, qe -> {
+            QC.setFactory(qe.getContext(), OpExecutorServiceOrFile::new);
+
+            Query query = qe.getQuery();
+    		if (query == null) {
+    			logger.warn("Could not obtain query from query execution.");
+    		}
+    		
+    		boolean disableOrder = shouldDisableReorder(query);
+    		logger.info("Triple ordering disabled? " + disableOrder);
+    		
+    		if (disableOrder) {
+                StageBuilder.setGenerator(qe.getContext(), StageBuilder.executeInline);
+    		}
+    		
+    		return qe;
+    	});
+    }
+ 
+    /**
+     * Triple pattern reordering can give significant performance boosts on SPARQL queries
+     * but when SERVICE clauses and/or user defined property functions are in use it can
+     * lead to unexpected results.
+     * 
+     * This method decides whether to disable reordering
+     * 
+     */
+    public static boolean shouldDisableReorder(Query query) {
+    	Op op = Algebra.toQuadForm(Algebra.compile(query));
+    	Set<Op> ops = TransformCollectOps.collect(op, false);
+    	
+    	boolean containsService = ops.stream().anyMatch(x -> x instanceof OpService);
+    	
+    	// udpf = user defined property function
+    	Set<String> usedUdpfs = ops.stream()
+    		.flatMap(OpVisitorTriplesQuads::streamQuads)
+    		.map(quad -> quad.getPredicate())
+    		.filter(Node::isURI)
+    		.map(Node::getURI)
+    		.filter(uri -> PropertyFunctionRegistry.get().get(uri) != null)
+    		.collect(Collectors.toSet());
+    	
+    	boolean usesUdpf = !usedUdpfs.isEmpty();
+    	
+    	boolean result = containsService || usesUdpf;
+    	return result;
+    }
+
+    
+//    public static Stream<Element> streamElementsDepthFirstPostOrder(Element start) {
+//    	// ElementTransformer.transform(element, transform);
+////    	 return Streams.stream(Traverser.forTree(ElementUtils::getSubElements).depthFirstPostOrder(start).iterator());
+//    }
+
+    
+    
+    
+    /**
+     * Automatically disable triple pattern reordering if certain property functions
+     * or query features are used.
+     * 
+     * 
+     * @param qe
+     */
+    public void autoConfigureArqContext(QueryExecution qe) {
+    	Query query = qe.getQuery();
+    	
+    	//PropertyFunctionRegistry.get().
+    }
 
 
     public static int sparqlIntegrate(CmdSparqlIntegrateMain cmd) throws Exception {
@@ -407,11 +489,10 @@ public class SparqlIntegrateCmdImpls {
         }
 
         try {
-            Callable<RDFConnection> connSupp = () -> RDFConnectionFactory.connect(dataset);
-
+            Callable<RDFConnection> connSupp = () -> wrapWithAutoDisableReorder(RDFConnectionFactory.connect(dataset));
 
             try (RDFConnection serverConn = (cmd.server ? connSupp.call() : null)) {
-
+            	// RDFConnectionFactoryEx.getQueryConnection(conn)
                 Server server = null;
                 if (cmd.server) {
                     SparqlService sparqlService = FluentSparqlService.from(serverConn).create();
