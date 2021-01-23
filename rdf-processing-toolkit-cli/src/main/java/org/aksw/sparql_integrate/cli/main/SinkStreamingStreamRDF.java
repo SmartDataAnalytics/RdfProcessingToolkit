@@ -1,9 +1,7 @@
 package org.aksw.sparql_integrate.cli.main;
 
 import org.apache.jena.graph.Triple;
-import org.apache.jena.query.Dataset;
 import org.apache.jena.riot.system.StreamRDF;
-import org.apache.jena.riot.system.StreamRDFOps;
 import org.apache.jena.sparql.core.Quad;
 
 public class SinkStreamingStreamRDF
@@ -11,16 +9,11 @@ public class SinkStreamingStreamRDF
     implements StreamRDF
 {
     protected StreamRDF streamRDF;
-    protected Dataset prefixesAndHeader;
+    // protected OutputStream out;
 
     public SinkStreamingStreamRDF(StreamRDF streamRDF) {
-        this(streamRDF, null);
-    }
-
-    public SinkStreamingStreamRDF(StreamRDF streamRDF, Dataset prefixesAndHeader) {
         super();
         this.streamRDF = streamRDF;
-        this.prefixesAndHeader = prefixesAndHeader;
     }
 
     @Override
@@ -41,11 +34,11 @@ public class SinkStreamingStreamRDF
     @Override
     protected void startActual() {
         streamRDF.start();
-
-        // send out the header
-        if (prefixesAndHeader != null) {
-            StreamRDFOps.sendDatasetToStream(prefixesAndHeader.asDatasetGraph(), this);
-        }
+//
+//        // send out the header
+//        if (prefixesAndHeader != null) {
+//            StreamRDFOps.sendDatasetToStream(prefixesAndHeader.asDatasetGraph(), this);
+//        }
     }
 
     @Override

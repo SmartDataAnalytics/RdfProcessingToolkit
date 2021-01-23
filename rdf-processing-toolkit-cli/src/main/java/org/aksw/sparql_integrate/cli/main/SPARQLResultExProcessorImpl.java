@@ -159,13 +159,29 @@ public class SPARQLResultExProcessorImpl
     }
 
 
-    // TODO Wrap as a builder
+    /**
+     * Configure a SPARQLResultExProcessor to delegate
+     * JSON, triples/quads and bindings to the appropriate target.
+     * 
+     * TODO Wrap as a builder
+     * @param outputMode
+     * @param out
+     * @param err
+     * @param pm
+     * @param outRdfFormat
+     * @param deferCount Number of items to analyze for used prefixes before writing them out
+     * @param outLang
+     * @param resultSetVars
+     * @param closeAction
+     * @return
+     */
     public static SPARQLResultExProcessorImpl configureForOutputMode(
             OutputMode outputMode,
             OutputStream out,
             OutputStream err,
             PrefixMapping pm,
             RDFFormat outRdfFormat,
+            long deferCount,
             Lang outLang,
             List<Var> resultSetVars,
             Closeable closeAction
@@ -180,7 +196,7 @@ public class SPARQLResultExProcessorImpl
             Objects.requireNonNull(outRdfFormat);
 
             result = new SPARQLResultExProcessorImpl(
-                    SinkStreamingQuads.createSinkQuads(outRdfFormat, out, pm, datasetSupp),
+                    SinkStreamingQuads.createSinkQuads(outRdfFormat, out, pm, deferCount, datasetSupp),
                     new SinkStreamingJsonArray(err, false),
                     new SinkStreamingAdapter<>(),
                     closeAction) { //new SinkStreamingBinding(err, resultSetVars, ResultSetLang.SPARQLResultSetText)) {
@@ -194,7 +210,7 @@ public class SPARQLResultExProcessorImpl
             break;
         case JSON:
             result = new SPARQLResultExProcessorImpl(
-                    SinkStreamingQuads.createSinkQuads(RDFFormat.TRIG_BLOCKS, err, pm, datasetSupp),
+                    SinkStreamingQuads.createSinkQuads(RDFFormat.TRIG_BLOCKS, err, pm, 0, datasetSupp),
                     new SinkStreamingJsonArray(out),
                     //new SinkStreamingBinding(err, resultSetVars, ResultSetLang.SPARQLResultSetText));
                     new SinkStreamingAdapter<>(),
@@ -210,7 +226,7 @@ public class SPARQLResultExProcessorImpl
             Objects.requireNonNull(outLang);
 
             result = new SPARQLResultExProcessorImpl(
-                    SinkStreamingQuads.createSinkQuads(RDFFormat.TRIG_BLOCKS, err, pm, datasetSupp),
+                    SinkStreamingQuads.createSinkQuads(RDFFormat.TRIG_BLOCKS, err, pm, 0, datasetSupp),
                     new SinkStreamingJsonArray(err, false),
                     new SinkStreamingBinding(out, resultSetVars, outLang),
                     closeAction);

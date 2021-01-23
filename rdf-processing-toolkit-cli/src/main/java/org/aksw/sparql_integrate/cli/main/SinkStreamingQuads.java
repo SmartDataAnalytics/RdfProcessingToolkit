@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 
 import org.aksw.jena_sparql_api.utils.GraphUtils;
 import org.aksw.jena_sparql_api.utils.PrefixUtils;
+import org.aksw.jena_sparql_api.utils.io.StreamRDFDeferred;
 import org.apache.jena.ext.com.google.common.collect.Iterators;
 import org.apache.jena.ext.com.google.common.collect.Streams;
 import org.apache.jena.graph.Node;
@@ -35,11 +36,20 @@ public class SinkStreamingQuads
      * @param r
      * @param format
      * @param out
+     * @param prefixAnalysisEventCount Defer output until this number of triple/quad events have
+     *        been reached and optimize prefixes for the seen data in that window.
+     *        Negative values cause deferring until all events have been seen which effectively disables streaming.
+     *        A value of zero immediately prints out the prefixes
      * @param dataset The dataset implementation to use for non-streaming data.
      *                Allows for use of insert-order preserving dataset implementations.
      * @return
      */
-    public static SinkStreaming<Quad> createSinkQuads(RDFFormat format, OutputStream out, PrefixMapping pm, Supplier<Dataset> datasetSupp) {
+    public static SinkStreaming<Quad> createSinkQuads(
+    		RDFFormat format,
+    		OutputStream out,
+    		PrefixMapping pm,
+    		long prefixAnalysis,
+    		Supplier<Dataset> datasetSupp) {
 //        boolean useStreaming = format == null ||
 //                Arrays.asList(Lang.NTRIPLES, Lang.NQUADS).contains(format.getLang());
         SinkStreaming<Quad> result;
@@ -47,9 +57,10 @@ public class SinkStreamingQuads
         boolean useStreaming = true;
         if(useStreaming) {
             StreamRDF writer = StreamRDFWriter.getWriterStream(out, format, null);
-            Dataset header = DatasetFactory.create();
-            header.getDefaultModel().setNsPrefixes(pm);
-            result = new SinkStreamingStreamRDF(writer, header);
+            writer = new StreamRDFDeferred(writer, true, pm, prefixAnalysis, 100 * prefixAnalysis, null);
+//            Dataset header = DatasetFactory.create();
+//            header.getDefaultModel().setNsPrefixes(pm);
+            result = new SinkStreamingStreamRDF(writer);
 
             // result = SinkStreamingWrapper.wrap(new SinkQuadOutput(out, null, null));
         } else {

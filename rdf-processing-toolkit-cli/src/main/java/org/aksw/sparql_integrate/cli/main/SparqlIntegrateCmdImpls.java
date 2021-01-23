@@ -727,6 +727,7 @@ public class SparqlIntegrateCmdImpls {
                 err,
                 prefixMapping,
                 spec.getOutRdfFormat(),
+                20,
                 spec.getOutLang(),
                 selectVars,
                 closeAction);

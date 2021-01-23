@@ -117,6 +117,11 @@ public class SinkStreamingBinding
 
     @Override
     protected void sendActual(Binding item) {
+    	// Create a copy the bindings so we don't run into race
+    	// conditions when we process them in another thread.
+    	// For instance, accessing TDB2 bindings after
+    	// the underlying query execution has been concurrently closed
+    	// raises an exception
         BindingMap copy = BindingFactory.create();
         copy.addAll(item);
 

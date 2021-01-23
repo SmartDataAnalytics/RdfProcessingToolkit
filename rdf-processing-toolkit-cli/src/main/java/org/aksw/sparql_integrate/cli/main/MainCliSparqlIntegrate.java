@@ -21,7 +21,8 @@ public class MainCliSparqlIntegrate {
     public static int mainCore(String[] args) {
         int result = new CommandLine(new CmdSparqlIntegrateMain())
             .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                boolean debugMode = true;
+            	CmdSparqlIntegrateMain cmd = commandLine.getCommand();
+            	boolean debugMode = cmd.debugMode;
                 if (debugMode) {
                     ExceptionUtilsAksw.rethrowIfNotBrokenPipe(ex);
                 } else {
