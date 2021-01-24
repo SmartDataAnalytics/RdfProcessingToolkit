@@ -39,6 +39,7 @@ import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.DatasetGraphFactory;
+import org.apache.jena.sparql.core.Prologue;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.lang.arq.ParseException;
 import org.slf4j.Logger;
@@ -142,8 +143,9 @@ public class MainCliSparqlStream {
             copy.setNsPrefixes(pm);
 
 //            SparqlStmtIterator it = SparqlStmtUtils.processFile(copy, filename, baseIri);
-            SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, copy, true);
-            Iterator<SparqlStmt> it = SparqlStmtMgr.loadSparqlStmts(filename, copy, parser, baseIri);
+            SparqlStmtParser parser = SparqlStmtParserImpl.create(Syntax.syntaxARQ, new Prologue(copy, baseIri), true);
+//            Iterator<SparqlStmt> it = SparqlStmtMgr.loadSparqlStmts(filename, copy, parser, baseIri);
+            Iterator<SparqlStmt> it = SparqlStmtMgr.loadSparqlStmts(filename, parser);
 
             // View 'it' as a SparqlStmtIterator if applicable; null otherwise
             SparqlStmtIterator sit = it instanceof SparqlStmtIterator ? (SparqlStmtIterator)it : null;
