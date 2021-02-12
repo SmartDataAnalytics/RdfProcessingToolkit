@@ -14,6 +14,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.aksw.commons.io.util.StdIo;
 import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsGit;
 import org.apache.jena.datatypes.xsd.XSDDateTime;
@@ -41,7 +42,7 @@ public class NgsGitCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(NgsGitCmdImpls.class);
 
     public static int git(CmdNgsGit cmd) throws Exception {
-        OutputStream out = MainCliNamedGraphStream.out;
+        OutputStream out = StdIo.openStdOutWithCloseShield();
 
         List<String> filenames = cmd.nonOptionArgs;
 

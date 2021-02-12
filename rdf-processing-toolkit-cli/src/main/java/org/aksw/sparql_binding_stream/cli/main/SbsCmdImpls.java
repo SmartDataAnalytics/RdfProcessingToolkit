@@ -11,18 +11,18 @@ import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.aksw.commons.io.util.StdIo;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
 import org.aksw.jena_sparql_api.rx.ResultSetRx;
 import org.aksw.jena_sparql_api.rx.ResultSetRxImpl;
+import org.aksw.jena_sparql_api.rx.io.resultset.NamedGraphStreamCliUtils;
 import org.aksw.jena_sparql_api.rx.query_flow.ResultSetRxOps;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
 import org.aksw.jena_sparql_api.utils.ResultSetUtils;
-import org.aksw.named_graph_stream.cli.main.MainCliNamedGraphStream;
-import org.aksw.named_graph_stream.cli.main.NgsCmdImpls;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsFilter;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsMap;
 import org.apache.jena.atlas.web.TypedInputStream;
@@ -107,7 +107,7 @@ public class SbsCmdImpls {
 
 
     public static ResultSetRx createResultSetRx(String filenameOrIri, Collection<Lang> probeLangs)  {
-        Callable<TypedInputStream> inSupp = NgsCmdImpls.validate(filenameOrIri, probeLangs, true);
+        Callable<TypedInputStream> inSupp = NamedGraphStreamCliUtils.validate(filenameOrIri, probeLangs, true);
 
         ResultSetRx result = createResultSetRx(inSupp);
         return result;
@@ -147,7 +147,7 @@ public class SbsCmdImpls {
     }
 
     public static ResultSetRx createResultSetRxFromArgs(List<String> rawArgs) {
-        List<String> args = NgsCmdImpls.preprocessArgs(rawArgs);
+        List<String> args = NamedGraphStreamCliUtils.preprocessArgs(rawArgs);
 
         List<Lang> resultSetProbeLangs = RDFLanguagesEx.getResultSetProbeLangs();
 
@@ -189,7 +189,7 @@ public class SbsCmdImpls {
         try(QueryExecution e = out.asQueryExecution()) {
             ResultSet rs = e.execSelect();
 
-            ResultSetMgr.write(MainCliNamedGraphStream.out, rs, outLang);
+            ResultSetMgr.write(StdIo.openStdOutWithCloseShield(), rs, outLang);
         }
 
         return 0;
@@ -215,7 +215,7 @@ public class SbsCmdImpls {
         try(QueryExecution e = out.asQueryExecution()) {
             ResultSet rs = e.execSelect();
 
-            ResultSetMgr.write(MainCliNamedGraphStream.out, rs, outLang);
+            ResultSetMgr.write(StdIo.openStdOutWithCloseShield(), rs, outLang);
         }
 
         return 0;

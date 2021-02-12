@@ -1,83 +1,61 @@
 package org.aksw.named_graph_stream.cli.main;
 
 import java.io.FileDescriptor;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import org.aksw.commons.util.exception.ExceptionUtilsAksw;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
-import org.aksw.jena_sparql_api.core.connection.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.io.hdt.JenaPluginHdt;
-import org.aksw.jena_sparql_api.rx.op.OperatorLocalOrder;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
-import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMain;
-import org.aksw.named_graph_stream.cli.cmd.CmdNgsMap;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
-import org.aksw.sparql_integrate.cli.MainCliSparqlStream;
 import org.apache.commons.io.output.CloseShieldOutputStream;
-import org.apache.jena.ext.com.google.common.base.Strings;
-import org.apache.jena.ext.com.google.common.collect.Maps;
 import org.apache.jena.ext.com.google.common.collect.Streams;
-import org.apache.jena.graph.Node;
-import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
-import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
-import org.apache.jena.rdfconnection.SparqlQueryConnection;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
-import org.apache.jena.sparql.lang.arq.ParseException;
-import org.apache.jena.sparql.util.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.core.FlowableTransformer;
-import io.reactivex.rxjava3.functions.BiFunction;
-import io.reactivex.rxjava3.schedulers.Schedulers;
 import picocli.CommandLine;
 
 public class MainCliNamedGraphStream {
 
     static { CliUtils.configureGlobalSettings(); }
 
-    public static Collection<Lang> quadLangs = Arrays.asList(Lang.TRIG, Lang.NQUADS);
-    public static Collection<Lang> tripleLangs = Arrays.asList(Lang.TURTLE, JenaPluginHdt.LANG_HDT);
+//    public static Collection<Lang> quadLangs = Arrays.asList(Lang.TRIG, Lang.NQUADS);
+//    public static Collection<Lang> tripleLangs = Arrays.asList(Lang.TURTLE, JenaPluginHdt.LANG_HDT);
+//
+//    public static Collection<Lang> quadAndTripleLangs = Stream.concat(quadLangs.stream(), tripleLangs.stream())
+//            .collect(Collectors.toList());
 
-    public static Collection<Lang> quadAndTripleLangs = Stream.concat(quadLangs.stream(), tripleLangs.stream())
-            .collect(Collectors.toList());
+//    @Deprecated
+//    public static final OutputStream out = new CloseShieldOutputStream(new FileOutputStream(FileDescriptor.out));
 
-    @Deprecated
-    public static final OutputStream out = new CloseShieldOutputStream(new FileOutputStream(FileDescriptor.out));
-
-    public static OutputStream openStdout() {
-        return new CloseShieldOutputStream(new FileOutputStream(FileDescriptor.out));
-    }
+//    public static OutputStream openStdout() {
+//        return new CloseShieldOutputStream(new FileOutputStream(FileDescriptor.out));
+//    }
 
 
 //    public static final OutputStream out = new FileOutputStream(FileDescriptor.out);
@@ -87,7 +65,6 @@ public class MainCliNamedGraphStream {
         pm.setNsPrefixes(DefaultPrefixes.prefixes);
         JenaExtensionUtil.addPrefixes(pm);
         JenaExtensionHttp.addPrefixes(pm);
-
     }
 
     //public static Collection<Lang> tripleLangs = Arrays.asList(Lang.TURTLE, Lang.NTRIPLES, Lang.RDFXML);
@@ -173,107 +150,7 @@ public class MainCliNamedGraphStream {
         return result;
     }
 
-    public static <T, X> FlowableTransformer<T, X> createMapperDataset(
-            PrefixMapping pm,
-            List<String> sparqlSrcs, //CmdNgsMap cmdMap,
-            Function<? super T, ? extends Dataset> getDataset,
-            BiFunction<? super T, ? super Dataset, X> setDataset,
-            Consumer<Context> contextHandler) throws FileNotFoundException, IOException, ParseException {
 
-        BiConsumer<RDFConnection, SPARQLResultSink> coreProcessor =
-                MainCliSparqlStream.createProcessor(sparqlSrcs, pm, true);
-
-
-        // Wrap the core processor with modifiers for the context
-        BiConsumer<RDFConnection, SPARQLResultSink> processor = (coreConn, sink) -> {
-            RDFConnection c = contextHandler == null
-                ? coreConn
-                : RDFConnectionFactoryEx.wrapWithContext(coreConn, contextHandler);
-
-            coreProcessor.accept(c, sink);
-        };
-
-
-        Function<Dataset, Dataset> mapper = createMapper(processor);
-
-        return in -> in
-            .zipWith(() -> LongStream.iterate(0, i -> i + 1).iterator(), Maps::immutableEntry)
-            .parallel() //Runtime.getRuntime().availableProcessors(), 8) // Prefetch only few items
-            .runOn(Schedulers.io())
-            //.observeOn(Schedulers.computation())
-            .map(e -> {
-                T item = e.getKey();
-                Dataset before = getDataset.apply(item);
-                Dataset after = mapper.apply(before);
-                X r = setDataset.apply(item, after);
-                return Maps.immutableEntry(r, e.getValue());
-            })
-            // Experiment with performing serialization already in the thread
-            // did not show much benefit
-    //			.map(e -> {
-    //				Dataset tmp = e.getKey();
-    //				String str = toString(tmp, RDFFormat.TRIG_PRETTY);
-    //				return Maps.immutableEntry(str, e.getValue());
-    //			})
-            .sequential()
-            .lift(OperatorLocalOrder.create(0l, i -> i + 1, (a, b) -> a - b, Entry::getValue))
-            //.sorted((a, b) -> Objects.compare(a.getValue(), b.getValue(), Ordering.natural().re))
-            // .sequential()
-//            .doAfterNext(item -> System.err.println("GOT AFTER SEQUENTIAL: " + item.getValue() + " in thread " + Thread.currentThread()))
-    //			.doAfterNext(System.out::println)
-//            .doAfterNext(item -> System.err.println("GOT AFTER LOCAL ORDERING: " + item.getValue() + " in thread " + Thread.currentThread()))
-            .map(Entry::getKey);
-    }
-
-
-
-
-    public static FlowableTransformer<Dataset, Dataset> createMapperDataset(Consumer<Context> contextHandler, String ... sparqlResources) {
-        FlowableTransformer<Dataset, Dataset> result;
-        try {
-            result = createMapperDataset(DefaultPrefixes.prefixes, Arrays.asList(sparqlResources), ds -> ds, (before, after) -> after, contextHandler);
-        } catch (IOException | ParseException e) {
-            throw new RuntimeException(e);
-        }
-        return result;
-    }
-
-    public static Flowable<Dataset> mapCore(Consumer<Context> contextHandler, PrefixMapping pm, CmdNgsMap cmdFlatMap)
-            throws FileNotFoundException, IOException, ParseException {
-
-        FlowableTransformer<Dataset, Dataset> mapper = createMapperDataset(pm, cmdFlatMap.mapSpec.stmts, ds -> ds, (before, after) -> after, contextHandler);
-
-        Flowable<Dataset> result = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdFlatMap.nonOptionArgs, null, pm)
-                .compose(mapper);
-
-        return result;
-    }
-
-
-
-    // public static final UnaryRelation DISTINCT_NAMED_GRAPHS = Concept.create("GRAPH ?g { ?s ?p ?o }", "g");
-    public static final Query DISTINCT_NAMED_GRAPHS = QueryFactory.create("SELECT DISTINCT ?g { GRAPH ?g { ?s ?p ?o } }");
-
-
-
-    public static Function<? super SparqlQueryConnection, Node> createKeyMapper(
-            String keyArg,
-            Function<? super String, ? extends Query> queryParser,
-            Query fallback) {
-        //Function<Dataset, Node> keyMapper;
-
-        Query effectiveKeyQuery;
-        boolean useFallback = Strings.isNullOrEmpty(keyArg);
-        if(!useFallback) {
-            effectiveKeyQuery = queryParser.apply(keyArg);
-            QueryUtils.optimizePrefixes(effectiveKeyQuery);
-        } else {
-            effectiveKeyQuery = fallback;
-        }
-
-        Function<? super SparqlQueryConnection, Node> result = ResultSetMappers.createNodeMapper(effectiveKeyQuery, NodeFactory.createLiteral(""));
-        return result;
-    }
 }
 
 

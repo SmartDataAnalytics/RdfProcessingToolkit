@@ -19,27 +19,28 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
+import org.aksw.commons.io.util.StdIo;
 import org.aksw.jena_sparql_api.algebra.transform.TransformCollectOps;
 import org.aksw.jena_sparql_api.algebra.visitor.OpVisitorTriplesQuads;
 import org.aksw.jena_sparql_api.core.SparqlService;
 import org.aksw.jena_sparql_api.core.connection.RDFConnectionFactoryEx;
-import org.aksw.jena_sparql_api.json.RdfJsonUtils;
-import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
 import org.aksw.jena_sparql_api.rx.SparqlScriptProcessor;
 import org.aksw.jena_sparql_api.rx.SparqlScriptProcessor.Provenance;
+import org.aksw.jena_sparql_api.rx.io.resultset.OutputFormatSpec;
+import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessor;
+import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessorBuilder;
+import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExVisitor;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
 import org.aksw.jena_sparql_api.sparql.ext.fs.OpExecutorServiceOrFile;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultEx;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
-import org.aksw.named_graph_stream.cli.main.MainCliNamedGraphStream;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.ext.com.google.common.base.Strings;
-import org.apache.jena.ext.com.google.common.collect.Iterables;
 import org.apache.jena.ext.com.google.common.collect.Maps;
 import org.apache.jena.ext.com.google.common.collect.Multimap;
 import org.apache.jena.ext.com.google.common.collect.Multimaps;
@@ -48,25 +49,19 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QuerySolution;
-import org.apache.jena.query.ResultSet;
 import org.apache.jena.query.TxnType;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
-import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.RDFWriterRegistry;
-import org.apache.jena.riot.resultset.ResultSetLang;
-import org.apache.jena.riot.resultset.ResultSetWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpService;
-import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
@@ -77,33 +72,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.io.MoreFiles;
-import com.google.gson.JsonElement;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
-
-    // https://stackoverflow.com/questions/35988192/java-nio-most-concise-recursive-directory-delete
-//    public static void deleteFolder(Path rootPath) throws IOException {
-//        if (Files.exists(rootPath)) {
-//            logger.info("Deleting recursively " + rootPath);
-//            // before you copy and paste the snippet
-//            // - read the post till the end
-//            // - read the javadoc to understand what the code will do
-//            //
-//            // a) to follow softlinks (removes the linked file too) use
-//            // Files.walk(rootPath, FileVisitOption.FOLLOW_LINKS)
-//            //
-//            // b) to not follow softlinks (removes only the softlink) use
-//            // the snippet below
-//            try (Stream<Path> walk = Files.walk(rootPath)) {
-//                walk.sorted(Comparator.reverseOrder())
-////                    .peek(path -> logger.info("Deleting " + path))
-//                    .map(Path::toFile)
-//                    .forEach(File::delete);
-//    //                .forEach(System.err::println);
-//            }
-//        }
-//    }
 
     /**
      * Set up a 'DataSource' for RDF.
@@ -166,79 +137,7 @@ public class SparqlIntegrateCmdImpls {
 
 
 
-    /**
-     * If the last query is a json query then the mode is json.
-     * If there is a construct query the mode is quads.
-     * If there is no construct query but a select one, the mode is bindings.
-     *
-     */
-    public static OutputMode detectOutputMode(List<SparqlStmt> stmts) {
-        OutputMode result = null;
-        if (stmts.isEmpty()) {
-            result = OutputMode.TRIPLE;
-        } else {
-            SparqlStmt last = stmts.get(stmts.size() - 1);
-            if (last.isQuery()) {
-                Query q = last.getQuery();
-                if (q.isJsonType()) {
-                    result = OutputMode.JSON;
-                }
-            }
 
-
-            int tripleCount = 0;
-            int quadCount = 0;
-            int bindingCount = 0;
-
-            if (result == null) {
-                for (SparqlStmt stmt : stmts) {
-                    if (stmt.isQuery()) {
-                        Query q = stmt.getQuery();
-
-                        if (q.isConstructType()) {
-                            if (q.isConstructQuad()) {
-                                ++quadCount;
-                            } else {
-                                ++tripleCount;
-                            }
-                        } else if (q.isSelectType()) {
-                            ++bindingCount;
-                        }
-                    }
-                }
-
-                if (quadCount != 0) {
-                    result = OutputMode.QUAD;
-                } else if (tripleCount != 0) {
-                    result = OutputMode.TRIPLE;
-                } else if (bindingCount != 0) {
-                    result = OutputMode.BINDING;
-                }
-            }
-
-
-            if(result == null) {
-                result = OutputMode.TRIPLE;
-            }
-        }
-
-        return result;
-    }
-
-
-    public static OutputMode determineOutputMode(Lang lang) {
-        OutputMode result;
-        if (RDFLanguages.isTriples(lang) || RDFLanguages.isQuads(lang)) {
-            result = OutputMode.QUAD;
-        } else if (ResultSetWriterRegistry.isRegistered(lang)) {
-            result = OutputMode.BINDING;
-        } else {
-            //result = OutputMode.UNKOWN;
-            result = null;
-        }
-
-        return result;
-    }
 
     
     public static RDFConnection wrapWithAutoDisableReorder(RDFConnection conn) {
@@ -387,7 +286,7 @@ public class SparqlIntegrateCmdImpls {
             }));
 
         } else {
-            operationalOut = MainCliNamedGraphStream.openStdout();
+            operationalOut = StdIo.openStdOutWithCloseShield();
             outFile = null;
             tmpFile = null;
         }
@@ -425,6 +324,7 @@ public class SparqlIntegrateCmdImpls {
 //        }
 //        List<SparqlStmt> stmts = workloads.stream().map(Entry::getKey).collect(Collectors.toList());
 
+        long usedPrefixDefer = cmd.usedPrefixDefer;
         // Create the union of variables used in select queries
         boolean jqMode = cmd.jqDepth != null;
         int jqDepth = jqMode ? cmd.jqDepth : 3;
@@ -453,13 +353,14 @@ public class SparqlIntegrateCmdImpls {
                 effOut = Files.newOutputStream(clusterOutFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
             }
 
-            SPARQLResultExProcessor effectiveHandler = configureProcessor(
+            SPARQLResultExProcessor effectiveHandler = SPARQLResultExProcessorBuilder.configureProcessor(
                     effOut, System.err,
                     outFormat,
                     clusterStmts,
                     prefixMapping,
                     tripleFormat,
                     quadFormat,
+                    usedPrefixDefer,
                     jqMode, jqDepth, jqFlatMode,
                     effOut
                     );
@@ -571,6 +472,15 @@ public class SparqlIntegrateCmdImpls {
         return exitCode;
     }
 
+    
+    /**
+     * Essentially a wrapper for {@link SparqlStmtUtils#execAny(RDFConnection, SparqlStmt)} which
+     * logs the workload (the sparql query) being processed. 
+     * 
+     * @param conn
+     * @param workload
+     * @param resultProcessor
+     */
     public static void execStmt(
             RDFConnection conn,
             Entry<? extends SparqlStmt, ? extends Provenance> workload,
@@ -592,165 +502,5 @@ public class SparqlIntegrateCmdImpls {
     }
 
 
-    public static class OutputFormatSpec {
-        protected OutputMode outputMode;
-        protected RDFFormat outRdfFormat = null;
-        protected Lang outLang = null;
 
-        public OutputFormatSpec(OutputMode outputMode, RDFFormat outRdfFormat, Lang outLang) {
-            super();
-            this.outputMode = outputMode;
-            this.outRdfFormat = outRdfFormat;
-            this.outLang = outLang;
-        }
-
-        public OutputMode getOutputMode() {
-            return outputMode;
-        }
-
-        public RDFFormat getOutRdfFormat() {
-            return outRdfFormat;
-        }
-
-        public Lang getOutLang() {
-            return outLang;
-        }
-
-        public static OutputFormatSpec create(
-                String outFormat,
-                RDFFormat tripleFormat,
-                RDFFormat quadFormat,
-                List<SparqlStmt> stmts,
-                boolean jqMode
-            ) {
-            OutputMode outputMode;
-            RDFFormat outRdfFormat = null;
-            Lang outLang = null;
-
-            if (outFormat != null) {
-                if ("json".equalsIgnoreCase(outFormat)) {
-                    outputMode = OutputMode.JSON;
-                } else {
-
-                    try {
-                        outRdfFormat = RDFLanguagesEx.findRdfFormat(outFormat);
-                        outLang = outRdfFormat.getLang();
-                    } catch (Exception e) {
-                        outLang = RDFLanguagesEx.findLang(outFormat);
-                    }
-
-                    outputMode = determineOutputMode(outLang);
-                }
-            } else {
-                outputMode = jqMode ? OutputMode.JSON : detectOutputMode(stmts);
-
-                switch (outputMode) {
-                case BINDING:
-                    outLang = ResultSetLang.SPARQLResultSetJSON;
-                    // outRdfFormat = new RDFFormat(outLang);
-                    break;
-                case TRIPLE:
-                    outRdfFormat = tripleFormat;
-                    outLang = outRdfFormat.getLang();
-                    break;
-                case QUAD:
-                    outRdfFormat = quadFormat;
-                    outLang = outRdfFormat.getLang();
-                    break;
-                case JSON:
-                    // Nothing to do
-                    break;
-                default:
-                    throw new IllegalStateException("Unknown output mode");
-                }
-
-            }
-
-            return new OutputFormatSpec(outputMode, outRdfFormat, outLang);
-        }
-
-        public String getFileExtension() {
-            String result;
-            if (outputMode.equals(OutputMode.JSON)) {
-                result = "json";
-            } else {
-                Lang lang;
-                if (outRdfFormat != null) {
-                    lang = outRdfFormat.getLang();
-                } else {
-                    lang = outLang;
-                }
-
-                if (lang == null) {
-                    result = null;
-                } else {
-                    result = Iterables.getFirst(lang.getFileExtensions(), null);
-                }
-            }
-
-            return result;
-        }
-    }
-
-
-
-    /**
-     *
-     * @param outFormat
-     * @param stmts
-     * @param prefixMapping
-     * @param quadFormat Allows to preset a streaming format in case quads were requested
-     * @param jqMode
-     * @param jqDepth
-     * @param jqFlatMode
-     * @return
-     */
-    public static SPARQLResultExProcessor configureProcessor(
-            OutputStream out,
-            OutputStream err,
-            String outFormat,
-            List<SparqlStmt> stmts,
-            PrefixMapping prefixMapping,
-            RDFFormat tripleFormat,
-            RDFFormat quadFormat,
-            boolean jqMode, int jqDepth, boolean jqFlatMode,
-            Closeable closeAction) {
-
-        OutputFormatSpec spec = OutputFormatSpec.create(outFormat, tripleFormat, quadFormat, stmts, jqMode);
-
-        // RDFLanguagesEx.findRdfFormat(cmd.outFormat, probeFormats)
-        List<Var> selectVars = SparqlStmtUtils.getUnionProjectVars(stmts);
-
-        SPARQLResultExProcessorImpl coreProcessor = SPARQLResultExProcessorImpl.configureForOutputMode(
-                spec.getOutputMode(),
-                out,
-                err,
-                prefixMapping,
-                spec.getOutRdfFormat(),
-                20,
-                spec.getOutLang(),
-                selectVars,
-                closeAction);
-
-
-        // TODO The design with SPARQLResultExProcessorForwarding seems a bit overly complex
-        // Perhaps allow setting up the jq stuff on SPARQLResultExProcessorImpl directly?
-        SPARQLResultExProcessor effectiveProcessor;
-        if (jqMode) {
-            effectiveProcessor = new SPARQLResultExProcessorForwarding<SPARQLResultExProcessorImpl>(coreProcessor) {
-                @Override
-                public Void onResultSet(ResultSet it) {
-                    while (it.hasNext()) {
-                        QuerySolution qs = it.next();
-                        JsonElement json = RdfJsonUtils.toJson(qs, jqDepth, jqFlatMode);
-                        coreProcessor.getJsonSink().send(json);
-                    }
-                    return null;
-                }
-            };
-        } else {
-            effectiveProcessor = coreProcessor;
-        }
-        return effectiveProcessor;
-    }
 }

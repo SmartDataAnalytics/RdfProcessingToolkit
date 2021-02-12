@@ -83,7 +83,10 @@ public class CmdSparqlIntegrateMain
         public String inOutFile = null;
     }
 
+    @Option(names = { "-d", "--used-prefixes" }, description = "Number of records by which to defer RDF output in order to analyze used prefixes; default: ${DEFAULT-VALUE}", defaultValue = "20")
+    public long usedPrefixDefer;
 
+    
     /**
      * If not given, the output mode (quads/bindings/json) is chosen from the remaining arguments and
      * the outFormat becomes the default format of that mode

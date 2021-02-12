@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import org.aksw.commons.io.syscall.sort.SysSort;
 import org.aksw.named_graph_stream.cli.main.NgsCmdImpls;
 
 import picocli.CommandLine.Command;
@@ -51,6 +52,26 @@ public class CmdNgsSort implements Callable<Integer> {
     @Option(names = { "-m", "--merge" })
     public boolean merge = false;
 
+    /**
+     * Convert the arguments related to sorting into a System-Sort configuration
+     * 
+     * @param cmd
+     * @return
+     */
+    public static SysSort toSysSort(CmdNgsSort cmd) {
+    	SysSort result = new SysSort();
+    	result.bufferSize = cmd.bufferSize;
+    	result.key = cmd.key;
+    	result.merge = cmd.merge;
+    	result.parallel = cmd.parallel;
+    	result.randomSort = cmd.randomSort;
+    	result.reverse = cmd.reverse;
+    	result.temporaryDirectory = cmd.temporaryDirectory;
+    	result.unique = cmd.unique;
+    	
+    	return result;
+    }
+    
     @Override
     public Integer call() throws Exception {
         return NgsCmdImpls.sort(this);
