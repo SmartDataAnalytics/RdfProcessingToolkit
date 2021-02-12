@@ -225,69 +225,78 @@ public class NgsCmdImpls {
 
 
     public static void execMap(PrefixMapping pm, CmdNgsMap cmdFlatMap) {
-
-        String timeoutSpec = cmdFlatMap.serviceTimeout;
-        Consumer<Context> contextHandler = cxt -> {
-            if (!Strings.isNullOrEmpty(timeoutSpec)) {
-                cxt.set(Service.queryTimeout, timeoutSpec);
-            }
-        };
-
-        SparqlScriptProcessor scriptProcessor = SparqlScriptProcessor.createWithEnvSubstitution(pm);
-
-        // Register a (best-effort) union default graph transform
-        scriptProcessor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,
-                op -> Transformer.transformSkipService(new TransformUnionQuery(), op)));
-
-
-        scriptProcessor.process(cmdFlatMap.mapSpec.stmts);
-        List<Entry<SparqlStmt, Provenance>> workloads = scriptProcessor.getSparqlStmts();
-
-        List<SparqlStmt> stmts = workloads.stream().map(Entry::getKey).collect(Collectors.toList());
-
-        OutputMode outputMode = OutputModes.detectOutputMode(stmts);
-
-        // This is the final output sink
-        SPARQLResultExProcessor resultProcessor = SPARQLResultExProcessorBuilder.configureProcessor(
-                StdIo.openStdOutWithCloseShield(), System.err,
-                cmdFlatMap.outFormat,
-                stmts,
-                pm,
-                RDFFormat.TURTLE_BLOCKS,
-                RDFFormat.TRIG_BLOCKS,
-                20,
-                false, 0, false,
-                () -> {});
-
-        Function<RDFConnection, SPARQLResultEx> mapper = SparqlMappers.createMapperToSparqlResultEx(outputMode, stmts, resultProcessor);
-
-        Flowable<SPARQLResultEx> flow =
-                // Create a stream of Datasets
-        		NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdFlatMap.nonOptionArgs, null, pm, quadLangs)
-                    // Map the datasets in parallel
-                    .compose(RxOps.createParallelMapperOrdered(
-                        // Map the dataset to a connection
-                        SparqlMappers.mapDatasetToConnection(
-                                // Set context attributes on the connection, e.g. timeouts
-                                SparqlMappers.applyContextHandler(contextHandler)
-                                    // Finally invoke the mapper
-                                    .andThen(mapper))));
-
-        resultProcessor.start();
-        try {
-//            for(SPARQLResultEx item : flow.blockingIterable(16)) {
-//                System.out.println(item);
-//                resultProcessor.forwardEx(item);
+    	
+    	NamedGraphStreamCliUtils.execMap(pm,
+    			cmdFlatMap.nonOptionArgs,
+    			quadLangs,
+    			cmdFlatMap.mapSpec.stmts,    			
+    			cmdFlatMap.serviceTimeout,
+    			cmdFlatMap.outFormat,
+    			20);
+    	
+//        String timeoutSpec = cmdFlatMap.serviceTimeout;
+//        Consumer<Context> contextHandler = cxt -> {
+//            if (!Strings.isNullOrEmpty(timeoutSpec)) {
+//                cxt.set(Service.queryTimeout, timeoutSpec);
 //            }
-            RxUtils.consume(flow.map(item -> { resultProcessor.forwardEx(item); return item; }));
-            resultProcessor.finish();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            resultProcessor.flush();
-            resultProcessor.close();
-        }
+//        };
+//
+//        SparqlScriptProcessor scriptProcessor = SparqlScriptProcessor.createWithEnvSubstitution(pm);
+//
+//        // Register a (best-effort) union default graph transform
+//        scriptProcessor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,
+//                op -> Transformer.transformSkipService(new TransformUnionQuery(), op)));
+//
+//
+//        scriptProcessor.process(cmdFlatMap.mapSpec.stmts);
+//        List<Entry<SparqlStmt, Provenance>> workloads = scriptProcessor.getSparqlStmts();
+//
+//        List<SparqlStmt> stmts = workloads.stream().map(Entry::getKey).collect(Collectors.toList());
+//
+//        OutputMode outputMode = OutputModes.detectOutputMode(stmts);
+//
+//        // This is the final output sink
+//        SPARQLResultExProcessor resultProcessor = SPARQLResultExProcessorBuilder.configureProcessor(
+//                StdIo.openStdOutWithCloseShield(), System.err,
+//                cmdFlatMap.outFormat,
+//                stmts,
+//                pm,
+//                RDFFormat.TURTLE_BLOCKS,
+//                RDFFormat.TRIG_BLOCKS,
+//                20,
+//                false, 0, false,
+//                () -> {});
+//
+//        Function<RDFConnection, SPARQLResultEx> mapper = SparqlMappers.createMapperToSparqlResultEx(outputMode, stmts, resultProcessor);
+//
+//        Flowable<SPARQLResultEx> flow =
+//                // Create a stream of Datasets
+//        		NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdFlatMap.nonOptionArgs, null, pm, quadLangs)
+//                    // Map the datasets in parallel
+//                    .compose(RxOps.createParallelMapperOrdered(
+//                        // Map the dataset to a connection
+//                        SparqlMappers.mapDatasetToConnection(
+//                                // Set context attributes on the connection, e.g. timeouts
+//                                SparqlMappers.applyContextHandler(contextHandler)
+//                                    // Finally invoke the mapper
+//                                    .andThen(mapper))));
+//
+//        resultProcessor.start();
+//        try {
+////            for(SPARQLResultEx item : flow.blockingIterable(16)) {
+////                System.out.println(item);
+////                resultProcessor.forwardEx(item);
+////            }
+//            RxUtils.consume(flow.map(item -> { resultProcessor.forwardEx(item); return item; }));
+//            resultProcessor.finish();
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        } finally {
+//            resultProcessor.flush();
+//            resultProcessor.close();
+//        }
     }
+    
 
 
     public static int merge(CmdNgsMerge cmdMerge) throws IOException {
