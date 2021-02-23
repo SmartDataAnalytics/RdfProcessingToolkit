@@ -6,7 +6,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.aksw.commons.util.strings.StringUtils;
-import org.aksw.jena_sparql_api.rx.op.OperatorOrderedGroupBy;
+import org.aksw.jena_sparql_api.rx.op.FlowableOperatorSequentialGroupBy;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
@@ -41,7 +41,7 @@ public class NamedGraphStreamOps {
 
         return upstream ->
             upstream
-                .lift(OperatorOrderedGroupBy.<Triple, Node, List<Triple>>create(
+                .lift(FlowableOperatorSequentialGroupBy.<Triple, Node, List<Triple>>create(
                         grouper::apply,
                         groupKey -> new ArrayList<>(),
                         (l, t) -> l.add(t)))
