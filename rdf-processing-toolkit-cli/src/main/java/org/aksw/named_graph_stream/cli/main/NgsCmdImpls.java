@@ -5,14 +5,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.aksw.commons.io.syscall.sort.SysSort;
 import org.aksw.commons.io.util.StdIo;
@@ -22,24 +21,13 @@ import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
 import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
-import org.aksw.jena_sparql_api.rx.SparqlScriptProcessor;
-import org.aksw.jena_sparql_api.rx.SparqlScriptProcessor.Provenance;
 import org.aksw.jena_sparql_api.rx.dataset.DatasetFlowOps;
 import org.aksw.jena_sparql_api.rx.io.resultset.NamedGraphStreamCliUtils;
-import org.aksw.jena_sparql_api.rx.io.resultset.OutputMode;
-import org.aksw.jena_sparql_api.rx.io.resultset.OutputModes;
-import org.aksw.jena_sparql_api.rx.io.resultset.RxOps;
-import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessor;
-import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessorBuilder;
-import org.aksw.jena_sparql_api.rx.io.resultset.SparqlMappers;
-import org.aksw.jena_sparql_api.rx.query_flow.RxUtils;
-import org.aksw.jena_sparql_api.stmt.SPARQLResultEx;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
 import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsCat;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsFilter;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsHead;
@@ -60,22 +48,16 @@ import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
-import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.shared.PrefixMapping;
-import org.apache.jena.sparql.algebra.TransformUnionQuery;
-import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sparql.engine.http.Service;
-import org.apache.jena.sparql.util.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.FlowableTransformer;
-import joptsimple.internal.Strings;
 
 /**
  * Implementation of all named graph stream commands as static methods.
@@ -402,6 +384,7 @@ public class NgsCmdImpls {
 
         List<String> args = NamedGraphStreamCliUtils.preprocessArgs(cmdWc.nonOptionArgs);
 
+        long totalCount = 0;
         for(String arg : args) {
             String suffix = args.size() <= 1 ? "" : " " +  arg;
 
@@ -423,14 +406,18 @@ public class NgsCmdImpls {
                 }
 
             } else {
-                count = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdWc.nonOptionArgs, null, MainCliNamedGraphStream.pm, quadLangs)
+                count = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(Collections.singletonList(arg), null, MainCliNamedGraphStream.pm, quadLangs)
                     .count()
                     .blockingGet();
             }
 
+            totalCount += count;
             String outStr = Long.toString(count) + suffix;
             System.out.println(outStr);
         }
+        
+        System.out.println("Counted " + totalCount + " items in total");
+        
         return 0;
     }
 
