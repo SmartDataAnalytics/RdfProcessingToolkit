@@ -22,7 +22,7 @@ public class MainCliRdfProcessingToolkit {
     public static int mainCore(String[] args) {
         int result = new CommandLine(new CmdRptMain())
             .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                boolean debugMode = false;
+                boolean debugMode = true;
                 if (debugMode) {
                     ExceptionUtilsAksw.rethrowIfNotBrokenPipe(ex);
                 } else {
