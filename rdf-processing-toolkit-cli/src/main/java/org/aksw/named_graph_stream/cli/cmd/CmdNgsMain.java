@@ -1,9 +1,9 @@
 package org.aksw.named_graph_stream.cli.cmd;
 
+import org.aksw.rdf_processing_toolkit.cli.cmd.CmdCommonBase;
 import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
 
 @Command(name="ngs",
             versionProvider = VersionProviderRdfProcessingToolkit.class,
@@ -23,17 +23,7 @@ import picocli.CommandLine.Option;
         CmdNgsWhile.class,
         CmdNgsGit.class
 })
-public class CmdNgsMain {
-    @Option(names = { "-h", "--help" }, usageHelp = true)
-    public boolean help = false;
-
-    @Option(names = { "-v", "--version" }, versionHelp = true)
-    public boolean version = false;
-
-    @Option(names = { "-X" }, description = "Debug output such as full stacktraces")
-    public boolean debugMode = false;
-
-//    @Parameter(names={"-o", "--out-format"})
-//    public String format = "trig/pretty";
-
+public class CmdNgsMain
+	extends CmdCommonBase
+{
 }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Stack;
 import java.util.concurrent.Callable;
 
+import org.aksw.rdf_processing_toolkit.cli.cmd.CmdCommonBase;
 import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 import org.aksw.sparql_integrate.cli.main.SparqlIntegrateCmdImpls;
 import org.apache.jena.ext.com.google.common.base.StandardSystemProperty;
@@ -18,17 +19,18 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 
-@Command(name = "sparql-integrate",
+@Command(name = "integrate",
     versionProvider = VersionProviderRdfProcessingToolkit.class,
     description = "Run sequences of SPARQL queries and stream triples, quads and bindings")
 public class CmdSparqlIntegrateMain
+	extends CmdCommonBase
     implements Callable<Integer>
 {
-    @Option(names = { "-h", "--help" }, usageHelp = true)
-    public boolean help = false;
-
-    @Option(names = { "-v", "--version" }, versionHelp = true)
-    public boolean version = false;
+//    @Option(names = { "-h", "--help" }, usageHelp = true)
+//    public boolean help = false;
+//
+//    @Option(names = { "-v", "--version" }, versionHelp = true)
+//    public boolean version = false;
 
     @Option(names = { "-e", "--engine" }, description="SPARQL Engine. Currently only 'mem' and 'tdb2' supported")
     public String engine = "mem";
@@ -47,8 +49,8 @@ public class CmdSparqlIntegrateMain
     public String splitFolder = null;
 
 
-    @Option(names = { "-X" }, description = "Debug output such as full stacktraces")
-    public boolean debugMode = false;
+//    @Option(names = { "-X" }, description = "Debug output such as full stacktraces")
+//    public boolean debugMode = false;
 
     /**
      * sparql-pattern file

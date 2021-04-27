@@ -1,9 +1,9 @@
 package org.aksw.sparql_binding_stream.cli.cmd;
 
+import org.aksw.rdf_processing_toolkit.cli.cmd.CmdCommonBase;
 import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
 
 @Command(name="sbs",
     versionProvider = VersionProviderRdfProcessingToolkit.class,
@@ -11,17 +11,7 @@ import picocli.CommandLine.Option;
         CmdSbsMap.class,
         CmdSbsFilter.class
 })
-public class CmdSbsMain {
-    @Option(names = { "-h", "--help" }, usageHelp = true)
-    public boolean help = false;
-
-    @Option(names = { "-v", "--version" }, versionHelp = true)
-    public boolean version = false;
-
-    @Option(names = { "-X" }, description = "Debug output such as full stacktraces")
-    public boolean debugMode = false;
-
-//    @Parameter(names={"-o", "--out-format"})
-//    public String format = "trig/pretty";
-
+public class CmdSbsMain
+	extends CmdCommonBase
+{
 }

@@ -5,20 +5,13 @@ import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
 
 @Command(name="rpt", versionProvider = VersionProviderRdfProcessingToolkit.class, description = "RDF Processing Toolkit", subcommands = {
         CmdNgsMain.class,
         CmdSparqlIntegrateMain.class,
         CmdSbsMain.class
 })
-public class CmdRptMain {
-    @Option(names = { "-h", "--help" }, usageHelp = true)
-    public boolean help = false;
-
-    @Option(names = { "-v", "--version" }, versionHelp = true)
-    public boolean version = false;
-
-    @Option(names = { "-X" }, description = "Debug output such as full stacktraces")
-    public boolean debugMode = false;
+public class CmdRptMain
+	extends CmdCommonBase
+{
 }

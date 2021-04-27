@@ -1,27 +1,19 @@
 package org.aksw.named_graph_stream.cli.main;
 
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import org.aksw.commons.util.exception.ExceptionUtilsAksw;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
-import org.aksw.jena_sparql_api.io.hdt.JenaPluginHdt;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMain;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
-import org.apache.commons.io.output.CloseShieldOutputStream;
+import org.aksw.rdf_processing_toolkit.cli.cmd.CmdUtils;
 import org.apache.jena.ext.com.google.common.collect.Streams;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
@@ -32,13 +24,10 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
-import org.apache.jena.riot.Lang;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import picocli.CommandLine;
 
 public class MainCliNamedGraphStream {
 
@@ -72,24 +61,7 @@ public class MainCliNamedGraphStream {
     static final Logger logger = LoggerFactory.getLogger(MainCliNamedGraphStream.class);
 
     public static void main(String[] args) {
-        int exitCode = mainCore(args);
-        System.exit(exitCode);
-    }
-
-    public static int mainCore(String[] args) {
-        int result = new CommandLine(new CmdNgsMain())
-                .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                    boolean debugMode = false;
-                    if (debugMode) {
-                        ExceptionUtilsAksw.rethrowIfNotBrokenPipe(ex);
-                    } else {
-                        ExceptionUtilsAksw.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtilsAksw::isBrokenPipeException);
-                    }
-                    return 0;
-                })
-                .execute(args);
-
-        return result;
+    	CmdUtils.execCmd(CmdNgsMain.class, args); 
     }
 
     public static Predicate<Dataset> createPredicate(Query query) {
