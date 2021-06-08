@@ -152,6 +152,26 @@ SELECT * {
 --------
 ```
 
+* Converting JSON objects to JSON arrays
+The `json:entries` function converts a JSON object to a JSON array of corresponding `{key: ..., value: ...}` items.
+
+```
+SELECT ?entry {
+  BIND('{"k1": "v1", "k2": "v2"}'^^xsd:json AS ?obj)
+  BIND(json:entries(?obj) AS ?arr)
+  ?arr json:unnest (?entry ?index)
+}
+```
+
+```
+----------------------------------------------------------------------------------------
+| index | entry                                                                        |
+========================================================================================
+| 0     | "{\"key\":\"k1\",\"value\":\"v1\"}"^^<http://www.w3.org/2001/XMLSchema#json> |
+| 1     | "{\"key\":\"k2\",\"value\":\"v2\"}"^^<http://www.w3.org/2001/XMLSchema#json> |
+----------------------------------------------------------------------------------------
+```
+
 * Zipping JSON arrays
 Here we show a more sophicisticated example, that combines several techniques:
 
