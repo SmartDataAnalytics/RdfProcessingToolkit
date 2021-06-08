@@ -298,7 +298,7 @@ SELECT * {
 ## Querying the file system
 
 * Simple recursive listing of files
-(fs-list-files.sparql)[fs-list-files.sparql]
+[fs-list-files.sparql](fs-list-files.sparql)
 
 ```
 SELECT * {
