@@ -153,10 +153,10 @@ SELECT * {
 ```
 
 * Converting JSON objects to JSON arrays
-The `json:entries` function converts a JSON object to a JSON array of corresponding `{key: ..., value: ...}` items.
-
+The `json:entries` function converts a JSON object to a JSON array of corresponding items.
+Each item is a JSON object having a `key` and a `value` attribute:
 ```
-SELECT ?entry {
+SELECT ?index ?entry {
   BIND('{"k1": "v1", "k2": "v2"}'^^xsd:json AS ?obj)
   BIND(json:entries(?obj) AS ?arr)
   ?arr json:unnest (?entry ?index)
