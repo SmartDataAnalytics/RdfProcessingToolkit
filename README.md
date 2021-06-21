@@ -7,7 +7,7 @@ RDF/SPARQL Workflows on the Command Line made easy. The toolkit provides the fol
 * [sbs](README-SBS.md): Processor for SPARQL binding streams (sbs) which enables processing of SPARQL result sets in streaming fashion. Most prominently for use in aggregating the output of a `ngs map` operation.
 
 
-**Check the [documentation](doc) for supported features with many examples**
+**Check this [documentation](doc) for the supported SPARQL extensions with many examples**
 
 ## Example Usage
 
