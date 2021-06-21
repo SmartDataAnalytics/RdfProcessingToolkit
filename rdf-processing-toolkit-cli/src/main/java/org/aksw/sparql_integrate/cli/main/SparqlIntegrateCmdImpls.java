@@ -353,6 +353,15 @@ public class SparqlIntegrateCmdImpls {
                 effOut = Files.newOutputStream(clusterOutFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
             }
 
+            if (cmd.showAlgebra) {
+	            for (SparqlStmt sparqlStmt : clusterStmts) {
+	            	Op op = SparqlStmtUtils.toAlgebra(sparqlStmt);
+	            	if (op != null) {
+	            		logger.info("Alebra of " + sparqlStmt + ":\n" + op);
+	            	}
+	            }
+            }
+            
             SPARQLResultExProcessor effectiveHandler = SPARQLResultExProcessorBuilder.configureProcessor(
                     effOut, System.err,
                     outFormat,

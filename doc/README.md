@@ -213,6 +213,91 @@ WHERE {
 ------------------------------------------
 ```
 
+* Converting RDF terms to JSON Primitives
+Non-json RDF terms can be converted to json using`json:convert(?rdfTerm)`.
+The conversion mechanism relies on the `gson` library and the Java object that backs an RDF term.
+Several examples are shown below.
+Note, that in some cases, such as xsd:date, this approach can expose Java internals.
+
+
+```sparql
+SELECT ?before ?after {
+  # COALESCE() without arguments yields null
+  { BIND(COALESCE() AS ?before) } UNION
+  { BIND(true AS ?before) } UNION
+  { BIND(1 AS ?before) } UNION
+  { BIND(3.14 AS ?before) } UNION
+  { BIND("string" AS ?before) } UNION
+  { BIND(<urn:foobar> AS ?before) } UNION
+  { BIND('{"key": "value"}'^^xsd:json AS ?before) } UNION
+  { BIND('2021-06-21'^^xsd:date AS ?before) } UNION
+  { BIND(str('2021-06-21'^^xsd:date) AS ?before) }  BIND(json:convert(?before) AS ?after)
+}
+```
+
+```
+------------------------------------------------------------------------------------------------------
+| before                           | after                                                           |
+======================================================================================================
+|                                  |                                                                 |
+| true                             | "true"^^xsd:json                                                |
+| 1                                | "1"^^xsd:json                                                   |
+| 3.34                             | "3.34"^^xsd:json                                                |
+| "string"                         | "\"string\""^^xsd:json                                          |
+| <urn:foobar>                     | "\"urn:foobar\""^^xsd:json                                      |
+| "{\"key\": \"value\"}"^^xsd:json | "{\"key\":\"value\"}"^^xsd:json                                 |
+| "2021-06-21"^^xsd:date           | "{\"mask\":7,\"data\":[2021,6,21,0,0,0,0,0,0], ... }"^^xsd:json |
+| "2021-06-21"                     | "\"2021-06-21\""^^xsd:json                                      |
+------------------------------------------------------------------------------------------------------
+
+```
+
+
+* Creating JSON Objects
+`json:object` takes a variable number of arguments which are interpreted as a sequence of key-value pairs.
+Hence, the number of arguments must be even.
+The key must always be a string, whereas the values are converted to json elements using `json:toJson`.
+A type error with any of the arguments causes the object construction to raise a type error.
+
+
+```sparql
+SELECT ?jsonObject {
+  BIND(1 AS ?value1)
+  BIND('key2' AS ?key2)
+  BIND(json:object('key1', ?value1, ?key2, 'value2') AS ?jsonObject)
+}
+
+```
+
+```
+-------------------------------------------------------------------------------
+| json                                                                        |
+===============================================================================
+| "{\"key1\":1,\"key2\":\"value2\"}"^^<http://www.w3.org/2001/XMLSchema#json> |
+-------------------------------------------------------------------------------
+```
+
+
+* Creating JSON Array
+Arrays can be constructed from a variable number of arguments that become the items.
+Non-json objects are implicitly converted to json ones using `json:toJson`.
+A type error with any of the arguments causes the array construction to raise a type error.
+
+```sparql
+SELECT ?json {
+  BIND(true AS ?item1)
+  BIND('item2' AS ?item2)
+  BIND(json:array(?item1, ?item2, 3, json:object('item', 4)) AS ?json)
+}
+```
+
+```
+------------------------------------------------------------------------------
+| jsonArray                                                                  |
+==============================================================================
+| "[true,\"item2\",3,{\"item\":4}]"^^<http://www.w3.org/2001/XMLSchema#json> |
+------------------------------------------------------------------------------
+```
 
 ## Processing CSV
 In general, the `csv:parse` property function is used to make CSV data available in a SPARQL query with each CSV row becoming an entry in the result set. The syntax is `?s csv:parse(?rowJson "optionsString)"`.
