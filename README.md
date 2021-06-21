@@ -7,6 +7,8 @@ RDF/SPARQL Workflows on the Command Line made easy. The toolkit provides the fol
 * [sbs](README-SBS.md): Processor for SPARQL binding streams (sbs) which enables processing of SPARQL result sets in streaming fashion. Most prominently for use in aggregating the output of a `ngs map` operation.
 
 
+**Check this [documentation](doc) for the supported SPARQL extensions with many examples**
+
 ## Example Usage
 
 * `sparql-integrate` allows one to load multiple RDF files and run multiple queries on them in a single invocation. Further prefixes from a snapshot of [prefix.cc](https://prefix.cc) are predefined and we made the SELECT keyword of SPARQL optional in order to make scripting less verbose. The `--jq` flag enables JSON output for interoperability with the conventional jq tool
