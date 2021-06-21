@@ -23,7 +23,7 @@ import picocli.CommandLine.Parameters;
     versionProvider = VersionProviderRdfProcessingToolkit.class,
     description = "Run sequences of SPARQL queries and stream triples, quads and bindings")
 public class CmdSparqlIntegrateMain
-	extends CmdCommonBase
+    extends CmdCommonBase
     implements Callable<Integer>
 {
 //    @Option(names = { "-h", "--help" }, usageHelp = true)
@@ -44,6 +44,9 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--db-keep" }, description="Keep generated database files")
     public boolean dbKeep = false;
 
+
+    @Option(names = { "--explain" }, description="Enable detailed ARQ log output")
+    public boolean explain = false;
 
     @Option(names = { "--split" }, description="Create corresponding output files for each file argument with SPARQL queries")
     public String splitFolder = null;
@@ -88,7 +91,7 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "-d", "--used-prefixes" }, description = "Number of records by which to defer RDF output in order to analyze used prefixes; default: ${DEFAULT-VALUE}", defaultValue = "20")
     public long usedPrefixDefer;
 
-    
+
     /**
      * If not given, the output mode (quads/bindings/json) is chosen from the remaining arguments and
      * the outFormat becomes the default format of that mode

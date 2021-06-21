@@ -45,6 +45,7 @@ import org.apache.jena.ext.com.google.common.collect.Maps;
 import org.apache.jena.ext.com.google.common.collect.Multimap;
 import org.apache.jena.ext.com.google.common.collect.Multimaps;
 import org.apache.jena.graph.Node;
+import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
@@ -64,6 +65,7 @@ import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpService;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
+import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
 import org.apache.jena.system.Txn;
 import org.apache.jena.tdb2.TDB2Factory;
@@ -139,76 +141,76 @@ public class SparqlIntegrateCmdImpls {
 
 
 
-    
+
     public static RDFConnection wrapWithAutoDisableReorder(RDFConnection conn) {
-    	return RDFConnectionFactoryEx.wrapWithPostProcessor(conn, qe -> {
+        return RDFConnectionFactoryEx.wrapWithPostProcessor(conn, qe -> {
             QC.setFactory(qe.getContext(), OpExecutorServiceOrFile::new);
 
             Query query = qe.getQuery();
-    		if (query == null) {
-    			logger.warn("Could not obtain query from query execution.");
-    		}
-    		
-    		boolean disableOrder = shouldDisableReorder(query);
-    		logger.info("Triple ordering disabled? " + disableOrder);
-    		
-    		if (disableOrder) {
+            if (query == null) {
+                logger.warn("Could not obtain query from query execution.");
+            }
+
+            boolean disableOrder = shouldDisableReorder(query);
+            logger.info("Triple ordering disabled? " + disableOrder);
+
+            if (disableOrder) {
                 StageBuilder.setGenerator(qe.getContext(), StageBuilder.executeInline);
-    		}
-    		
-    		return qe;
-    	});
+            }
+
+            return qe;
+        });
     }
- 
+
     /**
      * Triple pattern reordering can give significant performance boosts on SPARQL queries
      * but when SERVICE clauses and/or user defined property functions are in use it can
      * lead to unexpected results.
-     * 
+     *
      * This method decides whether to disable reordering
-     * 
+     *
      */
     public static boolean shouldDisableReorder(Query query) {
-    	Op op = Algebra.toQuadForm(Algebra.compile(query));
-    	Set<Op> ops = TransformCollectOps.collect(op, false);
-    	
-    	boolean containsService = ops.stream().anyMatch(x -> x instanceof OpService);
-    	
-    	// udpf = user defined property function
-    	Set<String> usedUdpfs = ops.stream()
-    		.flatMap(OpVisitorTriplesQuads::streamQuads)
-    		.map(quad -> quad.getPredicate())
-    		.filter(Node::isURI)
-    		.map(Node::getURI)
-    		.filter(uri -> PropertyFunctionRegistry.get().get(uri) != null)
-    		.collect(Collectors.toSet());
-    	
-    	boolean usesUdpf = !usedUdpfs.isEmpty();
-    	
-    	boolean result = containsService || usesUdpf;
-    	return result;
+        Op op = Algebra.toQuadForm(Algebra.compile(query));
+        Set<Op> ops = TransformCollectOps.collect(op, false);
+
+        boolean containsService = ops.stream().anyMatch(x -> x instanceof OpService);
+
+        // udpf = user defined property function
+        Set<String> usedUdpfs = ops.stream()
+            .flatMap(OpVisitorTriplesQuads::streamQuads)
+            .map(quad -> quad.getPredicate())
+            .filter(Node::isURI)
+            .map(Node::getURI)
+            .filter(uri -> PropertyFunctionRegistry.get().get(uri) != null)
+            .collect(Collectors.toSet());
+
+        boolean usesUdpf = !usedUdpfs.isEmpty();
+
+        boolean result = containsService || usesUdpf;
+        return result;
     }
 
-    
+
 //    public static Stream<Element> streamElementsDepthFirstPostOrder(Element start) {
 //    	// ElementTransformer.transform(element, transform);
 ////    	 return Streams.stream(Traverser.forTree(ElementUtils::getSubElements).depthFirstPostOrder(start).iterator());
 //    }
 
-    
-    
-    
+
+
+
     /**
      * Automatically disable triple pattern reordering if certain property functions
      * or query features are used.
-     * 
-     * 
+     *
+     *
      * @param qe
      */
     public void autoConfigureArqContext(QueryExecution qe) {
-    	Query query = qe.getQuery();
-    	
-    	//PropertyFunctionRegistry.get().
+        Query query = qe.getQuery();
+
+        //PropertyFunctionRegistry.get().
     }
 
 
@@ -217,6 +219,11 @@ public class SparqlIntegrateCmdImpls {
 
 
         CliUtils.configureGlobalSettings();
+
+
+        if (cmd.explain) {
+            ARQ.setExecutionLogging(InfoLevel.ALL);
+        }
 
 
         Stopwatch sw = Stopwatch.createStarted();
@@ -354,14 +361,14 @@ public class SparqlIntegrateCmdImpls {
             }
 
             if (cmd.showAlgebra) {
-	            for (SparqlStmt sparqlStmt : clusterStmts) {
-	            	Op op = SparqlStmtUtils.toAlgebra(sparqlStmt);
-	            	if (op != null) {
-	            		logger.info("Alebra of " + sparqlStmt + ":\n" + op);
-	            	}
-	            }
+                for (SparqlStmt sparqlStmt : clusterStmts) {
+                    Op op = SparqlStmtUtils.toAlgebra(sparqlStmt);
+                    if (op != null) {
+                        logger.info("Algebra of " + sparqlStmt + ":\n" + op);
+                    }
+                }
             }
-            
+
             SPARQLResultExProcessor effectiveHandler = SPARQLResultExProcessorBuilder.configureProcessor(
                     effOut, System.err,
                     outFormat,
@@ -402,7 +409,7 @@ public class SparqlIntegrateCmdImpls {
             Callable<RDFConnection> connSupp = () -> wrapWithAutoDisableReorder(RDFConnectionFactory.connect(dataset));
 
             try (RDFConnection serverConn = (cmd.server ? connSupp.call() : null)) {
-            	// RDFConnectionFactoryEx.getQueryConnection(conn)
+                // RDFConnectionFactoryEx.getQueryConnection(conn)
                 Server server = null;
                 if (cmd.server) {
                     SparqlService sparqlService = FluentSparqlService.from(serverConn).create();
@@ -481,11 +488,11 @@ public class SparqlIntegrateCmdImpls {
         return exitCode;
     }
 
-    
+
     /**
      * Essentially a wrapper for {@link SparqlStmtUtils#execAny(RDFConnection, SparqlStmt)} which
-     * logs the workload (the sparql query) being processed. 
-     * 
+     * logs the workload (the sparql query) being processed.
+     *
      * @param conn
      * @param workload
      * @param resultProcessor
