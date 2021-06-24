@@ -478,10 +478,10 @@ SELECT ?endpoint ?status {
 
 ## Federating to Sorted (Bzip2 Encoded) N-Triples
 
-Binary search mode allows for lookups by subject on files containing n-triples and which may be optionally encoded by a splittable codec (such as bzip2).
+Binary search mode allows for lookups by subject on files containing n-triples.
 This mode can operate directly on remote http(s) resources that support HTTP range requests - without the need to download them.
 
-The `x-binsearch:` URI scheme enables this mode. The remainder must be an URI that resolves to a (virtual) file containing n-triples data sorted on the bytes (rther than characters). One way to sort data that way is to invoke the unix sort tool like this: `LC_ALL sort -u file.nt`.
+The `x-binsearch:` URI scheme enables this mode. The remainder must be an URI that resolves to a (virtual) file containing n-triples data sorted on the bytes (rather than characters). One way to sort data that way is to invoke the unix sort tool like this: `LC_ALL sort -u file.nt`.
 The binary search system also supports operation on top of bzip2 encoding based on hadoop's bzip2 codec. This could be extended to any of hadoop's splittable codecs.
 
 
