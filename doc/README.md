@@ -447,7 +447,9 @@ SELECT * {
 ------------------------------------------------------------------------------------------------------------------------------
 ```
 
-* Federating to Virtual Files
+# Federation
+
+## Federating to Virtual Files
 
 The `vfs:` URI scheme can be used to address virtual files. This feature relies on [Apache's Virtual File System](https://github.com/apache/commons-vfs) and the Java NIO integration [vfs2nio](https://github.com/sshtools/vfs2nio/tree/master/src/main/java).
 If a URL in the SERVICE clause resolves to a file then it will be probed for any encodings (= byte level transformations, such as compression) and the content type. If the effective content type of the file belongs to the class of RDF formats supported by Jena, then it will be loaded into an **in-memory** model. (Obviously this approach should not be done with large files).
@@ -474,7 +476,7 @@ SELECT ?endpoint ?status {
 ```
 
 
-* Federating to Sorted (Bzip2 Encoded) N-Triples
+## Federating to Sorted (Bzip2 Encoded) N-Triples
 
 Binary search mode allows for lookups by subject on files containing n-triples and which may be optionally encoded by a splittable codec (such as bzip2).
 This mode can operate directly on remote http(s) resources that support HTTP range requests - without the need to download them.
@@ -505,4 +507,6 @@ SELECT * {
 | <http://schema.org/alternateName> | "Lavedan, Pierre Louis Léon"    |
 -----------------------------------------------------------------------
 ```
+
+
 
