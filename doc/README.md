@@ -447,5 +447,62 @@ SELECT * {
 ------------------------------------------------------------------------------------------------------------------------------
 ```
 
+* Federating to Virtual Files
 
+The `vfs:` URI scheme can be used to address virtual files. This feature relies on [Apache's Virtual File System](https://github.com/apache/commons-vfs) and the Java NIO integration [vfs2nio](https://github.com/sshtools/vfs2nio/tree/master/src/main/java).
+If a URL in the SERVICE clause resolves to a file then it will be probed for any encodings (= byte level transformations, such as compression) and the content type. If the effective content type of the file belongs to the class of RDF formats supported by Jena, then it will be loaded into an **in-memory** model. (Obviously this approach should not be done with large files).
+
+
+```sparql
+SELECT ?endpoint ?status {
+  SERVICE <vfs:https://raw.githubusercontent.com/SmartDataAnalytics/lodservatory/master/latest-status.ttl> {
+    ?s
+      sd:endpoint ?endpoint ;
+      <https://schema.org/serverStatus> ?status
+} } LIMIT 3
+```
+
+```
+---------------------------------------------------------------------------------------
+| endpoint                                  | status                                  |
+=======================================================================================
+| <https://bmrbpub.pdbj.org/search/rdf>     | <https://schema.org/Online>             |
+| <https://upr.eagle-i.net/sparqler/sparql> | <https://schema.org/Online>             |
+| <http://babelnet.org/sparql/>             | <https://schema.org/OfflineTemporarily> |
+---------------------------------------------------------------------------------------
+
+```
+
+
+* Federating to Sorted (Bzip2 Encoded) N-Triples
+
+Binary search mode allows for lookups by subject on files containing n-triples and which may be optionally encoded by a splittable codec (such as bzip2).
+This mode can operate directly on remote http(s) resources that support HTTP range requests - without the need to download them.
+
+The `x-binsearch:` URI scheme enables this mode. The remainder must be an URI that resolves to a (virtual) file containing n-triples data sorted on the bytes (rther than characters). One way to sort data that way is to invoke the unix sort tool like this: `LC_ALL sort -u file.nt`.
+The binary search system also supports operation on top of bzip2 encoding based on hadoop's bzip2 codec. This could be extended to any of hadoop's splittable codecs.
+
+
+The example below demonstrates the use of `x-binsearch:` in conjunction with `vfs:` in order to perform binary search lookup on a remote resource:
+
+
+```sparql
+SELECT * {
+  SERVICE <x-binsearch:vfs:https://databus.dbpedia.org/dnkg/cartridge-input/kb/2020.09.29/kb_partition=person_set=thes_content=facts_origin=export.nt.bz2> {
+    <http://data.bibliotheken.nl/id/thes/p067461255> ?p ?o .
+    FILTER(strStarts(str(?p), "http://schema.org/"))
+  }
+}
+```
+
+```
+-----------------------------------------------------------------------
+| p                                 | o                               |
+=======================================================================
+| <http://schema.org/birthDate>     | "1885"                          |
+| <http://schema.org/name>          | "Lavedan, Pierre"               |
+| <http://schema.org/sameAs>        | <http://viaf.org/viaf/34459176> |
+| <http://schema.org/alternateName> | "Lavedan, Pierre Louis Léon"    |
+-----------------------------------------------------------------------
+```
 
