@@ -115,12 +115,12 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.apache.commons</groupId>
+			<groupId>org.aksw.thirdparty.org.apache.commons</groupId>
 			<artifactId>commons-vfs2</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>org.apache.commons</groupId>
+			<groupId>org.aksw.thirdparty.org.apache.commons</groupId>
 			<artifactId>commons-vfs2-jackrabbit1</artifactId>
 		</dependency>
 

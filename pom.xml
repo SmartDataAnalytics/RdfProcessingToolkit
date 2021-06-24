@@ -253,15 +253,15 @@
 			</dependency>
 
 			<dependency>
-				<groupId>org.apache.commons</groupId>
+				<groupId>org.aksw.thirdparty.org.apache.commons</groupId>
 				<artifactId>commons-vfs2</artifactId>
-				<version>2.9.0-805-SNAPSHOT</version>
+				<version>2.9.0-805-1</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.apache.commons</groupId>
+				<groupId>org.aksw.thirdparty.org.apache.commons</groupId>
 				<artifactId>commons-vfs2-jackrabbit1</artifactId>
-				<version>2.9.0-805-SNAPSHOT</version>
+				<version>2.9.0-805-1</version>
 			</dependency>
 
 
