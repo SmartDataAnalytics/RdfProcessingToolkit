@@ -66,6 +66,9 @@
 
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
+
+		<jackson.version>2.12.0</jackson.version>
+
 		<timestamp>${maven.build.timestamp}</timestamp>
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
 
@@ -83,6 +86,12 @@
 
 	<dependencyManagement>
 		<dependencies>
+                        <dependency>
+                                <groupId>com.fasterxml.jackson.core</groupId>
+                                <artifactId>jackson-annotations</artifactId>
+                                <version>${jackson.version}</version>
+                        </dependency>
+
 			<dependency>
 				<groupId>org.apache.jena</groupId>
 				<artifactId>jena-tdb2</artifactId>
@@ -137,11 +146,11 @@
 				<version>${project.version}</version>
 			</dependency>
 
-                <dependency>
-                        <groupId>org.locationtech.jts.io</groupId>
-                        <artifactId>jts-io-common</artifactId>
-                        <version>1.18.1</version>
-                </dependency>
+			<dependency>
+				<groupId>org.locationtech.jts.io</groupId>
+				<artifactId>jts-io-common</artifactId>
+				<version>1.18.1</version>
+			</dependency>
 
 
 			<!-- <dependency> <groupId>org.aksw.sparql-integrate</groupId> <artifactId>sparql-integrate-ckan-core</artifactId> 
@@ -197,33 +206,15 @@
 				<version>1.78</version>
 			</dependency>
 
-<!--
-			<dependency>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot</artifactId>
-				<version>${spring-boot.version}</version>
-			</dependency>
+			<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot</artifactId> 
+				<version>${spring-boot.version}</version> </dependency> <dependency> <groupId>org.springframework.boot</groupId> 
+				<artifactId>spring-boot-autoconfigure</artifactId> <version>${spring-boot.version}</version> 
+				</dependency> <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-loader</artifactId> 
+				<version>${spring-boot.version}</version> </dependency> -->
 
-			<dependency>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-autoconfigure</artifactId>
-				<version>${spring-boot.version}</version>
-			</dependency>
+			<!-- <dependency> <groupId>eu.trentorise.opendata</groupId> <artifactId>jackan</artifactId> 
+				<version>0.4.2</version> </dependency> -->
 
-			<dependency>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-loader</artifactId>
-				<version>${spring-boot.version}</version>
-			</dependency>
--->
-
-<!--
-			<dependency>
-				<groupId>eu.trentorise.opendata</groupId>
-				<artifactId>jackan</artifactId>
-				<version>0.4.2</version>
-			</dependency>
--->
 			<dependency>
 				<groupId>org.eclipse.jgit</groupId>
 				<artifactId>org.eclipse.jgit</artifactId>
@@ -253,6 +244,26 @@
 				<artifactId>slf4j-log4j12</artifactId>
 				<version>1.7.25</version>
 			</dependency>
+
+			<!-- Virtual FileSystem -->
+			<dependency>
+				<groupId>org.aksw.thirdparty.com.sshtools</groupId>
+				<artifactId>vfs2nio</artifactId>
+				<version>0.0.1-2</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-vfs2</artifactId>
+				<version>2.9.0-805-SNAPSHOT</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-vfs2-jackrabbit1</artifactId>
+				<version>2.9.0-805-SNAPSHOT</version>
+			</dependency>
+
 
 			<dependency>
 				<groupId>junit</groupId>

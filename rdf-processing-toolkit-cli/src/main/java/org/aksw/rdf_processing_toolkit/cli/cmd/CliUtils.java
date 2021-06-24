@@ -41,7 +41,7 @@ public class CliUtils {
         JenaExtensionHttp.register(() -> HttpClientBuilder.create().build());
 
         // Extended SERVICE <> keyword implementation
-        // FIXME We need to conditionally activate the handler...
+        // FIXME SparqlIntegrate already has a conditional service handler - but sbs and ngs need it to
         registerFileServiceHandler();
     }
 
