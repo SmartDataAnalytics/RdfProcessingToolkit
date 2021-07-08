@@ -67,6 +67,7 @@ import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
+import org.apache.jena.sparql.util.Symbol;
 import org.apache.jena.system.Txn;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.eclipse.jetty.server.Server;
@@ -220,6 +221,9 @@ public class SparqlIntegrateCmdImpls {
 
         CliUtils.configureGlobalSettings();
 
+        // Set arq options
+        cmd.arqOptions.forEach((key, value) ->
+            ARQ.getContext().set(Symbol.create(key), value));
 
         if (cmd.explain) {
             ARQ.setExecutionLogging(InfoLevel.ALL);

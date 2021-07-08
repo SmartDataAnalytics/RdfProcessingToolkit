@@ -1,7 +1,9 @@
 package org.aksw.sparql_integrate.cli.cmd;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 import java.util.concurrent.Callable;
 
@@ -50,6 +52,9 @@ public class CmdSparqlIntegrateMain
 
     @Option(names = { "--split" }, description="Create corresponding output files for each file argument with SPARQL queries")
     public String splitFolder = null;
+
+    @Option(names = { "--set" }, description="Set ARQ options (key=value)", mapFallbackValue="true")
+    public Map<String, String> arqOptions = new HashMap<>();
 
 
 //    @Option(names = { "-X" }, description = "Debug output such as full stacktraces")
@@ -152,6 +157,7 @@ public class CmdSparqlIntegrateMain
 
     @Override
     public Integer call() throws Exception {
+
         return SparqlIntegrateCmdImpls.sparqlIntegrate(this);
     }
 
