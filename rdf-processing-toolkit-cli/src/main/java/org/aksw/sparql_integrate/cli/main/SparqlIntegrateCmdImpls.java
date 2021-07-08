@@ -67,6 +67,7 @@ import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
+import org.apache.jena.sparql.util.Context;
 import org.apache.jena.sparql.util.MappingRegistry;
 import org.apache.jena.sparql.util.Symbol;
 import org.apache.jena.system.Txn;
@@ -215,6 +216,15 @@ public class SparqlIntegrateCmdImpls {
         //PropertyFunctionRegistry.get().
     }
 
+    /** TODO Move to a ContextUtils class */
+    public static Context putAll(Context cxt, Map<String, String> map) {
+        map.forEach((key, value) -> {
+            String symbolName = MappingRegistry.mapPrefixName(key);
+            Symbol symbol = Symbol.create(symbolName);
+            cxt.set(symbol, value);
+        });
+        return cxt;
+    }
 
     public static int sparqlIntegrate(CmdSparqlIntegrateMain cmd) throws Exception {
         int exitCode = 0; // success unless error
@@ -223,11 +233,7 @@ public class SparqlIntegrateCmdImpls {
         CliUtils.configureGlobalSettings();
 
         // Set arq options
-        cmd.arqOptions.forEach((key, value) -> {
-            String symbolName = MappingRegistry.mapPrefixName(key);
-            Symbol symbol = Symbol.create(symbolName);
-            ARQ.getContext().set(symbol, value);
-        });
+        putAll(ARQ.getContext(), cmd.arqOptions);
 
         if (cmd.explain) {
             ARQ.setExecutionLogging(InfoLevel.ALL);
