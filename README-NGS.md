@@ -9,7 +9,7 @@ Commands:
   cat       Output and optionally convert graph input
   filter    Yield items (not) satisfying a given condition
   head      List or skip the first n named graphs
-  tail      Output the last named graphs
+  tail      Output the last named graphs (scans from the start)
   map       (flat-)Map each named graph to a new set of named graphs
   probe     Determine content type based on input
   sort      Sort named graphs by key
