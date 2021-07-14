@@ -278,7 +278,7 @@ SELECT ?jsonObject {
 ```
 
 
-* Creating JSON Array
+* Creating a JSON Array
 Arrays can be constructed from a variable number of arguments that become the items.
 Non-json objects are implicitly converted to json ones using `json:toJson`.
 A type error with any of the arguments causes the array construction to raise a type error.
@@ -298,6 +298,27 @@ SELECT ?json {
 | "[true,\"item2\",3,{\"item\":4}]"^^<http://www.w3.org/2001/XMLSchema#json> |
 ------------------------------------------------------------------------------
 ```
+
+* Calling JavaScript Functions
+The function `json:js` takes a Javascript function definition as the first argument, followed by a variable number of
+arguments that are passed to that function. Arguments are converted to JSON using the RDF-term-to-JSON conversion approach mentioned above.
+
+**JavaScript's lambda syntax using the arrow operator (=>) does not yet work for function definitions**
+
+```sparql
+SELECT * {
+  BIND(json:js("function(x) { return x.join('-'); }", "[1, 2, 3]"^^xsd:json) AS ?result)
+}
+```
+
+```
+-----------
+| result  |
+===========
+| "1-2-3" |
+-----------
+```
+
 
 ## Processing CSV
 In general, the `csv:parse` property function is used to make CSV data available in a SPARQL query with each CSV row becoming an entry in the result set. The syntax is `?s csv:parse(?rowJson "optionsString)"`.
