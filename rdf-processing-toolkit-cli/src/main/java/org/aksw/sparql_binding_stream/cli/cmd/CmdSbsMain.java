@@ -9,9 +9,10 @@ import picocli.CommandLine.Command;
     versionProvider = VersionProviderRdfProcessingToolkit.class,
     description = "SPARQL Binding Streams Subcommands", subcommands = {
         CmdSbsMap.class,
-        CmdSbsFilter.class
+        CmdSbsFilter.class,
+        CmdSbsSplit.class
 })
 public class CmdSbsMain
-	extends CmdCommonBase
+    extends CmdCommonBase
 {
 }

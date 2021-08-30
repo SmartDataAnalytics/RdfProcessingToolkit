@@ -34,8 +34,11 @@ public class CmdSparqlIntegrateMain
 //    @Option(names = { "-v", "--version" }, versionHelp = true)
 //    public boolean version = false;
 
-    @Option(names = { "-e", "--engine" }, description="SPARQL Engine. Currently only 'mem' and 'tdb2' supported")
+    @Option(names = { "-e", "--engine", "--db-engine" }, description="SPARQL Engine. Supported: 'mem', 'tdb2', 'difs'")
     public String engine = "mem";
+
+    @Option(names = { "--db-fs" }, description="FileSystem URL against which to interpret db-path (leave empty for local fs).")
+    public String dbFs = null;
 
     @Option(names = { "--db", "--db-path" }, description="Path to database directory or file (for disk-based engines)")
     public String dbPath = null;

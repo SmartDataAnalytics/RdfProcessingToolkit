@@ -58,7 +58,7 @@
 	</developers>
 
 	<properties>
-		<jena.version>4.0.0</jena.version>
+		<jena.version>4.1.0</jena.version>
 		<jena-sparql-api.subversion>1-SNAPSHOT</jena-sparql-api.subversion>
 
 		<jena-sparql-api.version>${jena.version}-${jena-sparql-api.subversion}</jena-sparql-api.version>
@@ -86,11 +86,11 @@
 
 	<dependencyManagement>
 		<dependencies>
-                        <dependency>
-                                <groupId>com.fasterxml.jackson.core</groupId>
-                                <artifactId>jackson-annotations</artifactId>
-                                <version>${jackson.version}</version>
-                        </dependency>
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-annotations</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
 
 			<dependency>
 				<groupId>org.apache.jena</groupId>
@@ -108,6 +108,12 @@
 				<groupId>info.picocli</groupId>
 				<artifactId>picocli</artifactId>
 				<version>4.6.1</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.aksw.difs</groupId>
+				<artifactId>difs-system</artifactId>
+				<version>1.0.0-SNAPSHOT</version>
 			</dependency>
 
 			<dependency>

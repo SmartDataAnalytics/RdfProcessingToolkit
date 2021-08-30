@@ -5,12 +5,15 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +23,9 @@ import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 import org.aksw.commons.io.util.StdIo;
+import org.aksw.commons.io.util.symlink.SymbolicLinkStrategies;
+import org.aksw.difs.builder.DifsFactory;
+import org.aksw.difs.engine.RDFConnectionFactoryQuadForm;
 import org.aksw.jena_sparql_api.algebra.transform.TransformCollectOps;
 import org.aksw.jena_sparql_api.algebra.visitor.OpVisitorTriplesQuads;
 import org.aksw.jena_sparql_api.core.SparqlService;
@@ -39,9 +45,9 @@ import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
+import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.ext.com.google.common.base.Strings;
-import org.apache.jena.ext.com.google.common.collect.Maps;
 import org.apache.jena.ext.com.google.common.collect.Multimap;
 import org.apache.jena.ext.com.google.common.collect.Multimaps;
 import org.apache.jena.graph.Node;
@@ -76,10 +82,47 @@ import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Maps;
 import com.google.common.io.MoreFiles;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
+
+    public static Entry<Path, Closeable> resolveFsAndPath(String fsUri, String pathStr) throws IOException {
+        Path dbPath = null;
+
+        FileSystem fs;
+        Closeable fsCloseActionTmp;
+        if (fsUri != null && !fsUri.isBlank()) {
+            fs = FileSystems.newFileSystem(URI.create(fsUri), Collections.emptyMap());
+            fsCloseActionTmp = () -> fs.close();
+        } else {
+            fs = FileSystems.getDefault();
+            fsCloseActionTmp = () -> {}; // noop
+        }
+
+        Closeable closeAction = fsCloseActionTmp;
+
+        try {
+            if (pathStr != null && !pathStr.isBlank()) {
+                for (Path root : fs.getRootDirectories()) {
+                    dbPath = root.resolve(pathStr);
+                    // Only consider the first root (if any)
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            try {
+                closeAction.close();
+            } catch (Exception e2) {
+                throw new RuntimeException(e2);
+            }
+
+            throw new RuntimeException(e);
+        }
+
+        return Maps.immutableEntry(dbPath, closeAction);
+    }
 
     /**
      * Set up a 'DataSource' for RDF.
@@ -90,26 +133,37 @@ public class SparqlIntegrateCmdImpls {
      * @return
      * @throws IOException
      */
-    public static Entry<Dataset, Closeable> configEngine(CmdSparqlIntegrateMain cmd) throws IOException {
+    public static DatasetBasedEngine configEngine(CmdSparqlIntegrateMain cmd) throws IOException {
 
         String engine = cmd.engine;
 
-        Entry<Dataset, Closeable> result;
+        Entry<Path, Closeable> fsInfo = resolveFsAndPath(cmd.dbFs, cmd.dbPath);
+
+        Path dbPath = fsInfo == null ? null : fsInfo.getKey();
+        Closeable fsCloseAction = fsInfo == null ? () -> {} : fsInfo.getValue();
+
+
+        DatasetBasedEngine result;
         // TODO Create a registry for engines / should probably go to the conjure project
         if (engine == null || engine.equals("mem")) {
-            result = Maps.immutableEntry(DatasetFactory.create(), () -> {});
+
+            if (dbPath != null) {
+                fsCloseAction.close();
+                throw new IllegalArgumentException("Memory engine does not accept a db-path. Missing engine?");
+            }
+
+            result = DatasetBasedEngine.create(DatasetFactory.create(), RDFConnectionFactory::connect, null);
+
         } else if (engine.equalsIgnoreCase("tdb2")) {
 
             boolean createdDbDir = false;
-            Path dbPath;
-            String pathStr = cmd.dbPath;
 
-            if (Strings.isNullOrEmpty(pathStr)) {
+            if (dbPath == null) {
                 Path tempDir = Paths.get(cmd.tempPath);
                 dbPath = Files.createTempDirectory(tempDir, "sparql-integrate-tdb2-").toAbsolutePath();
                 createdDbDir = true;
             } else {
-                dbPath = Paths.get(pathStr).toAbsolutePath();
+                dbPath = dbPath.toAbsolutePath();
                 if (!Files.exists(dbPath)) {
                     Files.createDirectories(dbPath);
                     createdDbDir = true;
@@ -131,17 +185,61 @@ public class SparqlIntegrateCmdImpls {
                 deleteAction = () -> {};
             }
 
-            logger.info("Connecting to TDB2 database in folder " + dbPath);
-            Closeable finalDeleteAction = deleteAction;
-            result = Maps.immutableEntry(TDB2Factory.connectDataset(finalDbPath.toString()), finalDeleteAction);
+            // Set up a partial close action because connecting to the db may yet fail
+            Closeable partialCloseAction = () -> {
+                try {
+                    deleteAction.close();
+                } finally {
+                    fsCloseAction.close();
+                }
+            };
+
+            Location location = Location.create(finalDbPath);
+            try {
+                Dataset dataset = TDB2Factory.connectDataset(location);
+
+                logger.info("Connecting to TDB2 database in folder " + dbPath);
+                Closeable finalDeleteAction = () -> {
+                    try {
+                        dataset.close();
+                    } finally {
+                        partialCloseAction.close();
+                    }
+                };
+
+                result = DatasetBasedEngine.create(
+                        dataset,
+                        RDFConnectionFactory::connect,
+                        finalDeleteAction);
+            } catch (Exception e) {
+                partialCloseAction.close();
+                throw new RuntimeException(e);
+            }
+
+        } else if (engine.equalsIgnoreCase("difs")) {
+
+            if (dbPath == null) {
+                throw new IllegalArgumentException("Difs engine requires a db-path");
+            }
+
+            boolean canWrite = dbPath.getFileName().equals(FileSystems.getDefault());
+
+
+            Dataset dataset = DifsFactory.newInstance()
+                .setUseJournal(canWrite)
+                .setSymbolicLinkStrategy(SymbolicLinkStrategies.FILE)
+                .setConfigFile(dbPath)
+                .setCreateIfNotExists(false)
+                .setMaximumNamedGraphCacheSize(10000)
+                .connectAsDataset();
+
+            result = DatasetBasedEngine.create(dataset, RDFConnectionFactoryQuadForm::connect, fsCloseAction);
+
         } else {
             throw new RuntimeException("Unknown engine: " + engine);
         }
         return result;
     }
-
-
-
 
 
 
@@ -402,12 +500,12 @@ public class SparqlIntegrateCmdImpls {
 
         // Start the engine (wrooom)
 
-        Entry<Dataset, Closeable> datasetAndDelete = configEngine(cmd);
-        Dataset dataset = datasetAndDelete.getKey();
-        Closeable deleteAction = datasetAndDelete.getValue();
+        DatasetBasedEngine datasetAndDelete = configEngine(cmd);
+        // Dataset dataset = datasetAndDelete.getKey();
+        // Closeable deleteAction = datasetAndDelete.getValue();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
-                deleteAction.close();
+                datasetAndDelete.close();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -420,7 +518,7 @@ public class SparqlIntegrateCmdImpls {
         }
 
         try {
-            Callable<RDFConnection> connSupp = () -> wrapWithAutoDisableReorder(RDFConnectionFactory.connect(dataset));
+            Callable<RDFConnection> connSupp = () -> wrapWithAutoDisableReorder(datasetAndDelete.newConnection());
 
             try (RDFConnection serverConn = (cmd.server ? connSupp.call() : null)) {
                 // RDFConnectionFactoryEx.getQueryConnection(conn)
@@ -486,8 +584,12 @@ public class SparqlIntegrateCmdImpls {
                 }
             }
         } finally {
-            dataset.close();
-            deleteAction.close();
+            // Don't close the dataset while the server is running - rely on the shutdown hook
+            if (!cmd.server) {
+                datasetAndDelete.close();
+            }
+//            dataset.close();
+//            deleteAction.close();
 
             for (SPARQLResultExProcessor sink : clusterToSink.values()) {
                 try {
