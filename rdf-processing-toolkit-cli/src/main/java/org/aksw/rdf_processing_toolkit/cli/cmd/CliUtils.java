@@ -1,7 +1,8 @@
 package org.aksw.rdf_processing_toolkit.cli.cmd;
 
+import org.aksw.jena_sparql_api.arq.core.service.OpExecutorWithCustomServiceExecutors;
+import org.aksw.jena_sparql_api.arq.service.vfs.ServiceExecutorFactoryRegistratorVfs;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
-import org.aksw.jena_sparql_api.sparql.ext.fs.OpExecutorServiceOrFile;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
@@ -13,7 +14,6 @@ import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.engine.main.QC;
-import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sys.JenaSystem;
 
 public class CliUtils {
@@ -51,7 +51,9 @@ public class CliUtils {
     public static void registerFileServiceHandler() {
         QC.setFactory(ARQ.getContext(), execCxt -> {
 //            execCxt.getContext().set(ARQ.stageGenerator, StageBuilder.executeInline);
-            return new OpExecutorServiceOrFile(execCxt);
+            // return new OpExecutorServiceOrFile(execCxt);
+            ServiceExecutorFactoryRegistratorVfs.register(execCxt.getContext());
+            return new OpExecutorWithCustomServiceExecutors(execCxt);
         });
     }
 

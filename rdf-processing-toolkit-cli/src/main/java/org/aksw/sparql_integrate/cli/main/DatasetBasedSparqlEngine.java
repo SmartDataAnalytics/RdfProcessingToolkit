@@ -2,18 +2,22 @@ package org.aksw.sparql_integrate.cli.main;
 
 import java.io.Closeable;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdfconnection.RDFConnection;
+import org.apache.jena.sparql.engine.QueryEngineFactory;
+import org.apache.jena.sparql.modify.UpdateEngineFactory;
+import org.apache.jena.sparql.util.Context;
 
-public class DatasetBasedEngine
+public class DatasetBasedSparqlEngine
     implements AutoCloseable
 {
     protected Dataset dataset;
     protected Function<? super Dataset, ? extends RDFConnection> connSupplier;
     protected Closeable closeAction;
 
-    public DatasetBasedEngine(Dataset dataset, Function<? super Dataset, ? extends RDFConnection> connSupplier, Closeable closeAction) {
+    public DatasetBasedSparqlEngine(Dataset dataset, Function<? super Dataset, ? extends RDFConnection> connSupplier, Closeable closeAction) {
         super();
         this.dataset = dataset;
         this.connSupplier = connSupplier;
@@ -31,8 +35,8 @@ public class DatasetBasedEngine
         }
     }
 
-    public static DatasetBasedEngine create(Dataset dataset, Function<? super Dataset, ? extends RDFConnection> connSupplier, Closeable closeAction) {
-        return new DatasetBasedEngine(dataset, connSupplier, closeAction);
+    public static DatasetBasedSparqlEngine create(Dataset dataset, Function<? super Dataset, ? extends RDFConnection> connSupplier, Closeable closeAction) {
+        return new DatasetBasedSparqlEngine(dataset, connSupplier, closeAction);
     }
 
 }

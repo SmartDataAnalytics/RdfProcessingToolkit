@@ -28,6 +28,9 @@ import org.aksw.difs.builder.DifsFactory;
 import org.aksw.difs.engine.RDFConnectionFactoryQuadForm;
 import org.aksw.jena_sparql_api.algebra.transform.TransformCollectOps;
 import org.aksw.jena_sparql_api.algebra.visitor.OpVisitorTriplesQuads;
+import org.aksw.jena_sparql_api.arq.core.connection.DatasetRDFConnectionFactory;
+import org.aksw.jena_sparql_api.arq.core.connection.DatasetRDFConnectionFactoryBuilder;
+import org.aksw.jena_sparql_api.arq.service.vfs.ServiceExecutorFactoryRegistratorVfs;
 import org.aksw.jena_sparql_api.core.SparqlService;
 import org.aksw.jena_sparql_api.core.connection.RDFConnectionFactoryEx;
 import org.aksw.jena_sparql_api.rx.SparqlScriptProcessor;
@@ -37,7 +40,6 @@ import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessor;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessorBuilder;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExVisitor;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
-import org.aksw.jena_sparql_api.sparql.ext.fs.OpExecutorServiceOrFile;
 import org.aksw.jena_sparql_api.stmt.SPARQLResultEx;
 import org.aksw.jena_sparql_api.stmt.SparqlStmt;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
@@ -69,7 +71,6 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpService;
-import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
@@ -133,17 +134,19 @@ public class SparqlIntegrateCmdImpls {
      * @return
      * @throws IOException
      */
-    public static DatasetBasedEngine configEngine(CmdSparqlIntegrateMain cmd) throws IOException {
+    public static DatasetBasedSparqlEngine configEngine(CmdSparqlIntegrateMain cmd) throws IOException {
 
         String engine = cmd.engine;
 
+        // Resolve the arguments to a path in some file system (if applicable).
+        // Also obtain a action for closing the fs (if needed)
         Entry<Path, Closeable> fsInfo = resolveFsAndPath(cmd.dbFs, cmd.dbPath);
 
         Path dbPath = fsInfo == null ? null : fsInfo.getKey();
         Closeable fsCloseAction = fsInfo == null ? () -> {} : fsInfo.getValue();
 
 
-        DatasetBasedEngine result;
+        DatasetBasedSparqlEngine result;
         // TODO Create a registry for engines / should probably go to the conjure project
         if (engine == null || engine.equals("mem")) {
 
@@ -152,7 +155,16 @@ public class SparqlIntegrateCmdImpls {
                 throw new IllegalArgumentException("Memory engine does not accept a db-path. Missing engine?");
             }
 
-            result = DatasetBasedEngine.create(DatasetFactory.create(), RDFConnectionFactory::connect, null);
+            Context cxt = ARQ.getContext().copy();
+            ServiceExecutorFactoryRegistratorVfs.register(cxt);
+
+            DatasetRDFConnectionFactory connector = DatasetRDFConnectionFactoryBuilder.create()
+                    .setDefaultQueryEngineFactoryProvider()
+                    .setDefaultUpdateEngineFactoryProvider()
+                    .setContext(cxt)
+                    .build();
+
+            result = DatasetBasedSparqlEngine.create(DatasetFactory.create(), connector::connect, null);
 
         } else if (engine.equalsIgnoreCase("tdb2")) {
 
@@ -207,7 +219,7 @@ public class SparqlIntegrateCmdImpls {
                     }
                 };
 
-                result = DatasetBasedEngine.create(
+                result = DatasetBasedSparqlEngine.create(
                         dataset,
                         RDFConnectionFactory::connect,
                         finalDeleteAction);
@@ -224,6 +236,9 @@ public class SparqlIntegrateCmdImpls {
 
             boolean canWrite = dbPath.getFileName().equals(FileSystems.getDefault());
 
+            Context cxt = ARQ.getContext().copy();
+            ServiceExecutorFactoryRegistratorVfs.register(cxt);
+
 
             Dataset dataset = DifsFactory.newInstance()
                 .setUseJournal(canWrite)
@@ -233,7 +248,8 @@ public class SparqlIntegrateCmdImpls {
                 .setMaximumNamedGraphCacheSize(10000)
                 .connectAsDataset();
 
-            result = DatasetBasedEngine.create(dataset, RDFConnectionFactoryQuadForm::connect, fsCloseAction);
+            result = DatasetBasedSparqlEngine.create(dataset,
+                    ds -> RDFConnectionFactoryQuadForm.connect(ds, cxt), fsCloseAction);
 
         } else {
             throw new RuntimeException("Unknown engine: " + engine);
@@ -245,7 +261,9 @@ public class SparqlIntegrateCmdImpls {
 
     public static RDFConnection wrapWithAutoDisableReorder(RDFConnection conn) {
         return RDFConnectionFactoryEx.wrapWithPostProcessor(conn, qe -> {
-            QC.setFactory(qe.getContext(), OpExecutorServiceOrFile::new);
+            // We require the connection already provide an appropriate OpExecutor instance
+            // that can handle custom service executors!
+            // See: DatasetBasedSparqlEngine.newConnection()
 
             Query query = qe.getQuery();
             if (query == null) {
@@ -500,7 +518,7 @@ public class SparqlIntegrateCmdImpls {
 
         // Start the engine (wrooom)
 
-        DatasetBasedEngine datasetAndDelete = configEngine(cmd);
+        DatasetBasedSparqlEngine datasetAndDelete = configEngine(cmd);
         // Dataset dataset = datasetAndDelete.getKey();
         // Closeable deleteAction = datasetAndDelete.getValue();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
