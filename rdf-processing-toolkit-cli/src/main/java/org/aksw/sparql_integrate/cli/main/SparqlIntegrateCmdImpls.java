@@ -106,11 +106,12 @@ public class SparqlIntegrateCmdImpls {
 
         try {
             if (pathStr != null && !pathStr.isBlank()) {
-                for (Path root : fs.getRootDirectories()) {
-                    dbPath = root.resolve(pathStr);
-                    // Only consider the first root (if any)
-                    break;
-                }
+                dbPath = fs.getPath(pathStr).toAbsolutePath();
+//                for (Path root : fs.getRootDirectories()) {
+//                    dbPath = root.resolve(pathStr);
+//                    // Only consider the first root (if any)
+//                    break;
+//                }
             }
         } catch (Exception e) {
             try {
@@ -234,7 +235,7 @@ public class SparqlIntegrateCmdImpls {
                 throw new IllegalArgumentException("Difs engine requires a db-path");
             }
 
-            boolean canWrite = dbPath.getFileName().equals(FileSystems.getDefault());
+            boolean canWrite = dbPath.getFileSystem().equals(FileSystems.getDefault());
 
             Context cxt = ARQ.getContext().copy();
             ServiceExecutorFactoryRegistratorVfs.register(cxt);
