@@ -81,6 +81,9 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--port" }, description = "Server port")
     public int serverPort = 7531;
 
+    @Option(names = { "--rdf10" }, description = "RDF 1.0 mode; e.g. xsd:string on literals matter", defaultValue = "false")
+    public boolean useRdf10 = false;
+
     @ArgGroup(exclusive = true, multiplicity = "0..1")
     public OutputSpec outputSpec;
 

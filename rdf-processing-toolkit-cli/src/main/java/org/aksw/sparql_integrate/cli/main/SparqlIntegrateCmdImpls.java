@@ -47,6 +47,7 @@ import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
+import org.apache.jena.JenaRuntime;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.ext.com.google.common.base.Strings;
@@ -346,6 +347,7 @@ public class SparqlIntegrateCmdImpls {
     public static int sparqlIntegrate(CmdSparqlIntegrateMain cmd) throws Exception {
         int exitCode = 0; // success unless error
 
+        JenaRuntime.isRDF11 = !cmd.useRdf10;
 
         CliUtils.configureGlobalSettings();
 
