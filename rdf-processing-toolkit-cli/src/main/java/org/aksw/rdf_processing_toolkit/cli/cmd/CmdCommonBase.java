@@ -1,8 +1,5 @@
 package org.aksw.rdf_processing_toolkit.cli.cmd;
 
-import org.aksw.commons.util.exception.ExceptionUtilsAksw;
-
-import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
 public class CmdCommonBase

@@ -1,6 +1,5 @@
 package org.aksw.rdf_processing_toolkit.cli.cmd;
 
-import org.aksw.jena_sparql_api.arq.core.service.OpExecutorWithCustomServiceExecutors;
 import org.aksw.jena_sparql_api.arq.service.vfs.ServiceExecutorFactoryRegistratorVfs;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
@@ -13,7 +12,6 @@ import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
-import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sys.JenaSystem;
 
 public class CliUtils {
@@ -27,6 +25,7 @@ public class CliUtils {
         System.setProperty("derby.stream.error.field", "org.aksw.sparql_integrate.cli.DerbyUtil.DEV_NULL");
 
         // Init geosparql module
+        // TODO Init of geosparql takes a while which is annoying during startup
         GeoSPARQLConfig.setupNoIndex();
 
         // Retain blank node labels
@@ -49,18 +48,20 @@ public class CliUtils {
     // completely fails
     // We need a flag + heuristic - e.g. disable reordering when SERVICE is involved
     public static void registerFileServiceHandler() {
-        QC.setFactory(ARQ.getContext(), execCxt -> {
-//            execCxt.getContext().set(ARQ.stageGenerator, StageBuilder.executeInline);
-            // return new OpExecutorServiceOrFile(execCxt);
-            ServiceExecutorFactoryRegistratorVfs.register(execCxt.getContext());
-            return new OpExecutorWithCustomServiceExecutors(execCxt);
-        });
+        ServiceExecutorFactoryRegistratorVfs.register(ARQ.getContext());
+
+//        QC.setFactory(ARQ.getContext(), execCxt -> {
+////            execCxt.getContext().set(ARQ.stageGenerator, StageBuilder.executeInline);
+//            // return new OpExecutorServiceOrFile(execCxt);
+//            ServiceExecutorFactoryRegistratorVfs.register(execCxt.getContext());
+//            return new OpExecutorWithCustomServiceExecutors(execCxt);
+//        });
     }
 
 
     public static PrefixMapping configPrefixMapping(CmdSparqlIntegrateMain cmd) {
         PrefixMapping result = new PrefixMappingImpl();
-        result.setNsPrefixes(DefaultPrefixes.prefixes);
+        result.setNsPrefixes(DefaultPrefixes.get());
         JenaExtensionUtil.addPrefixes(result);
 
         JenaExtensionHttp.addPrefixes(result);

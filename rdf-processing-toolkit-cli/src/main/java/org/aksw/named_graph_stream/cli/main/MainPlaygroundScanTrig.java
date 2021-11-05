@@ -23,7 +23,7 @@ import org.aksw.commons.io.seekable.api.Seekable;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.io.binseach.CharSequenceFromSeekable;
 import org.aksw.jena_sparql_api.io.binseach.ReverseCharSequenceFromSeekable;
-import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
+import org.aksw.jenax.sparql.query.rx.RDFDataMgrRx;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jena.query.DatasetFactory;
@@ -45,7 +45,7 @@ public class MainPlaygroundScanTrig {
         file = file + "w3c_ex2-no-default-graph.trig";
 
         Model m = ModelFactory.createDefaultModel();
-        m.setNsPrefixes(DefaultPrefixes.prefixes);
+        m.setNsPrefixes(DefaultPrefixes.get());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         RDFDataMgr.write(baos, m, RDFFormat.TURTLE_PRETTY);
         byte[] prefixBytes = baos.toByteArray();

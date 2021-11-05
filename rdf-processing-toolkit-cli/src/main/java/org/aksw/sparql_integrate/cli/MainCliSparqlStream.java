@@ -1,57 +1,5 @@
 package org.aksw.sparql_integrate.cli;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.function.BiConsumer;
-
-import org.aksw.jena_sparql_api.common.DefaultPrefixes;
-import org.aksw.jena_sparql_api.json.SPARQLResultVisitorSelectJsonOutput;
-import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
-import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
-import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
-import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
-import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
-import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
-import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
-import org.aksw.jena_sparql_api.stmt.SparqlStmt;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtIterator;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtMgr;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtParser;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
-import org.apache.jena.atlas.lib.Sink;
-import org.apache.jena.query.Dataset;
-import org.apache.jena.query.DatasetFactory;
-import org.apache.jena.query.Syntax;
-import org.apache.jena.rdfconnection.RDFConnection;
-import org.apache.jena.rdfconnection.RDFConnectionFactory;
-import org.apache.jena.riot.RDFFormat;
-import org.apache.jena.riot.RDFWriterRegistry;
-import org.apache.jena.shared.PrefixMapping;
-import org.apache.jena.shared.impl.PrefixMappingImpl;
-import org.apache.jena.sparql.algebra.TransformUnionQuery;
-import org.apache.jena.sparql.algebra.Transformer;
-import org.apache.jena.sparql.core.DatasetGraphFactory;
-import org.apache.jena.sparql.core.Prologue;
-import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sparql.lang.arq.ParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.beust.jcommander.JCommander;
-import com.google.common.base.StandardSystemProperty;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import io.reactivex.rxjava3.core.Flowable;
-
 //public class MainCliSparqlStream {
 //    private static final Logger logger = LoggerFactory.getLogger(MainCliSparqlStream.class);
 //

@@ -41,38 +41,43 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.aksw.jena-sparql-api</groupId>
-			<artifactId>jena-sparql-api-rx-io</artifactId>
+			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-rx-ops-syscall</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>org.aksw.jena-sparql-api</groupId>
-			<artifactId>jena-sparql-api-io-hdt</artifactId>
+			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-arq-algebra</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>org.aksw.jena-sparql-api</groupId>
-			<artifactId>jena-sparql-api-json</artifactId>
+			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-arq-hdt</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>org.aksw.jena-sparql-api</groupId>
-			<artifactId>jena-sparql-api-sparql-ext</artifactId>
+			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-arq-json</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>org.aksw.jena-sparql-api</groupId>
-			<artifactId>jena-sparql-api-core</artifactId>
+			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-arq-plugins-bundle</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>org.aksw.jena-sparql-api</groupId>
-			<artifactId>jena-sparql-api-io-core</artifactId>
+			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-rx-dataaccess</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>org.aksw.jena-sparql-api</groupId>
-			<artifactId>jena-sparql-api-server-standalone</artifactId>
+			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-io-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-server-standalone</artifactId>
 		</dependency>
 
 		<!-- <dependency> <groupId>io.github.galbiston</groupId> <artifactId>geosparql-jena</artifactId> 

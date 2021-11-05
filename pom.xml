@@ -58,11 +58,9 @@
 	</developers>
 
 	<properties>
-		<jena.version>4.1.0</jena.version>
-		<jena-sparql-api.subversion>1-SNAPSHOT</jena-sparql-api.subversion>
-
-		<jena-sparql-api.version>${jena.version}-${jena-sparql-api.subversion}</jena-sparql-api.version>
-		<!-- <jena-sparql-api.version>3.14.0-2-SNAPSHOT</jena-sparql-api.version> -->
+		<jena.version>4.3.0-SNAPSHOT</jena.version>
+		<jenax.version>4.3.0-1-SNAPSHOT</jenax.version>
+		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
@@ -117,27 +115,27 @@
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-rx-io</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-rx-ops-syscall</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-virtuoso</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-arq-connection-virtuoso</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-algebra</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-arq-algebra</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-io-hdt</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-arq-hdt</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
@@ -164,9 +162,9 @@
 				<artifactId>sparql-integrate-ckan-cli</artifactId> <version>${project.version}</version> 
 				</dependency> -->
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-sparql-ext</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-arq-plugins-bundle</artifactId>
+				<version>${jenax.version}</version>
 				<!-- <exclusions> <exclusion> <groupId>org.locationtech.jts</groupId> 
 					<artifactId>jts-core</artifactId> </exclusion> <exclusion> <groupId>com.vividsolutions</groupId> 
 					<artifactId>jts-core</artifactId> </exclusion> <exclusion> <groupId>com.vividsolutions</groupId> 
@@ -179,38 +177,38 @@
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-core</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-rx-dataaccess</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-io-core</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-io-core</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-json</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-arq-json</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-server-standalone</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-server-standalone</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<!-- <dependency> <groupId>io.github.galbiston</groupId> <artifactId>geosparql-jena</artifactId> 
 				<version>1.1.1</version> </dependency> <dependency> <groupId>org.apache.sis.non-free</groupId> 
 				<artifactId>sis-embedded-data</artifactId> <version>0.8</version> </dependency> -->
 
-			<dependency>
-				<groupId>com.beust</groupId>
-				<artifactId>jcommander</artifactId>
-				<version>1.78</version>
-			</dependency>
+<!-- 			<dependency> -->
+<!-- 				<groupId>com.beust</groupId> -->
+<!-- 				<artifactId>jcommander</artifactId> -->
+<!-- 				<version>1.78</version> -->
+<!-- 			</dependency> -->
 
 			<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot</artifactId> 
 				<version>${spring-boot.version}</version> </dependency> <dependency> <groupId>org.springframework.boot</groupId> 

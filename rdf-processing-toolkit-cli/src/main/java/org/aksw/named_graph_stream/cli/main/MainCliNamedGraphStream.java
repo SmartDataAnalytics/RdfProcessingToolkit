@@ -9,8 +9,8 @@ import java.util.stream.Collectors;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
-import org.aksw.jena_sparql_api.stmt.SPARQLResultSink;
-import org.aksw.jena_sparql_api.stmt.SPARQLResultSinkQuads;
+import org.aksw.jenax.stmt.resultset.SPARQLResultSink;
+import org.aksw.jenax.stmt.resultset.SPARQLResultSinkQuads;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMain;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdUtils;
@@ -51,7 +51,7 @@ public class MainCliNamedGraphStream {
     public static final PrefixMapping pm = new PrefixMappingImpl();
 
     static {
-        pm.setNsPrefixes(DefaultPrefixes.prefixes);
+        pm.setNsPrefixes(DefaultPrefixes.get());
         JenaExtensionUtil.addPrefixes(pm);
         JenaExtensionHttp.addPrefixes(pm);
     }
@@ -61,7 +61,7 @@ public class MainCliNamedGraphStream {
     static final Logger logger = LoggerFactory.getLogger(MainCliNamedGraphStream.class);
 
     public static void main(String[] args) {
-    	CmdUtils.execCmd(CmdNgsMain.class, args); 
+        CmdUtils.execCmd(CmdNgsMain.class, args);
     }
 
     public static Predicate<Dataset> createPredicate(Query query) {

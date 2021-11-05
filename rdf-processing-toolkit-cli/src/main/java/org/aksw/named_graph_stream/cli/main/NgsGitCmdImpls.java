@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.aksw.commons.io.util.StdIo;
-import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
+import org.aksw.jenax.arq.dataset.orderaware.DatasetFactoryEx;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsGit;
 import org.apache.jena.datatypes.xsd.XSDDateTime;
 import org.apache.jena.query.Dataset;

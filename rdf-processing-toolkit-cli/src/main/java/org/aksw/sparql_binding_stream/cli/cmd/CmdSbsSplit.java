@@ -1,13 +1,7 @@
 package org.aksw.sparql_binding_stream.cli.cmd;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.aksw.sparql_binding_stream.cli.main.SbsCmdImpls;
-
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
 
 @Command(name = "split", description = "Split/partition bindings into separate files")
 public class CmdSbsSplit {

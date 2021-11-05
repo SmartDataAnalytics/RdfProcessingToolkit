@@ -2,13 +2,9 @@ package org.aksw.sparql_integrate.cli.main;
 
 import java.io.Closeable;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdfconnection.RDFConnection;
-import org.apache.jena.sparql.engine.QueryEngineFactory;
-import org.apache.jena.sparql.modify.UpdateEngineFactory;
-import org.apache.jena.sparql.util.Context;
 
 public class DatasetBasedSparqlEngine
     implements AutoCloseable

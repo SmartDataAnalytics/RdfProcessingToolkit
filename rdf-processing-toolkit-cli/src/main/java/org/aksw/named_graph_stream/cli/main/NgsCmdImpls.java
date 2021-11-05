@@ -17,17 +17,16 @@ import org.aksw.commons.io.syscall.sort.SysSort;
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.io.hdt.JenaPluginHdt;
-import org.aksw.jena_sparql_api.rx.DatasetFactoryEx;
-import org.aksw.jena_sparql_api.rx.RDFDataMgrEx;
-import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
-import org.aksw.jena_sparql_api.rx.dataset.DatasetFlowOps;
 import org.aksw.jena_sparql_api.rx.io.resultset.NamedGraphStreamCliUtils;
-import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
-import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
-import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
-import org.aksw.jena_sparql_api.stmt.SparqlStmt;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
+import org.aksw.jenax.arq.dataset.orderaware.DatasetFactoryEx;
+import org.aksw.jenax.sparql.query.rx.RDFDataMgrEx;
+import org.aksw.jenax.sparql.query.rx.RDFDataMgrRx;
+import org.aksw.jenax.stmt.core.SparqlStmt;
+import org.aksw.jenax.stmt.core.SparqlStmtParserImpl;
+import org.aksw.jenax.stmt.parser.query.SparqlQueryParser;
+import org.aksw.jenax.stmt.parser.query.SparqlQueryParserImpl;
+import org.aksw.jenax.stmt.parser.query.SparqlQueryParserWrapperSelectShortForm;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsCat;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsFilter;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsHead;
@@ -73,7 +72,7 @@ public class NgsCmdImpls {
     public static Collection<Lang> quadLangs = Arrays.asList(Lang.TRIG, Lang.NQUADS);
     public static Collection<Lang> tripleLangs = Arrays.asList(Lang.TURTLE, JenaPluginHdt.LANG_HDT);
 
-    
+
     private static final Logger logger = LoggerFactory.getLogger(NgsCmdImpls.class);
 
     public static int cat(CmdNgsCat cmdCat) throws Exception {
@@ -89,7 +88,7 @@ public class NgsCmdImpls {
     public static int filter(CmdNgsFilter cmdFilter) throws Exception {
         RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdFilter.outFormat);
 
-        Function<String, SparqlStmt> stmtParser = SparqlStmtParserImpl.create(DefaultPrefixes.prefixes);
+        Function<String, SparqlStmt> stmtParser = SparqlStmtParserImpl.create(DefaultPrefixes.get());
         SparqlStmt stmt = stmtParser.apply(cmdFilter.sparqlCondition);
         Query query = stmt.getQuery();
 
@@ -207,15 +206,15 @@ public class NgsCmdImpls {
 
 
     public static void execMap(PrefixMapping pm, CmdNgsMap cmdFlatMap) {
-    	
-    	NamedGraphStreamCliUtils.execMap(pm,
-    			cmdFlatMap.nonOptionArgs,
-    			quadLangs,
-    			cmdFlatMap.mapSpec.stmts,    			
-    			cmdFlatMap.serviceTimeout,
-    			cmdFlatMap.outFormat,
-    			20);
-    	
+
+        NamedGraphStreamCliUtils.execMap(pm,
+                cmdFlatMap.nonOptionArgs,
+                quadLangs,
+                cmdFlatMap.mapSpec.stmts,
+                cmdFlatMap.serviceTimeout,
+                cmdFlatMap.outFormat,
+                20);
+
 //        String timeoutSpec = cmdFlatMap.serviceTimeout;
 //        Consumer<Context> contextHandler = cxt -> {
 //            if (!Strings.isNullOrEmpty(timeoutSpec)) {
@@ -278,7 +277,7 @@ public class NgsCmdImpls {
 //            resultProcessor.close();
 //        }
     }
-    
+
 
 
     public static int merge(CmdNgsMerge cmdMerge) throws IOException {
@@ -315,7 +314,7 @@ public class NgsCmdImpls {
 
         SysSort sysSort = CmdNgsSort.toSysSort(cmdSort);
 
-        FlowableTransformer<Dataset, Dataset> sorter = DatasetFlowOps.createSystemSorter(sysSort, keyQueryParser);
+        FlowableTransformer<Dataset, Dataset> sorter = org.aksw.jena_sparql_api.rx.dataset.DatasetFlowOps.createSystemSorter(sysSort, keyQueryParser);
 
         Flowable<Dataset> flow = NamedGraphStreamCliUtils.createNamedGraphStreamFromArgs(cmdSort.nonOptionArgs, null, MainCliNamedGraphStream.pm, quadLangs)
                 .compose(sorter);
@@ -367,7 +366,7 @@ public class NgsCmdImpls {
     public static int until(CmdNgsUntil cmdUntil) throws Exception {
         RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdUntil.outFormat);
 
-        Function<String, SparqlStmt> stmtParser = SparqlStmtParserImpl.create(DefaultPrefixes.prefixes);
+        Function<String, SparqlStmt> stmtParser = SparqlStmtParserImpl.create(DefaultPrefixes.get());
         SparqlStmt stmt = stmtParser.apply(cmdUntil.sparqlCondition);
         Query query = stmt.getQuery();
 
@@ -415,9 +414,9 @@ public class NgsCmdImpls {
             String outStr = Long.toString(count) + suffix;
             System.out.println(outStr);
         }
-        
+
         System.out.println("Counted " + totalCount + " items in total");
-        
+
         return 0;
     }
 
@@ -435,7 +434,7 @@ public class NgsCmdImpls {
     public static int xwhile(CmdNgsWhile cmdWhile) throws Exception {
         RDFFormat outFormat = RDFLanguagesEx.findRdfFormat(cmdWhile.outFormat);
 
-        Function<String, SparqlStmt> stmtParser = SparqlStmtParserImpl.create(DefaultPrefixes.prefixes);
+        Function<String, SparqlStmt> stmtParser = SparqlStmtParserImpl.create(DefaultPrefixes.get());
         SparqlStmt stmt = stmtParser.apply(cmdWhile.sparqlCondition);
         Query query = stmt.getQuery();
 

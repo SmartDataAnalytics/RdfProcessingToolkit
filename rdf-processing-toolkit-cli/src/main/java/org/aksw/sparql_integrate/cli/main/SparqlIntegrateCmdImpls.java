@@ -25,25 +25,25 @@ import java.util.stream.Collectors;
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.commons.io.util.symlink.SymbolicLinkStrategies;
 import org.aksw.difs.builder.DifsFactory;
-import org.aksw.difs.engine.RDFConnectionFactoryQuadForm;
 import org.aksw.jena_sparql_api.algebra.transform.TransformCollectOps;
 import org.aksw.jena_sparql_api.algebra.visitor.OpVisitorTriplesQuads;
-import org.aksw.jena_sparql_api.arq.core.connection.DatasetRDFConnectionFactory;
-import org.aksw.jena_sparql_api.arq.core.connection.DatasetRDFConnectionFactoryBuilder;
 import org.aksw.jena_sparql_api.arq.service.vfs.ServiceExecutorFactoryRegistratorVfs;
-import org.aksw.jena_sparql_api.core.SparqlService;
-import org.aksw.jena_sparql_api.core.connection.RDFConnectionFactoryEx;
-import org.aksw.jena_sparql_api.rx.SparqlScriptProcessor;
-import org.aksw.jena_sparql_api.rx.SparqlScriptProcessor.Provenance;
 import org.aksw.jena_sparql_api.rx.io.resultset.OutputFormatSpec;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessor;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessorBuilder;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExVisitor;
+import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor;
+import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor.Provenance;
 import org.aksw.jena_sparql_api.server.utils.FactoryBeanSparqlServer;
-import org.aksw.jena_sparql_api.stmt.SPARQLResultEx;
-import org.aksw.jena_sparql_api.stmt.SparqlStmt;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
 import org.aksw.jena_sparql_api.update.FluentSparqlService;
+import org.aksw.jenax.arq.connection.core.RDFConnectionUtils;
+import org.aksw.jenax.arq.connection.dataset.DatasetRDFConnectionFactory;
+import org.aksw.jenax.arq.connection.dataset.DatasetRDFConnectionFactoryBuilder;
+import org.aksw.jenax.arq.engine.quad.RDFConnectionFactoryQuadForm;
+import org.aksw.jenax.connectionless.SparqlService;
+import org.aksw.jenax.stmt.core.SparqlStmt;
+import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
+import org.aksw.jenax.stmt.util.SparqlStmtUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
@@ -262,7 +262,7 @@ public class SparqlIntegrateCmdImpls {
 
 
     public static RDFConnection wrapWithAutoDisableReorder(RDFConnection conn) {
-        return RDFConnectionFactoryEx.wrapWithPostProcessor(conn, qe -> {
+        return RDFConnectionUtils.wrapWithTransform(conn, null, qe -> {
             // We require the connection already provide an appropriate OpExecutor instance
             // that can handle custom service executors!
             // See: DatasetBasedSparqlEngine.newConnection()
@@ -552,7 +552,7 @@ public class SparqlIntegrateCmdImpls {
 
                     int port = cmd.serverPort;
                     server = FactoryBeanSparqlServer.newInstance()
-                            .setSparqlServiceFactory((serviceUri, datasetDescription, httpClient) -> sparqlService)
+                            .setSparqlServiceFactory(() -> sparqlService.getRDFConnection())
                             .setSparqlStmtParser(processor.getSparqlParser())
                             .setPort(port).create();
 

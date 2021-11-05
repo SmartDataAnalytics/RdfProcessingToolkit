@@ -13,16 +13,16 @@ import java.util.stream.Collectors;
 
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
-import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
 import org.aksw.jena_sparql_api.rx.RDFLanguagesEx;
-import org.aksw.jena_sparql_api.rx.ResultSetRx;
-import org.aksw.jena_sparql_api.rx.ResultSetRxImpl;
 import org.aksw.jena_sparql_api.rx.io.resultset.NamedGraphStreamCliUtils;
-import org.aksw.jena_sparql_api.rx.query_flow.ResultSetRxOps;
-import org.aksw.jena_sparql_api.stmt.SparqlQueryParser;
-import org.aksw.jena_sparql_api.stmt.SparqlQueryParserImpl;
-import org.aksw.jena_sparql_api.stmt.SparqlQueryParserWrapperSelectShortForm;
-import org.aksw.jena_sparql_api.utils.ResultSetUtils;
+import org.aksw.jenax.arq.util.binding.ResultSetUtils;
+import org.aksw.jenax.sparql.query.rx.RDFDataMgrRx;
+import org.aksw.jenax.sparql.query.rx.ResultSetRx;
+import org.aksw.jenax.sparql.query.rx.ResultSetRxImpl;
+import org.aksw.jenax.sparql.rx.op.ResultSetRxOps;
+import org.aksw.jenax.stmt.parser.query.SparqlQueryParser;
+import org.aksw.jenax.stmt.parser.query.SparqlQueryParserImpl;
+import org.aksw.jenax.stmt.parser.query.SparqlQueryParserWrapperSelectShortForm;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsFilter;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsMap;
 import org.apache.jena.atlas.web.TypedInputStream;
@@ -174,7 +174,7 @@ public class SbsCmdImpls {
         Lang outLang = RDFLanguagesEx.findLang(cmd.outFormat, resultSetFormats);
         ResultSetRx in = createResultSetRxFromArgs(cmd.nonOptionArgs);
 
-        PrefixMapping pm = DefaultPrefixes.prefixes;
+        PrefixMapping pm = DefaultPrefixes.get();
 
         ExprList exprs = new ExprList();
         for (String arg : cmd.exprs) {
@@ -200,7 +200,7 @@ public class SbsCmdImpls {
         List<Lang> resultSetFormats = RDFLanguagesEx.getResultSetFormats();
         Lang outLang = RDFLanguagesEx.findLang(cmd.outFormat, resultSetFormats);
 
-        Prologue p = new Prologue(DefaultPrefixes.prefixes);
+        Prologue p = new Prologue(DefaultPrefixes.get());
         SparqlQueryParser queryParser = SparqlQueryParserImpl.wrapWithOptimizePrefixes(SparqlQueryParserWrapperSelectShortForm.wrap(
                 SparqlQueryParserImpl.create(Syntax.syntaxARQ, p)));
 
