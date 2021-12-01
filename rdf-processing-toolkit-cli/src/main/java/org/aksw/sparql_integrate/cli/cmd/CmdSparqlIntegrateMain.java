@@ -40,7 +40,8 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--db-fs" }, description="FileSystem URL against which to interpret db-path (leave empty for local fs).")
     public String dbFs = null;
 
-    @Option(names = { "--db", "--db-path" }, description="Path to database directory or file (for disk-based engines)")
+    // --db-path is deprecated!
+    @Option(names = { "--db", "--db-location", "--db-path" }, description="Access location to the database; interpreted w.r.t. engine. May be an URL, directory or file.")
     public String dbPath = null;
 
     @Option(names = { "-T", "--temporary-directory" }, description="Temporary directory")

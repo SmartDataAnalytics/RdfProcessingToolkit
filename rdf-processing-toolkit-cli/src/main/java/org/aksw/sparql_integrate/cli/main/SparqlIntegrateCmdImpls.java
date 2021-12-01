@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -40,6 +41,7 @@ import org.aksw.jenax.arq.connection.core.RDFConnectionUtils;
 import org.aksw.jenax.arq.connection.dataset.DatasetRDFConnectionFactory;
 import org.aksw.jenax.arq.connection.dataset.DatasetRDFConnectionFactoryBuilder;
 import org.aksw.jenax.arq.engine.quad.RDFConnectionFactoryQuadForm;
+import org.aksw.jenax.connection.datasource.RdfDataSource;
 import org.aksw.jenax.connectionless.SparqlService;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
@@ -136,7 +138,7 @@ public class SparqlIntegrateCmdImpls {
      * @return
      * @throws IOException
      */
-    public static DatasetBasedSparqlEngine configEngine(CmdSparqlIntegrateMain cmd) throws IOException {
+    public static RdfDataSourceFromDataset configEngineOld(CmdSparqlIntegrateMain cmd) throws IOException {
 
         String engine = cmd.engine;
 
@@ -148,7 +150,7 @@ public class SparqlIntegrateCmdImpls {
         Closeable fsCloseAction = fsInfo == null ? () -> {} : fsInfo.getValue();
 
 
-        DatasetBasedSparqlEngine result;
+        RdfDataSourceFromDataset result;
         // TODO Create a registry for engines / should probably go to the conjure project
         if (engine == null || engine.equals("mem")) {
 
@@ -166,7 +168,7 @@ public class SparqlIntegrateCmdImpls {
                     .setContext(cxt)
                     .build();
 
-            result = DatasetBasedSparqlEngine.create(DatasetFactory.create(), connector::connect, null);
+            result = RdfDataSourceFromDataset.create(DatasetFactory.create(), connector::connect, null);
 
         } else if (engine.equalsIgnoreCase("tdb2")) {
 
@@ -221,7 +223,7 @@ public class SparqlIntegrateCmdImpls {
                     }
                 };
 
-                result = DatasetBasedSparqlEngine.create(
+                result = RdfDataSourceFromDataset.create(
                         dataset,
                         RDFConnectionFactory::connect,
                         finalDeleteAction);
@@ -250,12 +252,32 @@ public class SparqlIntegrateCmdImpls {
                 .setMaximumNamedGraphCacheSize(10000)
                 .connectAsDataset();
 
-            result = DatasetBasedSparqlEngine.create(dataset,
+            result = RdfDataSourceFromDataset.create(dataset,
                     ds -> RDFConnectionFactoryQuadForm.connect(ds, cxt), fsCloseAction);
 
         } else {
             throw new RuntimeException("Unknown engine: " + engine);
         }
+        return result;
+    }
+
+    public static RdfDataSource setupRdfDataSource(CmdSparqlIntegrateMain cmd) throws Exception {
+
+        String sourceType = Optional.ofNullable(cmd.engine).orElse("mem");
+
+        RdfDataSourceFactory factory = RdfDataSourceFactoryRegistry.get().get(sourceType);
+        if (factory == null) {
+            throw new RuntimeException("No RdfDataSourceFactory registered under name " + sourceType);
+        }
+
+        RdfDataSourceSpecBasicFromMap spec = RdfDataSourceSpecBasicFromMap.create();
+        spec.setTempDir(cmd.tempPath);
+        spec.setAutoDeleteIfCreated(!cmd.dbKeep);
+        spec.setLocation(cmd.dbPath);
+        spec.setLocationContext(cmd.dbFs);
+
+
+        RdfDataSource result = factory.create(spec.getMap());
         return result;
     }
 
@@ -521,7 +543,7 @@ public class SparqlIntegrateCmdImpls {
 
         // Start the engine (wrooom)
 
-        DatasetBasedSparqlEngine datasetAndDelete = configEngine(cmd);
+        RdfDataSource datasetAndDelete = setupRdfDataSource(cmd);
         // Dataset dataset = datasetAndDelete.getKey();
         // Closeable deleteAction = datasetAndDelete.getValue();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -539,7 +561,7 @@ public class SparqlIntegrateCmdImpls {
         }
 
         try {
-            Callable<RDFConnection> connSupp = () -> wrapWithAutoDisableReorder(datasetAndDelete.newConnection());
+            Callable<RDFConnection> connSupp = () -> wrapWithAutoDisableReorder(datasetAndDelete.getConnection());
 
             try (RDFConnection serverConn = (cmd.server ? connSupp.call() : null)) {
                 // RDFConnectionFactoryEx.getQueryConnection(conn)
