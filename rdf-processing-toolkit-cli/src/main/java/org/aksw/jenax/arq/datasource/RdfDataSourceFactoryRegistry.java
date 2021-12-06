@@ -1,4 +1,4 @@
-package org.aksw.sparql_integrate.cli.main;
+package org.aksw.jenax.arq.datasource;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

@@ -1,4 +1,4 @@
-package org.aksw.sparql_integrate.cli.main;
+package org.aksw.jenax.arq.datasource;
 
 public interface RdfDataSourceSpecBasic {
     String getLocationContext();

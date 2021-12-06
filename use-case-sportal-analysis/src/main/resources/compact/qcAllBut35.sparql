@@ -22,6 +22,6 @@ CONSTRUCT {
         a ?t ;
         ?p ?o
     }
-    GROUP BY ?k ?t
+    GROUP BY ?t
   }
 }

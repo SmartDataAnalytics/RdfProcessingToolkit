@@ -84,6 +84,14 @@
 
 	<dependencyManagement>
 		<dependencies>
+
+			<dependency>
+				<groupId>net.sansa-stack</groupId>
+				<artifactId>sansa-spark-jena-java_2.12</artifactId>
+				<version>0.8.0-RC2-SNAPSHOT</version>
+			</dependency>
+
+
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-annotations</artifactId>
@@ -204,11 +212,11 @@
 				<version>1.1.1</version> </dependency> <dependency> <groupId>org.apache.sis.non-free</groupId> 
 				<artifactId>sis-embedded-data</artifactId> <version>0.8</version> </dependency> -->
 
-<!-- 			<dependency> -->
-<!-- 				<groupId>com.beust</groupId> -->
-<!-- 				<artifactId>jcommander</artifactId> -->
-<!-- 				<version>1.78</version> -->
-<!-- 			</dependency> -->
+			<!-- <dependency> -->
+			<!-- <groupId>com.beust</groupId> -->
+			<!-- <artifactId>jcommander</artifactId> -->
+			<!-- <version>1.78</version> -->
+			<!-- </dependency> -->
 
 			<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot</artifactId> 
 				<version>${spring-boot.version}</version> </dependency> <dependency> <groupId>org.springframework.boot</groupId> 
