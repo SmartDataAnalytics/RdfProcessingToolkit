@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.aksw.rdf-processing-toolkit</groupId>
+		<artifactId>rdf-processing-toolkit-pkg-parent</artifactId>
+		<version>1.1.0-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>rdf-processing-toolkit-pkg-docker-cli</artifactId>
+	<packaging>jar</packaging>
+
+	<properties>
+		<deb.packageName>rdf-processing-toolkit-cli</deb.packageName>
+		<!-- <deb.jarFile>${project.artifactId}-${project.version}.jar</deb.jarFile> -->
+		<!-- <deb.jarFile>${project.artifactId}-${project.version}-jar-with-dependencies.jar</deb.jarFile> -->
+		<deb.jarFile>${project.artifactId}-${project.version}.jar</deb.jarFile>
+	</properties>
+
+
+
+	<build>
+		<plugins>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.sonatype.plugins</groupId>
+				<artifactId>nexus-staging-maven-plugin</artifactId>
+				<configuration>
+					<skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>com.google.cloud.tools</groupId>
+				<artifactId>jib-maven-plugin</artifactId>
+				<version>3.1.4</version>
+				<configuration>
+					<to>
+						<image>docker.io/aklakan/rdf-processing-toolkit</image>
+					</to>
+					<from>
+						<image>openjdk:alpine</image>
+					</from>
+					<container>
+						<mainClass>org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit</mainClass>
+					</container>
+				</configuration>
+			</plugin>
+
+		</plugins>
+	</build>
+
+
+	<dependencies>
+		<dependency>
+			<groupId>org.aksw.rdf-processing-toolkit</groupId>
+			<artifactId>rdf-processing-toolkit-cli</artifactId>
+		</dependency>
+	</dependencies>
+</project>
+

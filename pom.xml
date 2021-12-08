@@ -16,11 +16,10 @@
 
 	<modules>
 		<module>rdf-processing-toolkit-cli</module>
-		<module>rdf-processing-toolkit-debian-cli</module>
+		<module>rdf-processing-toolkit-pkg-parent</module>
 
 		<!-- <module>rdf-processing-toolkit-web-service</module> -->
 
-		<module>rdf-processing-toolkit-bundle</module>
 		<module>rdf-processing-toolkit-dummy</module>
 
 		<!-- <module>use-case-sportal-analysis</module> -->
@@ -329,6 +328,12 @@
 		<pluginManagement>
 			<plugins>
 				<plugin>
+					<groupId>de.jutzig</groupId>
+					<artifactId>github-release-plugin</artifactId>
+					<version>1.3.0</version>
+				</plugin>
+
+				<plugin>
 					<groupId>com.amashchenko.maven.plugin</groupId>
 					<artifactId>gitflow-maven-plugin</artifactId>
 					<version>1.8.0</version>
@@ -562,6 +567,19 @@
 			<name>University Leipzig, AKSW Maven2 Snapshot Repository</name>
 			<url>https://maven.aksw.org/repository/snapshots/</url>
 		</repository>
+
+		<!-- Repo for latest jena snapshots -->
+		<repository>
+			<id>apache-repo-snapshots</id>
+			<url>https://repository.apache.org/content/repositories/snapshots/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+
 	</repositories>
 
 	<distributionManagement>
