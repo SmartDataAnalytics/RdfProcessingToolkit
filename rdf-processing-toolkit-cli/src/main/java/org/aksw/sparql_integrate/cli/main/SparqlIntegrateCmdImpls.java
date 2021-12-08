@@ -347,6 +347,7 @@ public class SparqlIntegrateCmdImpls {
         RdfDataSource dataSourceTmp = setupRdfDataSource(cmd);
 
         if ("sansa".equalsIgnoreCase(cmd.dbLoader)) {
+            logger.info("Using sansa loader for loading RDF files");
             dataSourceTmp = new RdfDataSourceFactorySansa().create(dataSourceTmp, null);
         }
 

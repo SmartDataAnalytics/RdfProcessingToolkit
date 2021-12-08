@@ -19,9 +19,6 @@
 		<module>rdf-processing-toolkit-pkg-parent</module>
 
 		<!-- <module>rdf-processing-toolkit-web-service</module> -->
-
-		<module>rdf-processing-toolkit-dummy</module>
-
 		<!-- <module>use-case-sportal-analysis</module> -->
 	</modules>
 
@@ -151,11 +148,13 @@
 				<version>${project.version}</version>
 			</dependency>
 
+<!--
 			<dependency>
 				<groupId>org.aksw.rdf-processing-toolkit</groupId>
 				<artifactId>rdf-processing-toolkit-bundle</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+-->
 
 			<dependency>
 				<groupId>org.locationtech.jts.io</groupId>

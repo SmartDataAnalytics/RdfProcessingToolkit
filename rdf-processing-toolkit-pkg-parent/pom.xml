@@ -18,6 +18,8 @@
 		<module>rdf-processing-toolkit-pkg-rpm-cli</module>
 		<module>rdf-processing-toolkit-pkg-docker-cli</module>
 		<module>rdf-processing-toolkit-pkg-uberjar-cli</module>
+		<module>rdf-processing-toolkit-pkg-dummy</module>
 	</modules>
 
 </project>
+
