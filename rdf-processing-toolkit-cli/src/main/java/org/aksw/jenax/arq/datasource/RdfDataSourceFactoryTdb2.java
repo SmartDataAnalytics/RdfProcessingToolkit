@@ -63,14 +63,17 @@ public class RdfDataSourceFactoryTdb2
         Closeable deleteAction;
         if (createdDbDir) {
             if (Boolean.TRUE.equals(spec.isAutoDeleteIfCreated())) {
-                logger.info("Created new directory (its content will deleted when done): " + dbPath);
-                deleteAction = () -> MoreFiles.deleteRecursively(finalDbPath);
+                logger.info("Created new directory (its content will deleted when done): " + finalDbPath);
+                deleteAction = () -> {
+                    logger.info("Deleting created directory: " + finalDbPath);
+                    MoreFiles.deleteRecursively(finalDbPath);
+                };
             } else {
-                logger.info("Created new directory (will be kept after done): " + dbPath);
+                logger.info("Created new directory (will be kept after done): " + finalDbPath);
                 deleteAction = () -> {};
             }
         } else {
-            logger.warn("Folder already existed - delete action disabled: " + dbPath);
+            logger.warn("Folder already existed - delete action disabled: " + finalDbPath);
             deleteAction = () -> {};
         }
 
@@ -87,7 +90,7 @@ public class RdfDataSourceFactoryTdb2
         try {
             Dataset dataset = TDB2Factory.connectDataset(location);
 
-            logger.info("Connecting to TDB2 database in folder " + dbPath);
+            logger.info("Connecting to TDB2 database in folder " + finalDbPath);
             Closeable finalDeleteAction = () -> {
                 try {
                     dataset.close();

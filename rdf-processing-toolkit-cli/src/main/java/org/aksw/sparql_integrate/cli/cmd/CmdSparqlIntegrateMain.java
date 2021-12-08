@@ -44,6 +44,9 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--db", "--db-location", "--db-path" }, description="Access location to the database; interpreted w.r.t. engine. May be an URL, directory or file.")
     public String dbPath = null;
 
+    @Option(names = { "--db-loader" }, description="Wrap a datasource's default loading strategy with a different one. Supported values: sansa")
+    public String dbLoader = null;
+
     @Option(names = { "-T", "--temporary-directory" }, description="Temporary directory")
     public String tempPath = StandardSystemProperty.JAVA_IO_TMPDIR.value();
 
