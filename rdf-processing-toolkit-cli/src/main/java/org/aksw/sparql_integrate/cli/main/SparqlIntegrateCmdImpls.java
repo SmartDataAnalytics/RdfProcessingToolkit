@@ -17,6 +17,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import org.aksw.commons.io.util.StdIo;
@@ -63,6 +64,7 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpService;
+import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
@@ -402,6 +404,7 @@ public class SparqlIntegrateCmdImpls {
                 }
 
                 try(RDFConnection conn = connSupp.call()) {
+
                     for (Entry<SparqlStmt, Provenance> stmtEntry : workloads) {
                         Provenance prov = stmtEntry.getValue();
                         String clusterId = splitFolder == null ? "" : prov.getSparqlPath();
@@ -490,4 +493,31 @@ public class SparqlIntegrateCmdImpls {
 //        }
     }
 
+
+
+    /**
+     * Checks whether transactions with the given transactional
+     * are thread-independent.
+     * For this purpose a txn is started on the calling thread. Afterwards,
+     * the isInTransaction() flag is read from on a separate test thread.
+     *
+     */
+    public boolean isTxnThreadIndependent(Transactional txn, TxnType txnType) {
+        boolean status[] = Txn.calc(txn, txnType, () -> {
+            boolean[] r = { false, false };
+            r[0] = txn.isInTransaction();
+
+            Thread x = new Thread(() -> r[1] = txn.isInTransaction());
+            x.start();
+            try {
+                x.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            return r;
+        });
+
+        boolean result = status[0] && status[1];
+        return result;
+    }
 }
