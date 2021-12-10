@@ -39,9 +39,17 @@ public class RdfDataSourceDecoratorSansa
 
                 // If true then the graphstore LOAD action may acquire multiple update connections for the INSERT requests
                 // Multiple concurrent update transaction are prone to deadlocks
+
+                RDFLink updateLink = RDFLinkAdapterEx.adapt(rawConn);
+
+                boolean enforceSameThreadOnLink = false;
+                if (enforceSameThreadOnLink) {
+                    updateLink = RDFLinkDelegateWithWorkerThread.wrap(updateLink);
+                }
+
+
                 boolean allowMultipleConnections = true;
 
-                RDFLink updateLink = RDFLinkDelegateWithWorkerThread.wrap(RDFLinkAdapterEx.adapt(rawConn));
                 LinkDatasetGraph linkDg;
                 if (allowMultipleConnections) {
                     linkDg = LinkDatasetGraphSansa.create(createDefaultHadoopConfiguration(), () -> RDFLinkAdapterEx.adapt(dataSource.getConnection()));
