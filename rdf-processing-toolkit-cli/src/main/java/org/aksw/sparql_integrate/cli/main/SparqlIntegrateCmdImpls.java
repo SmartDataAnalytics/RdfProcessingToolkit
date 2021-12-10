@@ -34,7 +34,7 @@ import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.jenax.arq.connection.core.RDFConnectionUtils;
 import org.aksw.jenax.arq.datasource.RdfDataSourceFactory;
 import org.aksw.jenax.arq.datasource.RdfDataSourceFactoryRegistry;
-import org.aksw.jenax.arq.datasource.RdfDataSourceFactorySansa;
+import org.aksw.jenax.arq.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.connection.datasource.RdfDataSource;
 import org.aksw.jenax.connectionless.SparqlService;
@@ -350,7 +350,7 @@ public class SparqlIntegrateCmdImpls {
 
         if ("sansa".equalsIgnoreCase(cmd.dbLoader)) {
             logger.info("Using sansa loader for loading RDF files");
-            dataSourceTmp = new RdfDataSourceFactorySansa().create(dataSourceTmp, null);
+            dataSourceTmp = new RdfDataSourceDecoratorSansa().decorate(dataSourceTmp, null);
         }
 
         RdfDataSource datasetAndDelete = dataSourceTmp;;

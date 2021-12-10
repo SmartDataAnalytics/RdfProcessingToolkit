@@ -16,8 +16,7 @@ import org.apache.jena.rdflink.RDFLinkModular;
 
 import net.sansa_stack.spark.io.rdf.loader.LinkDatasetGraphSansa;
 
-public class RdfDataSourceFactorySansa
-//    implements RdfDataSourceWrapper
+public class RdfDataSourceDecoratorSansa
 {
     public static Configuration createDefaultHadoopConfiguration() {
         Configuration conf = new Configuration(false);
@@ -26,14 +25,16 @@ public class RdfDataSourceFactorySansa
     }
 
     // @Override
-    public RdfDataSource create(RdfDataSource dataSource, Map<String, Object> config) {
+    public RdfDataSource decorate(RdfDataSource dataSource, Map<String, Object> config) {
         // RdfDataSourceSpecBasic spec = RdfDataSourceSpecBasicFromMap.wrap(config);
 
         RdfDataSource result = new RdfDataSourceDelegateBase(dataSource) {
             @Override
             public org.apache.jena.rdfconnection.RDFConnection getConnection() {
                 RDFConnection rawConn = dataSource.getConnection();
-                RDFLink link = RDFLinkDelegateWithWorkerThread.wrap(RDFLinkAdapterEx.adapt(rawConn));
+                // RDFLink queryLink = RDFLinkAdapterEx.adapt(rawConn);
+
+                RDFLink updateLink = RDFLinkDelegateWithWorkerThread.wrap(RDFLinkAdapterEx.adapt(rawConn));
 
                 // RDFConnection conn = RDFConnectionAdapter.adapt(RDFLinkDelegateWithWorkerThread.wrap(RDFLinkAdapterEx.adapt(connx)));
 
@@ -44,16 +45,16 @@ public class RdfDataSourceFactorySansa
                 if (allowMultipleConnections) {
                     linkDg = LinkDatasetGraphSansa.create(createDefaultHadoopConfiguration(), () -> RDFLinkAdapterEx.adapt(dataSource.getConnection()));
                 } else {
-                    linkDg = LinkDatasetGraphSansa.create(createDefaultHadoopConfiguration(), () -> new RDFLinkAdapterEx(RDFConnectionAdapter.adapt(link)) {
+                    linkDg = LinkDatasetGraphSansa.create(createDefaultHadoopConfiguration(), () -> new RDFLinkAdapterEx(RDFConnectionAdapter.adapt(updateLink)) {
                         @Override
                         public void close() {
-                            // noop as we reuse 'this' connection
+                            // noop as we reuse the primary connection - the primary one has to be closed
                         }
                     });
                 }
 
                 RDFConnection r = RDFConnectionAdapter.adapt(
-                        RDFLinkUtils.wrapWithLoadViaLinkDatasetGraph(new RDFLinkModular(link, link, linkDg)));
+                        RDFLinkUtils.wrapWithLoadViaLinkDatasetGraph(new RDFLinkModular(updateLink, updateLink, linkDg)));
                 return r;
             }
         };
