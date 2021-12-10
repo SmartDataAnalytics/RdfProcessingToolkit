@@ -34,13 +34,14 @@ public class RdfDataSourceDecoratorSansa
                 RDFConnection rawConn = dataSource.getConnection();
                 // RDFLink queryLink = RDFLinkAdapterEx.adapt(rawConn);
 
-                RDFLink updateLink = RDFLinkDelegateWithWorkerThread.wrap(RDFLinkAdapterEx.adapt(rawConn));
 
                 // RDFConnection conn = RDFConnectionAdapter.adapt(RDFLinkDelegateWithWorkerThread.wrap(RDFLinkAdapterEx.adapt(connx)));
 
                 // If true then the graphstore LOAD action may acquire multiple update connections for the INSERT requests
-                boolean allowMultipleConnections = false;
+                // Multiple concurrent update transaction are prone to deadlocks
+                boolean allowMultipleConnections = true;
 
+                RDFLink updateLink = RDFLinkDelegateWithWorkerThread.wrap(RDFLinkAdapterEx.adapt(rawConn));
                 LinkDatasetGraph linkDg;
                 if (allowMultipleConnections) {
                     linkDg = LinkDatasetGraphSansa.create(createDefaultHadoopConfiguration(), () -> RDFLinkAdapterEx.adapt(dataSource.getConnection()));

@@ -483,14 +483,27 @@ public class SparqlIntegrateCmdImpls {
             logger.info("Processing " + prov);
             TxnType txnType = stmt.isQuery() ? TxnType.READ : TxnType.WRITE;
 
-            Txn.exec(conn, txnType, () -> {
-                try(SPARQLResultEx sr = SparqlStmtUtils.execAny(conn, stmt)) {
-                    resultProcessor.forwardEx(sr);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            });
+
+            // Some RdfDataSource decorators will try to perform certain update operations
+            // (e.g. loading a file) using parallel update requests. In that case
+            // we must avoid to start a write txn that exclusively locks the dataset or
+            // we will deadlock.
+            boolean runUpdateWithAdhocTxn = true;
+
+            if (stmt.isUpdateRequest() && runUpdateWithAdhocTxn) {
+                conn.update(stmt.getUpdateRequest());
+            } else {
+                Txn.exec(conn, txnType, () -> {
+                    try(SPARQLResultEx sr = SparqlStmtUtils.execAny(conn, stmt)) {
+                        resultProcessor.forwardEx(sr);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
 //        }
+
+
     }
 
 
