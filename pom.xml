@@ -54,7 +54,7 @@
 	</developers>
 
 	<properties>
-		<jena.version>4.3.0-SNAPSHOT</jena.version>
+		<jena.version>4.3.0</jena.version>
 		<jenax.version>4.3.0-1-SNAPSHOT</jenax.version>
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 

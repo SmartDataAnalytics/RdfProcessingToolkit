@@ -488,9 +488,9 @@ public class SparqlIntegrateCmdImpls {
             // (e.g. loading a file) using parallel update requests. In that case
             // we must avoid to start a write txn that exclusively locks the dataset or
             // we will deadlock.
-            boolean runUpdateWithAdhocTxn = true;
+            boolean runUpdateWithAdhocTxn = false;
 
-            if (stmt.isUpdateRequest() && runUpdateWithAdhocTxn) {
+            if (runUpdateWithAdhocTxn && stmt.isUpdateRequest()) {
                 conn.update(stmt.getUpdateRequest());
             } else {
                 Txn.exec(conn, txnType, () -> {

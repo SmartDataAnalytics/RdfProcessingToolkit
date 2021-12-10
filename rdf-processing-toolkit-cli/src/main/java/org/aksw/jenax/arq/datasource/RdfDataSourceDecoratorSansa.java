@@ -42,13 +42,13 @@ public class RdfDataSourceDecoratorSansa
 
                 RDFLink rawUpdateLink = RDFLinkAdapterEx.adapt(rawConn);
 
-                boolean enforceSameThreadOnLink = false;
+                boolean enforceSameThreadOnLink = true;
                 RDFLink updateLink = enforceSameThreadOnLink
                         ? RDFLinkDelegateWithWorkerThread.wrap(rawUpdateLink)
                         : rawUpdateLink;
 
 
-                boolean allowMultipleConnections = true;
+                boolean allowMultipleConnections = false;
 
                 LinkDatasetGraph linkDg;
                 if (allowMultipleConnections) {
