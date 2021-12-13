@@ -1,5 +1,8 @@
 package org.aksw.rdf_processing_toolkit.cli.cmd;
 
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+
 import org.aksw.jena_sparql_api.arq.service.vfs.ServiceExecutorFactoryRegistratorVfs;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
@@ -13,16 +16,31 @@ import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sys.JenaSystem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Stopwatch;
 
 public class CliUtils {
 
-    public static void configureGlobalSettings() {
-        JenaSystem.init();
+    private static final Logger logger = LoggerFactory.getLogger(CliUtils.class);
 
-        RDFLanguages.register(ResultSetLang.SPARQLResultSetText);
+    public static void benchmark(String name, Consumer<String> msgReceiver, Runnable runnable) {
+        Stopwatch sw = Stopwatch.createStarted();
+        runnable.run();
+        msgReceiver.accept(name + " timed at " + sw.elapsed(TimeUnit.MILLISECONDS) + " ms");
+    }
+
+    public static void configureGlobalSettings() {
 
         // Disable creation of a derby.log file ; triggered by the GeoSPARQL module
         System.setProperty("derby.stream.error.field", "org.aksw.sparql_integrate.cli.DerbyUtil.DEV_NULL");
+
+        // benchmark("jena-init", logger::info, () -> {
+        JenaSystem.init();
+        // });
+
+        RDFLanguages.register(ResultSetLang.RS_Text);
 
         // Init geosparql module
         // TODO Init of geosparql takes a while which is annoying during startup

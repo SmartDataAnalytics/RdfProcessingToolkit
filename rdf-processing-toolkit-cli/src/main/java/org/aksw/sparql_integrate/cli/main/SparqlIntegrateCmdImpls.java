@@ -102,7 +102,7 @@ public class SparqlIntegrateCmdImpls {
 
 
     public static RDFConnection wrapWithAutoDisableReorder(RDFConnection conn) {
-        return RDFConnectionUtils.wrapWithTransform(conn, null, qe -> {
+        return RDFConnectionUtils.wrapWithQueryTransform(conn, null, qe -> {
             // We require the connection already provide an appropriate OpExecutor instance
             // that can handle custom service executors!
             // See: DatasetBasedSparqlEngine.newConnection()

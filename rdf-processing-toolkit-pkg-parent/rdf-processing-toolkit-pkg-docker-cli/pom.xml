@@ -55,6 +55,7 @@
 					<container>
 						<mainClass>org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit</mainClass>
 					</container>
+					<containerizingMode>packaged</containerizingMode>
 				</configuration>
 			</plugin>
 
