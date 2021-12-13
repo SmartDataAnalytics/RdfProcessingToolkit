@@ -37,11 +37,11 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "-e", "--engine", "--db-engine" }, description="SPARQL Engine. Supported: 'mem', 'tdb2', 'difs'")
     public String engine = "mem";
 
-    @Option(names = { "--db-fs" }, description="FileSystem URL against which to interpret db-path (leave empty for local fs).")
+    @Option(names = { "--db-fs" }, description="FileSystem URL against which to interpret --db-location (e.g. for webdav, leave empty for local fs).")
     public String dbFs = null;
 
     // --db-path is deprecated!
-    @Option(names = { "--db", "--db-location", "--db-path" }, description="Access location to the database; interpreted w.r.t. engine. May be an URL, directory or file.")
+    @Option(names = { "--db-loc", "--db-location" }, description="Access location to the database; interpreted w.r.t. engine. May be an URL, directory or file.")
     public String dbPath = null;
 
     @Option(names = { "--db-loader" }, description="Wrap a datasource's default loading strategy with a different one. Supported values: sansa")
@@ -52,7 +52,6 @@ public class CmdSparqlIntegrateMain
 
     @Option(names = { "--db-keep" }, description="Keep generated database files")
     public boolean dbKeep = false;
-
 
     @Option(names = { "--explain" }, description="Enable detailed ARQ log output")
     public boolean explain = false;
@@ -75,15 +74,15 @@ public class CmdSparqlIntegrateMain
     public boolean showAlgebra = false;
     // public long numRecords = 10;
 
-    @Option(names = { "-u", "--u" }, description = "Union default graph mode")
+    @Option(names = { "-u", "--u" }, description = "Union default graph mode; best effort that virtually exposes all named graphs as the default graph")
     public boolean unionDefaultGraph = false;
 
     // TODO Make port configurable
     @Option(names = { "--server" }, description = "Start a SPARQL server")
     public boolean server = false;
 
-    @Option(names = { "--port" }, description = "Server port")
-    public int serverPort = 7531;
+    @Option(names = { "--port" }, description = "Server port, default: ${DEFAULT-VALUE}", defaultValue = "8642")
+    public int serverPort;
 
     @Option(names = { "--rdf10" }, description = "RDF 1.0 mode; e.g. xsd:string on literals matter", defaultValue = "false")
     public boolean useRdf10 = false;
@@ -96,7 +95,7 @@ public class CmdSparqlIntegrateMain
          * sparql-pattern file
          *
          */
-        @Option(names = { "--o" }, description = "output file (legacy; avoid use)") // legacy option
+        @Option(names = { "-o" }, description = "output file (legacy; avoid use)") // legacy option
         public String outFile;
 
         @Option(names = { "--io", },  description = "overwrites input file on success with output; use with care")
@@ -114,7 +113,7 @@ public class CmdSparqlIntegrateMain
      * If given, the output mode is determined by the argument
      *
      */
-    @Option(names = { "-o", "--out-format", "--w" }, description = "Output format")
+    @Option(names = { "--out-format", "--w" }, description = "Output format")
     public String outFormat = null;
 
     // Subsume jq stuff under -w jq ?

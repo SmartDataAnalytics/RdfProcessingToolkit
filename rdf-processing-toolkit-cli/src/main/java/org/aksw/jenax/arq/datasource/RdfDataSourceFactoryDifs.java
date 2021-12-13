@@ -74,9 +74,11 @@ public class RdfDataSourceFactoryDifs
         Path dftTxnsPath = basePath.resolve("txns");
 
         // Make sure we don't accidently delete possibly unrelated locks / txns folders (better safe than sorry)
-        for (Path validation : Arrays.asList(dftLocksPath, dftTxnsPath) ) {
-            if (Files.exists(validation)) {
-                throw new IllegalStateException("Neither store/index folders nor config file found but either orphaned or unrelated file " + validation + " existed.");
+        if (deleteWhenDone) {
+            for (Path validation : Arrays.asList(dftLocksPath, dftTxnsPath) ) {
+                if (Files.exists(validation)) {
+                    throw new IllegalStateException("Neither store/index folders nor config file found but either orphaned or unrelated file " + validation + " existed.");
+                }
             }
         }
 
