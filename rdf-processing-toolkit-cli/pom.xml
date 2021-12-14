@@ -18,6 +18,12 @@
 		<dependency>
 			<groupId>net.sansa-stack</groupId>
 			<artifactId>sansa-spark-jena-java_2.12</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
@@ -119,8 +125,8 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-slf4j18-impl</artifactId>
 		</dependency>
 
 		<!-- Virtual FileSystem -->
@@ -146,7 +152,7 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	
+
 	<profiles>
 		<profile>
 			<id>dist</id>
@@ -198,15 +204,9 @@
 						</configuration>
 					</plugin>
 
-					<!--
-					<plugin>
-						<groupId>org.sonatype.plugins</groupId>
-						<artifactId>nexus-staging-maven-plugin</artifactId>
-						<configuration>
-							<skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
-						</configuration>
-					</plugin>
-					 -->
+					<!-- <plugin> <groupId>org.sonatype.plugins</groupId> <artifactId>nexus-staging-maven-plugin</artifactId> 
+						<configuration> <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo> 
+						</configuration> </plugin> -->
 
 				</plugins>
 

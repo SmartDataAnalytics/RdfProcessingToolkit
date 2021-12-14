@@ -34,20 +34,20 @@ public class CmdSparqlIntegrateMain
 //    @Option(names = { "-v", "--version" }, versionHelp = true)
 //    public boolean version = false;
 
-    @Option(names = { "-e", "--engine", "--db-engine" }, description="SPARQL Engine. Supported: 'mem', 'tdb2', 'difs'")
+    @Option(names = { "--db-engine", "-e" }, description="SPARQL Engine. Supported: 'mem', 'tdb2', 'difs'")
     public String engine = "mem";
 
-    @Option(names = { "--db-fs" }, description="FileSystem URL against which to interpret --db-location (e.g. for webdav, leave empty for local fs).")
+    @Option(names = { "--db-fs", "--fs" }, description="FileSystem URL against which to interpret --db-location (e.g. for webdav, leave empty for local fs).")
     public String dbFs = null;
 
     // --db-path is deprecated!
-    @Option(names = { "--db-loc", "--db-location" }, description="Access location to the database; interpreted w.r.t. engine. May be an URL, directory or file.")
+    @Option(names = { "--db-loc", "--loc" }, description="Access location to the database; interpreted w.r.t. engine. May be an URL, directory or file.")
     public String dbPath = null;
 
     @Option(names = { "--db-loader" }, description="Wrap a datasource's default loading strategy with a different one. Supported values: sansa")
     public String dbLoader = null;
 
-    @Option(names = { "-T", "--temporary-directory" }, description="Temporary directory")
+    @Option(names = { "--tmpdir" }, description="Temporary directory")
     public String tempPath = StandardSystemProperty.JAVA_IO_TMPDIR.value();
 
     @Option(names = { "--db-keep" }, description="Keep generated database files")
@@ -74,7 +74,7 @@ public class CmdSparqlIntegrateMain
     public boolean showAlgebra = false;
     // public long numRecords = 10;
 
-    @Option(names = { "-u", "--u" }, description = "Union default graph mode; best effort that virtually exposes all named graphs as the default graph")
+    @Option(names = { "-u" }, description = "Union default graph mode; best effort that virtually exposes all named graphs as the default graph")
     public boolean unionDefaultGraph = false;
 
     // TODO Make port configurable
@@ -95,14 +95,14 @@ public class CmdSparqlIntegrateMain
          * sparql-pattern file
          *
          */
-        @Option(names = { "-o" }, description = "output file (legacy; avoid use)") // legacy option
+        @Option(names = { "-o" }, description = "output file")
         public String outFile;
 
-        @Option(names = { "--io", },  description = "overwrites input file on success with output; use with care")
+        @Option(names = { "--io", },  description = "overwrites argument file on success with output; use with care")
         public String inOutFile = null;
     }
 
-    @Option(names = { "-d", "--used-prefixes" }, description = "Number of records by which to defer RDF output in order to analyze used prefixes; default: ${DEFAULT-VALUE}", defaultValue = "20")
+    @Option(names = { "-d", "--used-prefixes" }, description = "Number of records (bindings/quads) by which to defer RDF output in order to analyze used prefixes; default: ${DEFAULT-VALUE}", defaultValue = "100")
     public long usedPrefixDefer;
 
 
@@ -113,7 +113,7 @@ public class CmdSparqlIntegrateMain
      * If given, the output mode is determined by the argument
      *
      */
-    @Option(names = { "--out-format", "--w" }, description = "Output format")
+    @Option(names = { "--out-format", "--of" }, description = "Output format")
     public String outFormat = null;
 
     // Subsume jq stuff under -w jq ?

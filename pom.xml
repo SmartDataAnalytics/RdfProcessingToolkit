@@ -58,6 +58,9 @@
 		<jenax.version>4.3.0-1-SNAPSHOT</jenax.version>
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 
+		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
+		<log4j.version>2.15.0</log4j.version>
+
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
 
@@ -85,6 +88,16 @@
 				<groupId>net.sansa-stack</groupId>
 				<artifactId>sansa-spark-jena-java_2.12</artifactId>
 				<version>0.8.0-RC2-SNAPSHOT</version>
+				<exclusions>
+					<exclusion>
+						<groupId>log4j</groupId>
+						<artifactId>log4j</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>org.slf4j</groupId>
+						<artifactId>slf4j-log4j12</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
 
 
@@ -148,13 +161,8 @@
 				<version>${project.version}</version>
 			</dependency>
 
-<!--
-			<dependency>
-				<groupId>org.aksw.rdf-processing-toolkit</groupId>
-				<artifactId>rdf-processing-toolkit-bundle</artifactId>
-				<version>${project.version}</version>
-			</dependency>
--->
+			<!-- <dependency> <groupId>org.aksw.rdf-processing-toolkit</groupId> <artifactId>rdf-processing-toolkit-bundle</artifactId> 
+				<version>${project.version}</version> </dependency> -->
 
 			<dependency>
 				<groupId>org.locationtech.jts.io</groupId>
@@ -250,10 +258,16 @@
 			</dependency>
 
 			<dependency>
-				<groupId>org.slf4j</groupId>
-				<artifactId>slf4j-log4j12</artifactId>
-				<version>1.7.25</version>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-slf4j18-impl</artifactId>
+				<version>${log4j.version}</version>
 			</dependency>
+
+			<!-- <dependency> -->
+			<!-- <groupId>org.slf4j</groupId> -->
+			<!-- <artifactId>slf4j-api</artifactId> -->
+			<!-- <version>${slf4j.version}</version> -->
+			<!-- </dependency> -->
 
 			<!-- Virtual FileSystem -->
 			<dependency>
@@ -266,12 +280,24 @@
 				<groupId>org.aksw.thirdparty.org.apache.commons</groupId>
 				<artifactId>commons-vfs2</artifactId>
 				<version>2.9.0-805-1</version>
+				<exclusions>
+					<exclusion>
+						<groupId>commons-logging</groupId>
+						<artifactId>commons-logging</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
 
 			<dependency>
 				<groupId>org.aksw.thirdparty.org.apache.commons</groupId>
 				<artifactId>commons-vfs2-jackrabbit1</artifactId>
 				<version>2.9.0-805-1</version>
+				<exclusions>
+					<exclusion>
+						<groupId>commons-logging</groupId>
+						<artifactId>commons-logging</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
 
 
