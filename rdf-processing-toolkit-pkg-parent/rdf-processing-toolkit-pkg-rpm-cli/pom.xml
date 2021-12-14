@@ -14,7 +14,7 @@
 	<packaging>rpm</packaging>
 
 	<properties>
-		<rpm.packageName>navpoc-cli</rpm.packageName>
+		<rpm.packageName>rdf-processing-toolkit-cli</rpm.packageName>
 		<!-- <deb.jarFile>${project.artifactId}-${project.version}-jar-with-dependencies.jar</deb.jarFile> -->
 		<!-- <rpm.jarFile>${project.artifactId}-${project.version}.jar</rpm.jarFile> -->
 
