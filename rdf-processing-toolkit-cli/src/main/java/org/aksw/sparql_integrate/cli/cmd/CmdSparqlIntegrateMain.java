@@ -2,6 +2,7 @@ package org.aksw.sparql_integrate.cli.cmd;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -52,6 +53,9 @@ public class CmdSparqlIntegrateMain
 
     @Option(names = { "--db-keep" }, description="Keep generated database files")
     public boolean dbKeep = false;
+
+    @Option(names = { "--db-set" }, description="Set an engine option")
+    public Map<String, String> dbOptions = new LinkedHashMap<>();
 
     @Option(names = { "--explain" }, description="Enable detailed ARQ log output")
     public boolean explain = false;

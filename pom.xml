@@ -61,9 +61,10 @@
 		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
 		<log4j.version>2.16.0</log4j.version>
 
+		<picocli.version>4.6.2</picocli.version>
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
-
+		<conjure.version>1.0.1-SNAPSHOT</conjure.version>
 		<jackson.version>2.12.0</jackson.version>
 
 		<timestamp>${maven.build.timestamp}</timestamp>
@@ -85,21 +86,10 @@
 		<dependencies>
 
 			<dependency>
-				<groupId>net.sansa-stack</groupId>
-				<artifactId>sansa-spark-jena-java_2.12</artifactId>
-				<version>0.8.0-RC2-SNAPSHOT</version>
-				<exclusions>
-					<exclusion>
-						<groupId>log4j</groupId>
-						<artifactId>log4j</artifactId>
-					</exclusion>
-					<exclusion>
-						<groupId>org.slf4j</groupId>
-						<artifactId>slf4j-log4j12</artifactId>
-					</exclusion>
-				</exclusions>
+				<groupId>org.aksw.conjure</groupId>
+				<artifactId>conjure-datasources</artifactId>
+				<version>${conjure.version}</version>
 			</dependency>
-
 
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
@@ -122,13 +112,7 @@
 			<dependency>
 				<groupId>info.picocli</groupId>
 				<artifactId>picocli</artifactId>
-				<version>4.6.1</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.aksw.difs</groupId>
-				<artifactId>difs-system</artifactId>
-				<version>1.0.0-SNAPSHOT</version>
+				<version>${picocli.version}</version>
 			</dependency>
 
 			<dependency>

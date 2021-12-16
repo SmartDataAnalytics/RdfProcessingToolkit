@@ -17,10 +17,10 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import org.aksw.commons.io.util.StdIo;
+import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jena_sparql_api.algebra.transform.TransformCollectOps;
 import org.aksw.jena_sparql_api.algebra.visitor.OpVisitorTriplesQuads;
 import org.aksw.jena_sparql_api.rx.io.resultset.OutputFormatSpec;
@@ -34,7 +34,6 @@ import org.aksw.jena_sparql_api.update.FluentSparqlService;
 import org.aksw.jenax.arq.connection.core.RDFConnectionUtils;
 import org.aksw.jenax.arq.datasource.RdfDataSourceFactory;
 import org.aksw.jenax.arq.datasource.RdfDataSourceFactoryRegistry;
-import org.aksw.jenax.arq.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.connection.datasource.RdfDataSource;
 import org.aksw.jenax.connectionless.SparqlService;
@@ -83,7 +82,7 @@ public class SparqlIntegrateCmdImpls {
 
         String sourceType = Optional.ofNullable(cmd.engine).orElse("mem");
 
-        RdfDataSourceFactory factory = RdfDataSourceFactoryRegistry.get().get(sourceType);
+        RdfDataSourceFactory factory = RdfDataSourceFactoryRegistry.get().getFactory(sourceType);
         if (factory == null) {
             throw new RuntimeException("No RdfDataSourceFactory registered under name " + sourceType);
         }
@@ -94,6 +93,7 @@ public class SparqlIntegrateCmdImpls {
         spec.setLocation(cmd.dbPath);
         spec.setLocationContext(cmd.dbFs);
 
+        spec.getMap().putAll(cmd.dbOptions);
 
         RdfDataSource result = factory.create(spec.getMap());
         return result;
@@ -112,10 +112,12 @@ public class SparqlIntegrateCmdImpls {
                 logger.warn("Could not obtain query from query execution.");
             }
 
-            boolean disableOrder = shouldDisableReorder(query);
-            logger.info("Triple ordering disabled? " + disableOrder);
+            boolean disableTpReorder = shouldDisablePatternReorder(query);
+            if (disableTpReorder) {
+                logger.info("Pattern reorder disabled due to presence of property functions and/or service clauses");
+            }
 
-            if (disableOrder) {
+            if (disableTpReorder) {
                 StageBuilder.setGenerator(qe.getContext(), StageBuilder.executeInline);
             }
 
@@ -131,7 +133,7 @@ public class SparqlIntegrateCmdImpls {
      * This method decides whether to disable reordering
      *
      */
-    public static boolean shouldDisableReorder(Query query) {
+    public static boolean shouldDisablePatternReorder(Query query) {
         Op op = Algebra.toQuadForm(Algebra.compile(query));
         Set<Op> ops = TransformCollectOps.collect(op, false);
 
