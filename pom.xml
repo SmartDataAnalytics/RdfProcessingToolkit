@@ -54,18 +54,20 @@
 	</developers>
 
 	<properties>
-		<jena.version>4.3.2</jena.version>
-		<jenax.version>4.3.2-1-SNAPSHOT</jenax.version>
+		<jena.version>4.5.0-SNAPSHOT</jena.version>
+		<jenax.version>4.5.0-1-SNAPSHOT</jenax.version>
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 
 		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
-		<log4j.version>2.17.0</log4j.version>
+		<log4j.version>2.17.2</log4j.version>
 
 		<picocli.version>4.6.2</picocli.version>
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
 		<conjure.version>1.0.1-SNAPSHOT</conjure.version>
 		<jackson.version>2.12.0</jackson.version>
+
+		<commons-vfs2.version>2.9.0</commons-vfs2.version>
 
 		<timestamp>${maven.build.timestamp}</timestamp>
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
@@ -261,9 +263,9 @@
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.thirdparty.org.apache.commons</groupId>
+				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-vfs2</artifactId>
-				<version>2.9.0-805-1</version>
+				<version>${commons-vfs2.version}</version>
 				<exclusions>
 					<exclusion>
 						<groupId>commons-logging</groupId>
@@ -273,9 +275,9 @@
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.thirdparty.org.apache.commons</groupId>
+				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-vfs2-jackrabbit1</artifactId>
-				<version>2.9.0-805-1</version>
+				<version>${commons-vfs2.version}</version>
 				<exclusions>
 					<exclusion>
 						<groupId>commons-logging</groupId>

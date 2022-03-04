@@ -11,6 +11,7 @@ import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.query.ARQ;
+import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.shared.PrefixMapping;
@@ -32,6 +33,7 @@ public class CliUtils {
     }
 
     public static void configureGlobalSettings() {
+        RDFLanguages.init();
 
         // Disable creation of a derby.log file ; triggered by the GeoSPARQL module
         System.setProperty("derby.stream.error.field", "org.aksw.sparql_integrate.cli.DerbyUtil.DEV_NULL");
@@ -40,7 +42,11 @@ public class CliUtils {
         JenaSystem.init();
         // });
 
+        // With jena ~4.5.0 registering RS_Text deregisters ntriples because
+        // they have the same content type (text/plain)
         RDFLanguages.register(ResultSetLang.RS_Text);
+        RDFLanguages.register(Lang.NTRIPLES);
+
 
         // Init geosparql module
         // TODO Init of geosparql takes a while which is annoying during startup
