@@ -13,7 +13,7 @@ CONSTRUCT {
 {
   {
     SELECT ?p
-      (IRI(CONCAT(<env:B>, '/pp/', ENCODE_FOR_URI(STR(?p)))) AS ?l)
+      (IRI(CONCAT(STR(<env:B>), '/pp/', ENCODE_FOR_URI(STR(?p)))) AS ?l)
       (COUNT(?o) AS ?x)
       (COUNT(DISTINCT ?s) AS ?a)
       (COUNT(DISTINCT ?o) AS ?c)

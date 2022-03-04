@@ -16,8 +16,9 @@ CONSTRUCT {
 }
 {
   SELECT
-    (IRI(CONCAT(<env:B>, '/cp/', ENCODE_FOR_URI(STR(?t)))) AS ?k)
-    (IRI(CONCAT(STR(?k), '/pp/', ENCODE_FOR_URI(STR(?p)))) AS ?l)
+    (CONCAT(STR(<env:B>), '/cp/', ENCODE_FOR_URI(STR(?t))) AS ?kStr)
+    (IRI(?kStr) AS ?k)
+    (IRI(CONCAT(?kStr, '/pp/', ENCODE_FOR_URI(STR(?p)))) AS ?l)
     ?t ?p ?x ?a ?b ?c
   {
     SELECT
