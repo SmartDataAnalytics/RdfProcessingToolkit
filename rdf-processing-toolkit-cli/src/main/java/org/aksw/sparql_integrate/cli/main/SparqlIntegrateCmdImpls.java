@@ -407,46 +407,46 @@ public class SparqlIntegrateCmdImpls {
                 } else {
                     logger.info("SPARQL service with in-memory result dataset running at " + browseUri);
                 }
-
-
-                try (RDFConnection conn = connSupp.get()) {
-
-                    for (Entry<SparqlStmt, Provenance> stmtEntry : workloads) {
-                        Provenance prov = stmtEntry.getValue();
-                        String clusterId = splitFolder == null ? "" : prov.getSparqlPath();
-
-                        SPARQLResultExProcessor sink = clusterToSink.get(clusterId);
-
-                        try {
-                            execStmt(conn, stmtEntry, sink);
-                        } catch (Exception e) {
-                            logger.error("Error encountered; trying to continue but exit code will be non-zero", e);
-                            exitCode = 1;
-                        }
-                    }
-
-                }
-
-                for (SPARQLResultExProcessor sink : clusterToSink.values()) {
-                    sink.finish();
-                    sink.flush();
-                }
-
-
-                // Sinks such as SinkQuadOutput may use their own caching / flushing strategy
-                // therefore calling flush is mandatory!
-                if(outFile != null) {
-                    Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
-                }
-
-                logger.info("SPARQL overall execution finished after " + sw.stop());
-
-
-                if (server != null) {
-                    logger.info("Server still running on port " + cmd.serverPort + ". Terminate with CTRL+C");
-                    server.join();
-                }
             }
+
+            try (RDFConnection conn = connSupp.get()) {
+
+                for (Entry<SparqlStmt, Provenance> stmtEntry : workloads) {
+                    Provenance prov = stmtEntry.getValue();
+                    String clusterId = splitFolder == null ? "" : prov.getSparqlPath();
+
+                    SPARQLResultExProcessor sink = clusterToSink.get(clusterId);
+
+                    try {
+                        execStmt(conn, stmtEntry, sink);
+                    } catch (Exception e) {
+                        logger.error("Error encountered; trying to continue but exit code will be non-zero", e);
+                        exitCode = 1;
+                    }
+                }
+
+            }
+
+            for (SPARQLResultExProcessor sink : clusterToSink.values()) {
+                sink.finish();
+                sink.flush();
+            }
+
+
+            // Sinks such as SinkQuadOutput may use their own caching / flushing strategy
+            // therefore calling flush is mandatory!
+            if(outFile != null) {
+                Files.move(tmpFile, outFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            logger.info("SPARQL overall execution finished after " + sw.stop());
+
+
+            if (server != null) {
+                logger.info("Server still running on port " + cmd.serverPort + ". Terminate with CTRL+C");
+                server.join();
+            }
+
         } finally {
             // Always rely on shutdown hook to close the engine/dataset
 
