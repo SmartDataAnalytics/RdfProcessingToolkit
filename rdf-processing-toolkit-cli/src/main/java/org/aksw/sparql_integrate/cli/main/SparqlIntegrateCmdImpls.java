@@ -40,7 +40,7 @@ import org.aksw.jenax.connection.query.QueryExecDecoratorTxn;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
-import org.aksw.jenax.web.boot.FactoryBeanSparqlServer;
+import org.aksw.jenax.web.server.boot.FactoryBeanSparqlServer;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
