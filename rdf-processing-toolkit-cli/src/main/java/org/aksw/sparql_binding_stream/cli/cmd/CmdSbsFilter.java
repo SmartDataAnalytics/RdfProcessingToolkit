@@ -27,7 +27,7 @@ public class CmdSbsFilter
     // public long numRecords = 10;
 
     @Option(names = { "-o", "--out-format" })
-    public String outFormat = "sbj";
+    public String outFormat = "srj";
 
     @Parameters(arity = "0..*", description = "Input files")
     public List<String> nonOptionArgs = new ArrayList<>();
