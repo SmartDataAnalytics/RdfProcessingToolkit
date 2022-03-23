@@ -28,6 +28,7 @@
 		<module>rdf-processing-toolkit-pkg-dummy</module>
 	</modules>
 
+<!--
 	<build>
 		<plugins>
 			<plugin>
@@ -38,9 +39,9 @@
 					<releaseName>Release ${project.version}</releaseName>
 					<tag>v${project.version}</tag>
 
-					<!-- If your project has additional artifacts, such as ones produced 
+					<! - - If your project has additional artifacts, such as ones produced 
 						by the maven-assembly-plugin, you can define the following (requires version 
-						1.1.1 of the plugin or higher): -->
+						1.1.1 of the plugin or higher): - - >
 					<fileSets>
 						<fileSet>
 							<directory>${basedir}</directory>
@@ -54,5 +55,6 @@
 			</plugin>
 		</plugins>
 	</build>
+-->
 </project>
 
