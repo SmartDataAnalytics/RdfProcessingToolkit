@@ -32,9 +32,11 @@ import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExVisitor;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor.Provenance;
 import org.aksw.jenax.arq.connection.core.RDFConnectionUtils;
-import org.aksw.jenax.arq.datasource.RdfDataSourceFactory;
-import org.aksw.jenax.arq.datasource.RdfDataSourceFactoryRegistry;
+import org.aksw.jenax.arq.datasource.RdfDataEngineFactory;
+import org.aksw.jenax.arq.datasource.RdfDataEngineFactoryRegistry;
+import org.aksw.jenax.arq.datasource.RdfDataEngines;
 import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
+import org.aksw.jenax.connection.dataengine.RdfDataEngine;
 import org.aksw.jenax.connection.datasource.RdfDataSource;
 import org.aksw.jenax.connection.query.QueryExecDecoratorTxn;
 import org.aksw.jenax.stmt.core.SparqlStmt;
@@ -79,11 +81,11 @@ import org.slf4j.LoggerFactory;
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
 
-    public static RdfDataSource setupRdfDataSource(CmdSparqlIntegrateMain cmd) throws Exception {
+    public static RdfDataEngine setupRdfDataSource(CmdSparqlIntegrateMain cmd) throws Exception {
 
         String sourceType = Optional.ofNullable(cmd.engine).orElse("mem");
 
-        RdfDataSourceFactory factory = RdfDataSourceFactoryRegistry.get().getFactory(sourceType);
+        RdfDataEngineFactory factory = RdfDataEngineFactoryRegistry.get().getFactory(sourceType);
         if (factory == null) {
             throw new RuntimeException("No RdfDataSourceFactory registered under name " + sourceType);
         }
@@ -96,7 +98,7 @@ public class SparqlIntegrateCmdImpls {
 
         spec.getMap().putAll(cmd.dbOptions);
 
-        RdfDataSource result = factory.create(spec.getMap());
+        RdfDataEngine result = factory.create(spec.getMap());
         return result;
     }
 
@@ -349,14 +351,14 @@ public class SparqlIntegrateCmdImpls {
 
         // Start the engine (wrooom)
 
-        RdfDataSource dataSourceTmp = setupRdfDataSource(cmd);
+        RdfDataEngine dataSourceTmp = setupRdfDataSource(cmd);
 
         if ("sansa".equalsIgnoreCase(cmd.dbLoader)) {
             logger.info("Using sansa loader for loading RDF files");
-            dataSourceTmp = new RdfDataSourceDecoratorSansa().decorate(dataSourceTmp, null);
+            dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, new RdfDataSourceDecoratorSansa());
         }
 
-        RdfDataSource datasetAndDelete = dataSourceTmp;
+        RdfDataEngine datasetAndDelete = dataSourceTmp;
 
 
         // Dataset dataset = datasetAndDelete.getKey();

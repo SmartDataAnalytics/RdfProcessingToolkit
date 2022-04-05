@@ -16,7 +16,7 @@ import org.aksw.difs.builder.DifsFactory;
 import org.aksw.jena_sparql_api.arq.service.vfs.ServiceExecutorFactoryRegistratorVfs;
 import org.aksw.jenax.arq.connection.dataset.DatasetRDFConnectionFactory;
 import org.aksw.jenax.arq.connection.dataset.DatasetRDFConnectionFactoryBuilder;
-import org.aksw.jenax.arq.datasource.RdfDataSourceFromDataset;
+import org.aksw.jenax.arq.datasource.RdfDataEngineFromDataset;
 import org.aksw.jenax.arq.engine.quad.RDFConnectionFactoryQuadForm;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.apache.jena.dboe.base.file.Location;
@@ -84,7 +84,7 @@ public class SparqlIntegrateLegacyDataSources {
      * @return
      * @throws IOException
      */
-    public static RdfDataSourceFromDataset configEngineOld(CmdSparqlIntegrateMain cmd) throws IOException {
+    public static RdfDataEngineFromDataset configEngineOld(CmdSparqlIntegrateMain cmd) throws IOException {
 
         String engine = cmd.engine;
 
@@ -96,7 +96,7 @@ public class SparqlIntegrateLegacyDataSources {
         Closeable fsCloseAction = fsInfo == null ? () -> {} : fsInfo.getValue();
 
 
-        RdfDataSourceFromDataset result;
+        RdfDataEngineFromDataset result;
         // TODO Create a registry for engines / should probably go to the conjure project
         if (engine == null || engine.equals("mem")) {
 
@@ -114,7 +114,7 @@ public class SparqlIntegrateLegacyDataSources {
                     .setContext(cxt)
                     .build();
 
-            result = RdfDataSourceFromDataset.create(DatasetFactory.create(), connector::connect, null);
+            result = RdfDataEngineFromDataset.create(DatasetFactory.create(), connector::connect, null);
 
         } else if (engine.equalsIgnoreCase("tdb2")) {
 
@@ -169,7 +169,7 @@ public class SparqlIntegrateLegacyDataSources {
                     }
                 };
 
-                result = RdfDataSourceFromDataset.create(
+                result = RdfDataEngineFromDataset.create(
                         dataset,
                         RDFConnectionFactory::connect,
                         finalDeleteAction);
@@ -198,7 +198,7 @@ public class SparqlIntegrateLegacyDataSources {
                 .setMaximumNamedGraphCacheSize(10000)
                 .connectAsDataset();
 
-            result = RdfDataSourceFromDataset.create(dataset,
+            result = RdfDataEngineFromDataset.create(dataset,
                     ds -> RDFConnectionFactoryQuadForm.connect(ds, cxt), fsCloseAction);
 
         } else {
