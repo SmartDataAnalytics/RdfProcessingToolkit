@@ -1,0 +1,7 @@
+
+# Declare the placeholder to be a void dataset
+CONSTRUCT {
+  <env://D> a void:Dataset
+}
+{
+}
