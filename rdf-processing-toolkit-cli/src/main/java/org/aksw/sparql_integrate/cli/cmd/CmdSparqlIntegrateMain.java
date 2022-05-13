@@ -48,6 +48,15 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--db-loader" }, description="Wrap a datasource's default loading strategy with a different one. Supported values: sansa")
     public String dbLoader = null;
 
+
+    @Option(names = { "--cache-engine" }, description="Cache engine. Supported: 'none', 'mem', 'disk'")
+    public String cacheEngine = null;
+
+    @Option(names = { "--cache-loc" }, description="Cache location; if provided then engine defaults to 'disk'")
+    public String cachePath = null;
+
+
+
     @Option(names = { "--tmpdir" }, description="Temporary directory")
     public String tempPath = StandardSystemProperty.JAVA_IO_TMPDIR.value();
 
@@ -56,6 +65,9 @@ public class CmdSparqlIntegrateMain
 
     @Option(names = { "--db-set" }, description="Set an engine option")
     public Map<String, String> dbOptions = new LinkedHashMap<>();
+
+    @Option(names = { "--db-max-result-size" }, description="Remote result size limit, ignored for local engines; defaults to ${DEFAULT-VALUE}", defaultValue = "10000")
+    public Long dbMaxResultSize = null;
 
     @Option(names = { "--explain" }, description="Enable detailed ARQ log output")
     public boolean explain = false;

@@ -25,19 +25,24 @@ import org.aksw.commons.io.util.StdIo;
 import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jena_sparql_api.algebra.transform.TransformCollectOps;
 import org.aksw.jena_sparql_api.algebra.visitor.OpVisitorTriplesQuads;
+import org.aksw.jena_sparql_api.cache.advanced.QueryExecFactoryQueryRangeCache;
 import org.aksw.jena_sparql_api.rx.io.resultset.OutputFormatSpec;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessor;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessorBuilder;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExVisitor;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor.Provenance;
+import org.aksw.jenax.arq.connection.core.QueryExecutionFactories;
+import org.aksw.jenax.arq.connection.core.QueryExecutionFactory;
 import org.aksw.jenax.arq.connection.core.RDFConnectionUtils;
+import org.aksw.jenax.arq.connection.link.QueryExecFactories;
+import org.aksw.jenax.arq.connection.link.QueryExecFactory;
+import org.aksw.jenax.arq.connection.link.QueryExecFactoryQueryDecorizer;
 import org.aksw.jenax.arq.datasource.RdfDataEngineFactory;
 import org.aksw.jenax.arq.datasource.RdfDataEngineFactoryRegistry;
 import org.aksw.jenax.arq.datasource.RdfDataEngines;
 import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.connection.dataengine.RdfDataEngine;
-import org.aksw.jenax.connection.datasource.RdfDataSource;
 import org.aksw.jenax.connection.query.QueryExecDecoratorTxn;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
@@ -81,7 +86,7 @@ import org.slf4j.LoggerFactory;
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
 
-    public static RdfDataEngine setupRdfDataSource(CmdSparqlIntegrateMain cmd) throws Exception {
+    public static RdfDataEngine setupRdfDataEngine(CmdSparqlIntegrateMain cmd) throws Exception {
 
         String sourceType = Optional.ofNullable(cmd.engine).orElse("mem");
 
@@ -351,7 +356,26 @@ public class SparqlIntegrateCmdImpls {
 
         // Start the engine (wrooom)
 
-        RdfDataEngine dataSourceTmp = setupRdfDataSource(cmd);
+        RdfDataEngine dataSourceTmp = setupRdfDataEngine(cmd);
+
+        if (cmd.cachePath != null) {
+        	Path cachePath = Path.of(cmd.cachePath);
+        	Path parent = cachePath.getParent();
+        	if (parent != null && !Files.exists(parent)) {
+        		throw new RuntimeException("Folder " + parent + " does not exist");
+        	}
+
+        	QueryExecFactoryQueryDecorizer decorizer = QueryExecFactoryQueryRangeCache
+        			.createQueryExecMod(cachePath, cmd.dbMaxResultSize);
+
+        	QueryExecutionFactory i = QueryExecutionFactories.of(dataSourceTmp);
+        	QueryExecFactory j = QueryExecFactories.adapt(i);
+        	QueryExecFactory k = QueryExecFactories.adapt(decorizer.apply(j));
+        	QueryExecutionFactory l = QueryExecutionFactories.adapt(k);
+        	dataSourceTmp = RdfDataEngines.adapt(l);
+        }
+
+
 
         if ("sansa".equalsIgnoreCase(cmd.dbLoader)) {
             logger.info("Using sansa loader for loading RDF files");
@@ -378,6 +402,8 @@ public class SparqlIntegrateCmdImpls {
         for (SPARQLResultExProcessor handler : clusterToSink.values()) {
             handler.start();
         }
+
+        // QueryExecutionFactoryRangeCache.decorate(null, splitFolder, jqDepth);
 
         try {
             Supplier<RDFConnection> connSupp = () -> {
