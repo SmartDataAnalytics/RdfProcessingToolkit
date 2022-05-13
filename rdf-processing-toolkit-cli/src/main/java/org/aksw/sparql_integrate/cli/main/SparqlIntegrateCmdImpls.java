@@ -45,6 +45,7 @@ import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.connection.dataengine.RdfDataEngine;
 import org.aksw.jenax.connection.query.QueryExecDecoratorTxn;
 import org.aksw.jenax.stmt.core.SparqlStmt;
+import org.aksw.jenax.stmt.core.SparqlStmtParser;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
 import org.aksw.jenax.web.server.boot.FactoryBeanSparqlServer;
@@ -118,17 +119,17 @@ public class SparqlIntegrateCmdImpls {
             Query query = qe.getQuery();
             if (query == null) {
                 logger.warn("Could not obtain query from query execution.");
-            }
+            } else {
 
-            boolean disableTpReorder = shouldDisablePatternReorder(query);
-            if (disableTpReorder) {
-                logger.info("Pattern reorder disabled due to presence of property functions and/or service clauses");
-            }
+	            boolean disableTpReorder = shouldDisablePatternReorder(query);
+	            if (disableTpReorder) {
+	                logger.info("Pattern reorder disabled due to presence of property functions and/or service clauses");
+	            }
 
-            if (disableTpReorder) {
-                StageBuilder.setGenerator(qe.getContext(), StageBuilder.executeInline);
+	            if (disableTpReorder) {
+	                StageBuilder.setGenerator(qe.getContext(), StageBuilder.executeInline);
+	            }
             }
-
             return qe;
         });
     }
@@ -421,10 +422,12 @@ public class SparqlIntegrateCmdImpls {
 //                Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
 //                        prefixMapping, false);// .getQueryParser();
 
+
                 int port = cmd.serverPort;
                 server = FactoryBeanSparqlServer.newInstance()
                         .setSparqlServiceFactory((HttpServletRequest httpRequest) -> connSupp.get())
-                        .setSparqlStmtParser(processor.getSparqlParser())
+                        .setSparqlStmtParser(
+                        		SparqlStmtParser.wrapWithOptimizePrefixes(processor.getSparqlParser()))
                         .setPort(port).create();
 
                 server.start();
