@@ -44,6 +44,7 @@ import org.aksw.jenax.arq.datasource.RdfDataEngines;
 import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.connection.dataengine.RdfDataEngine;
 import org.aksw.jenax.connection.query.QueryExecDecoratorTxn;
+import org.aksw.jenax.connection.query.QueryExecs;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtParser;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
@@ -358,6 +359,7 @@ public class SparqlIntegrateCmdImpls {
         // Start the engine (wrooom)
 
         RdfDataEngine dataSourceTmp = setupRdfDataEngine(cmd);
+        dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, null, QueryExecs::withDetailedHttpMessages);
 
         if (cmd.cachePath != null) {
         	Path cachePath = Path.of(cmd.cachePath);
