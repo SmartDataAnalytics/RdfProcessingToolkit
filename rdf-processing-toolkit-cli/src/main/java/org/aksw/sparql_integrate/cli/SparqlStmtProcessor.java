@@ -82,7 +82,7 @@ public class SparqlStmtProcessor {
 
         // Apply node transforms
 
-        SparqlStmtUtils.process(conn, stmt, sink);
+        SparqlStmtUtils.process(conn, stmt, null, sink);
         if(logTime) {
             logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
         }
