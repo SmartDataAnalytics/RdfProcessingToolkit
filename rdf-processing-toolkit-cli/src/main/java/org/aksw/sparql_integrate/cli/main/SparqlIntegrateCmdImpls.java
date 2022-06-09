@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -32,6 +33,7 @@ import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessorBuilder;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExVisitor;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor.Provenance;
+import org.aksw.jena_sparql_api.sparql.ext.url.JenaUrlUtils;
 import org.aksw.jenax.arq.connection.core.QueryExecutionFactories;
 import org.aksw.jenax.arq.connection.core.QueryExecutionFactory;
 import org.aksw.jenax.arq.connection.core.RDFConnectionUtils;
@@ -59,6 +61,7 @@ import org.apache.jena.ext.com.google.common.base.Strings;
 import org.apache.jena.ext.com.google.common.collect.Multimap;
 import org.apache.jena.ext.com.google.common.collect.Multimaps;
 import org.apache.jena.graph.Node;
+import org.apache.jena.irix.IRIx;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.TxnType;
@@ -68,15 +71,20 @@ import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
+import org.apache.jena.sparql.ARQConstants;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpService;
+import org.apache.jena.sparql.algebra.optimize.Optimize;
+import org.apache.jena.sparql.algebra.optimize.Rewrite;
+import org.apache.jena.sparql.algebra.optimize.RewriteFactory;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
+import org.apache.jena.sparql.service.impl.TransformJoinStrategyServiceSpecial;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.sparql.util.MappingRegistry;
 import org.apache.jena.sparql.util.Symbol;
@@ -288,7 +296,7 @@ public class SparqlIntegrateCmdImpls {
         } else {
             Files.createDirectories(splitFolder);
 
-            clusters = Multimaps.index(workloads, item -> item.getValue().getSparqlPath());
+            clusters = Multimaps.index(workloads, item -> item.getValue().getSourceLocalName());
         }
 
 
@@ -410,10 +418,13 @@ public class SparqlIntegrateCmdImpls {
 
         try {
             Supplier<RDFConnection> connSupp = () -> {
-                RDFConnection c = wrapWithAutoDisableReorder(datasetAndDelete.getConnection());
+                RDFConnection ca = wrapWithAutoDisableReorder(datasetAndDelete.getConnection());
+
+                RDFConnection cb = RDFConnectionUtils.wrapWithContextMutator(ca, SparqlIntegrateCmdImpls::configureOptimizer);
+
                 return RDFConnectionUtils.wrapWithQueryTransform(
-                        c,
-                        null, queryExec -> QueryExecDecoratorTxn.wrap(queryExec, c));
+                        cb,
+                        null, queryExec -> QueryExecDecoratorTxn.wrap(queryExec, cb));
             };
 
             // RDFConnectionFactoryEx.getQueryConnection(conn)
@@ -446,7 +457,7 @@ public class SparqlIntegrateCmdImpls {
 
                 for (Entry<SparqlStmt, Provenance> stmtEntry : workloads) {
                     Provenance prov = stmtEntry.getValue();
-                    String clusterId = splitFolder == null ? "" : prov.getSparqlPath();
+                    String clusterId = splitFolder == null ? "" : Optional.ofNullable(prov.getSourceLocalName()).orElse("");
 
                     SPARQLResultExProcessor sink = clusterToSink.get(clusterId);
 
@@ -504,6 +515,21 @@ public class SparqlIntegrateCmdImpls {
     }
 
 
+    // This needs to be do on the connection's context
+    public static void configureOptimizer(Context cxt) {
+    	RewriteFactory baseFactory = Optional.<RewriteFactory>ofNullable(cxt.get(ARQConstants.sysOptimizerFactory))
+    			.orElse(Optimize.stdOptimizationFactory);
+    	RewriteFactory enhancedFactory = c -> {
+    		Rewrite baseRewrite = baseFactory.create(c);
+    		return op -> {
+    			Op a = Transformer.transform(new TransformJoinStrategyServiceSpecial(), op);
+    			return baseRewrite.rewrite(a);
+    		};
+    	};
+    	cxt.set(ARQConstants.sysOptimizerFactory, enhancedFactory);
+
+    }
+
     /**
      * Essentially a wrapper for {@link SparqlStmtUtils#execAny(RDFConnection, SparqlStmt)} which
      * logs the workload (the sparql query) being processed.
@@ -522,6 +548,13 @@ public class SparqlIntegrateCmdImpls {
             logger.info("Processing " + prov);
             TxnType txnType = stmt.isQuery() ? TxnType.READ : TxnType.WRITE;
 
+            String sourceNamespace = prov.getSourceNamespace();
+			IRIx irix = sourceNamespace == null ? null : IRIx.create(sourceNamespace);
+			// Always update the context because it may be scoped by the
+			// connection and thus be shared between requests
+			Consumer<Context> cxtMutator = cxt -> {
+    			cxt.set(JenaUrlUtils.symContentBaseIriX, irix);
+			};
 
             // Some RdfDataSource decorators will try to perform certain update operations
             // (e.g. loading a file) using parallel update requests. In that case
@@ -530,10 +563,13 @@ public class SparqlIntegrateCmdImpls {
             boolean runUpdateWithAdhocTxn = false;
 
             if (runUpdateWithAdhocTxn && stmt.isUpdateRequest()) {
-                conn.update(stmt.getUpdateRequest());
+            	Context cxt = ARQ.getContext().copy();
+            	cxtMutator.accept(cxt);
+            	conn.newUpdate().update(stmt.getUpdateRequest()).context(cxt).execute();
+                // conn.update(stmt.getUpdateRequest());
             } else {
                 Txn.exec(conn, txnType, () -> {
-                    try(SPARQLResultEx sr = SparqlStmtUtils.execAny(conn, stmt)) {
+                    try(SPARQLResultEx sr = SparqlStmtUtils.execAny(conn, stmt, cxtMutator)) {
                         resultProcessor.forwardEx(sr);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
