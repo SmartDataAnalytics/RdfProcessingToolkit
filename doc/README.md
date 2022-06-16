@@ -139,7 +139,7 @@ This operation transform literal values (boolean, string and numeric) into corre
 One can also specify a specific index:
 ```
 SELECT * {
-  '[true, 1, "hi", {}, []]'^^xsd:json json:unnest (?item 1)
+  '[true, 1, "hi", {}, []]'^^xsd:json json:unnest (?item 2)
 }
 
 ```
