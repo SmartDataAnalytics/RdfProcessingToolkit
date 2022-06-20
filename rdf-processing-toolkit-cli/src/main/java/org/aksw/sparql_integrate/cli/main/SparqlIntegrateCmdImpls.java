@@ -84,7 +84,7 @@ import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
-import org.apache.jena.sparql.service.impl.ServicePlugins;
+// import org.apache.jena.sparql.service.impl.ServicePlugins;
 import org.apache.jena.sparql.service.impl.TransformJoinStrategyServiceSpecial;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.sparql.util.MappingRegistry;
@@ -519,7 +519,7 @@ public class SparqlIntegrateCmdImpls {
     // This needs to be do on the connection's context
     public static void configureOptimizer(Context cxt) {
 
-        ServicePlugins.wrapOptimizer(cxt);
+        // ServicePlugins.wrapOptimizer(cxt);
 
 //    	RewriteFactory baseFactory = Optional.<RewriteFactory>ofNullable(cxt.get(ARQConstants.sysOptimizerFactory))
 //    			.orElse(Optimize.stdOptimizationFactory);
