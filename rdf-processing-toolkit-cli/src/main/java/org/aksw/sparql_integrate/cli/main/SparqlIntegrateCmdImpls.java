@@ -84,6 +84,7 @@ import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
+import org.apache.jena.sparql.service.impl.ServicePlugins;
 import org.apache.jena.sparql.service.impl.TransformJoinStrategyServiceSpecial;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.sparql.util.MappingRegistry;
@@ -130,14 +131,14 @@ public class SparqlIntegrateCmdImpls {
                 logger.warn("Could not obtain query from query execution.");
             } else {
 
-	            boolean disableTpReorder = shouldDisablePatternReorder(query);
-	            if (disableTpReorder) {
-	                logger.info("Pattern reorder disabled due to presence of property functions and/or service clauses");
-	            }
+                boolean disableTpReorder = shouldDisablePatternReorder(query);
+                if (disableTpReorder) {
+                    logger.info("Pattern reorder disabled due to presence of property functions and/or service clauses");
+                }
 
-	            if (disableTpReorder) {
-	                StageBuilder.setGenerator(qe.getContext(), StageBuilder.executeInline);
-	            }
+                if (disableTpReorder) {
+                    StageBuilder.setGenerator(qe.getContext(), StageBuilder.executeInline);
+                }
             }
             return qe;
         });
@@ -370,20 +371,20 @@ public class SparqlIntegrateCmdImpls {
         dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, null, QueryExecs::withDetailedHttpMessages);
 
         if (cmd.cachePath != null) {
-        	Path cachePath = Path.of(cmd.cachePath);
-        	Path parent = cachePath.getParent();
-        	if (parent != null && !Files.exists(parent)) {
-        		throw new RuntimeException("Folder " + parent + " does not exist");
-        	}
+            Path cachePath = Path.of(cmd.cachePath);
+            Path parent = cachePath.getParent();
+            if (parent != null && !Files.exists(parent)) {
+                throw new RuntimeException("Folder " + parent + " does not exist");
+            }
 
-        	QueryExecFactoryQueryDecorizer decorizer = QueryExecFactoryQueryRangeCache
-        			.createQueryExecMod(cachePath, cmd.dbMaxResultSize);
+            QueryExecFactoryQueryDecorizer decorizer = QueryExecFactoryQueryRangeCache
+                    .createQueryExecMod(cachePath, cmd.dbMaxResultSize);
 
-        	QueryExecutionFactory i = QueryExecutionFactories.of(dataSourceTmp);
-        	QueryExecFactory j = QueryExecFactories.adapt(i);
-        	QueryExecFactory k = QueryExecFactories.adapt(decorizer.apply(j));
-        	QueryExecutionFactory l = QueryExecutionFactories.adapt(k);
-        	dataSourceTmp = RdfDataEngines.adapt(l);
+            QueryExecutionFactory i = QueryExecutionFactories.of(dataSourceTmp);
+            QueryExecFactory j = QueryExecFactories.adapt(i);
+            QueryExecFactory k = QueryExecFactories.adapt(decorizer.apply(j));
+            QueryExecutionFactory l = QueryExecutionFactories.adapt(k);
+            dataSourceTmp = RdfDataEngines.adapt(l);
         }
 
 
@@ -440,7 +441,7 @@ public class SparqlIntegrateCmdImpls {
                 server = FactoryBeanSparqlServer.newInstance()
                         .setSparqlServiceFactory((HttpServletRequest httpRequest) -> connSupp.get())
                         .setSparqlStmtParser(
-                        		SparqlStmtParser.wrapWithOptimizePrefixes(processor.getSparqlParser()))
+                                SparqlStmtParser.wrapWithOptimizePrefixes(processor.getSparqlParser()))
                         .setPort(port).create();
 
                 server.start();
@@ -517,16 +518,19 @@ public class SparqlIntegrateCmdImpls {
 
     // This needs to be do on the connection's context
     public static void configureOptimizer(Context cxt) {
-    	RewriteFactory baseFactory = Optional.<RewriteFactory>ofNullable(cxt.get(ARQConstants.sysOptimizerFactory))
-    			.orElse(Optimize.stdOptimizationFactory);
-    	RewriteFactory enhancedFactory = c -> {
-    		Rewrite baseRewrite = baseFactory.create(c);
-    		return op -> {
-    			Op a = Transformer.transform(new TransformJoinStrategyServiceSpecial(), op);
-    			return baseRewrite.rewrite(a);
-    		};
-    	};
-    	cxt.set(ARQConstants.sysOptimizerFactory, enhancedFactory);
+
+        ServicePlugins.wrapOptimizer(cxt);
+
+//    	RewriteFactory baseFactory = Optional.<RewriteFactory>ofNullable(cxt.get(ARQConstants.sysOptimizerFactory))
+//    			.orElse(Optimize.stdOptimizationFactory);
+//    	RewriteFactory enhancedFactory = c -> {
+//    		Rewrite baseRewrite = baseFactory.create(c);
+//    		return op -> {
+//    			Op a = Transformer.transform(new TransformJoinStrategyServiceSpecial(), op);
+//    			return baseRewrite.rewrite(a);
+//    		};
+//    	};
+//    	cxt.set(ARQConstants.sysOptimizerFactory, enhancedFactory);
 
     }
 
@@ -549,12 +553,12 @@ public class SparqlIntegrateCmdImpls {
             TxnType txnType = stmt.isQuery() ? TxnType.READ : TxnType.WRITE;
 
             String sourceNamespace = prov.getSourceNamespace();
-			IRIx irix = sourceNamespace == null ? null : IRIx.create(sourceNamespace);
-			// Always update the context because it may be scoped by the
-			// connection and thus be shared between requests
-			Consumer<Context> cxtMutator = cxt -> {
-    			cxt.set(JenaUrlUtils.symContentBaseIriX, irix);
-			};
+            IRIx irix = sourceNamespace == null ? null : IRIx.create(sourceNamespace);
+            // Always update the context because it may be scoped by the
+            // connection and thus be shared between requests
+            Consumer<Context> cxtMutator = cxt -> {
+                cxt.set(JenaUrlUtils.symContentBaseIriX, irix);
+            };
 
             // Some RdfDataSource decorators will try to perform certain update operations
             // (e.g. loading a file) using parallel update requests. In that case
@@ -563,9 +567,9 @@ public class SparqlIntegrateCmdImpls {
             boolean runUpdateWithAdhocTxn = false;
 
             if (runUpdateWithAdhocTxn && stmt.isUpdateRequest()) {
-            	Context cxt = ARQ.getContext().copy();
-            	cxtMutator.accept(cxt);
-            	conn.newUpdate().update(stmt.getUpdateRequest()).context(cxt).execute();
+                Context cxt = ARQ.getContext().copy();
+                cxtMutator.accept(cxt);
+                conn.newUpdate().update(stmt.getUpdateRequest()).context(cxt).execute();
                 // conn.update(stmt.getUpdateRequest());
             } else {
                 Txn.exec(conn, txnType, () -> {

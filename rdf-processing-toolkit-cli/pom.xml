@@ -19,7 +19,12 @@
 			<groupId>org.aksw.conjure</groupId>
 			<artifactId>conjure-datasources</artifactId>
 		</dependency>
-	
+
+		        <dependency>
+                                <groupId>org.apache.jena</groupId>
+                                <artifactId>jena-serviceplugins</artifactId>
+                        </dependency>
+
 <!-- 		<dependency> -->
 <!-- 			<groupId>net.sansa-stack</groupId> -->
 <!-- 			<artifactId>sansa-spark-jena-java_2.12</artifactId> -->

@@ -64,7 +64,7 @@
 		<picocli.version>4.6.2</picocli.version>
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
-		<conjure.version>1.0.1-SNAPSHOT</conjure.version>
+		<conjure.version>4.6.0-1-SNAPSHOT</conjure.version>
 		<jackson.version>2.12.0</jackson.version>
 
 		<commons-vfs2.version>2.9.0</commons-vfs2.version>
@@ -104,6 +104,12 @@
 				<artifactId>jena-tdb2</artifactId>
 				<version>${jena.version}</version>
 			</dependency>
+
+                        <dependency>
+                                <groupId>org.apache.jena</groupId>
+                                <artifactId>jena-serviceplugins</artifactId>
+                                <version>${jena.version}</version>
+                        </dependency>
 
 			<dependency>
 				<groupId>org.aksw.rdf-processing-toolkit</groupId>
