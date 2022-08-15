@@ -58,6 +58,7 @@ import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
+import org.apache.jena.sparql.service.enhancer.init.ServiceEnhancerInit;
 // import org.apache.jena.sparql.service.impl.ServicePlugins;
 // import org.apache.jena.sparql.service.impl.TransformJoinStrategyServiceSpecial;
 import org.apache.jena.sparql.util.Context;
@@ -507,6 +508,7 @@ public class SparqlIntegrateCmdImpls {
     // This needs to be do on the connection's context
     public static void configureOptimizer(Context cxt) {
 
+        ServiceEnhancerInit.wrapOptimizer(cxt);
         // ServicePlugins.wrapOptimizer(cxt);
 
 //    	RewriteFactory baseFactory = Optional.<RewriteFactory>ofNullable(cxt.get(ARQConstants.sysOptimizerFactory))
@@ -541,12 +543,12 @@ public class SparqlIntegrateCmdImpls {
             TxnType txnType = stmt.isQuery() ? TxnType.READ : TxnType.WRITE;
 
             String sourceNamespace = prov.getSourceNamespace();
-			IRIx irix = sourceNamespace == null ? null : IRIx.create(sourceNamespace);
-			// Always update the context because it may be scoped by the
-			// connection and thus be shared between requests
-			Consumer<Context> cxtMutator = cxt -> {
-    			cxt.set(JenaUrlUtils.symContentBaseIriX, irix);
-			};
+            IRIx irix = sourceNamespace == null ? null : IRIx.create(sourceNamespace);
+            // Always update the context because it may be scoped by the
+            // connection and thus be shared between requests
+            Consumer<Context> cxtMutator = cxt -> {
+                cxt.set(JenaUrlUtils.symContentBaseIriX, irix);
+            };
 
             // Some RdfDataSource decorators will try to perform certain update operations
             // (e.g. loading a file) using parallel update requests. In that case
@@ -555,9 +557,9 @@ public class SparqlIntegrateCmdImpls {
             boolean runUpdateWithAdhocTxn = false;
 
             if (runUpdateWithAdhocTxn && stmt.isUpdateRequest()) {
-            	Context cxt = ARQ.getContext().copy();
-            	cxtMutator.accept(cxt);
-            	conn.newUpdate().update(stmt.getUpdateRequest()).context(cxt).execute();
+                Context cxt = ARQ.getContext().copy();
+                cxtMutator.accept(cxt);
+                conn.newUpdate().update(stmt.getUpdateRequest()).context(cxt).execute();
                 // conn.update(stmt.getUpdateRequest());
             } else {
                 Txn.exec(conn, txnType, () -> {
