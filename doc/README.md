@@ -139,7 +139,7 @@ This operation transform literal values (boolean, string and numeric) into corre
 One can also specify a specific index:
 ```
 SELECT * {
-  '[true, 1, "hi", {}, []]'^^xsd:json json:unnest (?item 1)
+  '[true, 1, "hi", {}, []]'^^xsd:json json:unnest (?item 2)
 }
 
 ```
@@ -320,6 +320,21 @@ SELECT * {
 ```
 
 
+The following example shows that arguments need not be xsd:json literals:
+```sparql
+SELECT * { BIND(json:js("function(x) { v = {}; v.hello = x; return v; }", "world") AS ?value) }
+SELECT * { BIND(json:js("function(x) { v = {}; v.hello = x.key; return v; }", "{\"key\":\"world\"}"^^xsd:json) AS ?value) }
+```
+
+```
+--------------------------------------------------------------------
+| value                                                            |
+====================================================================
+| "{\"hello\":\"world\"}"^^<http://www.w3.org/2001/XMLSchema#json> |
+--------------------------------------------------------------------
+```
+
+
 ## Processing CSV
 In general, the `csv:parse` property function is used to make CSV data available in a SPARQL query with each CSV row becoming an entry in the result set. The syntax is `?s csv:parse(?rowJson "optionsString)"`.
 The options string is composed of a base CSV format name followed by an optional list of modifiers.
@@ -360,15 +375,24 @@ SELECT * { <example-data/people.csv> csv:parse (?rowJson "excel -h") }
 
 
 ## Processing XML
-For XML processing, the `xml:path` function and property functions are provided.
+The XML processing functionality is based on the `xsd:xml` datatype.
+**NOTE: In order to avoid potential conflicts with Jena's machinery, this version of RPT introduces a custom xsd:xml datatype instead of reusing rdf:XMLLiteral.**
+Most notably the `xml:path` function and property functions are provided.
 Unlike JSON, XML does not have a native array datatype which could be used for storing XML nodes matching an XPath expression.
-In order to avoid having to introduce one, the `xml:path` *property function* can be used to unnest XML nodes based on an XPath expression, whereas the `xml:path` *function* can be used to access attributes and texts:
+In order to avoid having to introduce one, the `xml:path` *property function* can be used to unnest XML nodes based on an XPath expression, whereas the `xml:path` *function* can be used to access attributes and texts.
+XML parsing is namespace aware and any namespaces used in the XML can be used in xpath expressions.
+**NOTE: Prefixes in xpath expressions are resolved using the first matching namespace found by means of a depth first traversal over the document**
 
-**NOTE: In order to avoid potential conflicts with Jena's machinery, this version of sparql-integrate introduces a custom xsd:xml datatype instead of reusing rdf:XMLLiteral.**
+Large XML files (> 2GB) can be ingested with the `xml:parse` function and property functions. This parses the input XML document into an in-memory object model (without intermediate string serialization).
+Loading 2GB of XML with `xml:parse` using a modern (2022) notebook takes less than 10 seconds.
+Be aware, that any attempt to serialize such a large literal will result in an OutOfMemoryError regardless of remaining available memory because it simply exceeds Java's maximum String length.
+Use `xml:unnest` to split a large XML document into smaller parts.
+**NOTE: While xml:parse can handle large XML documents, STRDT(url:text(<file.xml>), xsd:xml) cannot because url:text will attempt to create a huge intermediary string**
+
 
 **NOTE: XPath matches are converted to independent RDF terms, i.e. the link to a match's parent element is lost and so is e.g. namespace information defined on ancestors. In most cases, XPath's `local-name` function should be usable as a workaround: `//[local-name()="elementNameWithoutNamespace"]`**
 
-```
+```sparql
 SELECT * {
   BIND('<ul id="ul1"><li>item</li></ul>'^^xsd:xml AS ?xml)
   BIND(xml:path(?xml, "//ul/@id") AS ?id)
@@ -385,12 +409,23 @@ SELECT * {
 
 ```
 
-Unnesting an XML document is done in regard to a given xpath expression:
-```
+Unnesting an XML document is done in regard to a given xpath expression. Unnesting is a streaming operation: If a LIMIT is present then matching will stop as soon as a sufficient number of result bindings has been generated.
+
+```sparql
 SELECT * {
   """<ul id="ul1"><li>item</li></ul>"""^^xsd:xml xml:unnest ("//li" ?item)
 }
 ```
+
+
+Parsing flavors:
+```sparql
+SELECT * {
+  BIND(xml:parse(<file1.xml> AS ?xml1)
+  <file2.xml> xml:parse ?xml2
+}
+```
+
 
 ```
 -----------------------------------------------------------------------------------------------------------------------
