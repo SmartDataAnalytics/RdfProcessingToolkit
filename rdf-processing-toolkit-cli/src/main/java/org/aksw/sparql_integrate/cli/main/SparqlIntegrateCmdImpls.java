@@ -126,10 +126,11 @@ public class SparqlIntegrateCmdImpls {
             // that can handle custom service executors!
             // See: DatasetBasedSparqlEngine.newConnection()
 
+            Context cxt = qe.getContext();
             Query query = qe.getQuery();
             if (query == null) {
                 logger.warn("Could not obtain query from query execution.");
-            } else {
+            } else if (cxt != null) {
 
                 boolean disableTpReorder = shouldDisablePatternReorder(query);
                 if (disableTpReorder) {
@@ -137,7 +138,7 @@ public class SparqlIntegrateCmdImpls {
                 }
 
                 if (disableTpReorder) {
-                    StageBuilder.setGenerator(qe.getContext(), StageBuilder.executeInline);
+                    StageBuilder.setGenerator(cxt, StageBuilder.executeInline);
                 }
             }
             return qe;

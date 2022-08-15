@@ -14,28 +14,27 @@
 
 
 	<dependencies>
-	
+
 		<dependency>
 			<groupId>org.aksw.conjure</groupId>
 			<artifactId>conjure-datasources</artifactId>
 		</dependency>
-		<!--
-		        <dependency>
-                                <groupId>org.apache.jena</groupId>
-                                <artifactId>jena-serviceplugins</artifactId>
-			</dependency>
-		-->
 
-<!-- 		<dependency> -->
-<!-- 			<groupId>net.sansa-stack</groupId> -->
-<!-- 			<artifactId>sansa-spark-jena-java_2.12</artifactId> -->
-<!-- 			<exclusions> -->
-<!-- 				<exclusion> -->
-<!-- 					<groupId>commons-logging</groupId> -->
-<!-- 					<artifactId>commons-logging</artifactId> -->
-<!-- 				</exclusion> -->
-<!-- 			</exclusions> -->
-<!-- 		</dependency> -->
+		<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>jena-serviceenhancer</artifactId>
+		</dependency>
+
+		<!-- <dependency> -->
+		<!-- <groupId>net.sansa-stack</groupId> -->
+		<!-- <artifactId>sansa-spark-jena-java_2.12</artifactId> -->
+		<!-- <exclusions> -->
+		<!-- <exclusion> -->
+		<!-- <groupId>commons-logging</groupId> -->
+		<!-- <artifactId>commons-logging</artifactId> -->
+		<!-- </exclusion> -->
+		<!-- </exclusions> -->
+		<!-- </dependency> -->
 
 		<dependency>
 			<groupId>info.picocli</groupId>
@@ -50,15 +49,15 @@
 		<!-- <artifactId>jcommander</artifactId> -->
 		<!-- </dependency> -->
 
-<!-- 		<dependency> -->
-<!-- 			<groupId>org.apache.jena</groupId> -->
-<!-- 			<artifactId>jena-tdb2</artifactId> -->
-<!-- 		</dependency> -->
+		<!-- <dependency> -->
+		<!-- <groupId>org.apache.jena</groupId> -->
+		<!-- <artifactId>jena-tdb2</artifactId> -->
+		<!-- </dependency> -->
 
-<!-- 		<dependency> -->
-<!-- 			<groupId>org.aksw.difs</groupId> -->
-<!-- 			<artifactId>difs-system</artifactId> -->
-<!-- 		</dependency> -->
+		<!-- <dependency> -->
+		<!-- <groupId>org.aksw.difs</groupId> -->
+		<!-- <artifactId>difs-system</artifactId> -->
+		<!-- </dependency> -->
 
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>

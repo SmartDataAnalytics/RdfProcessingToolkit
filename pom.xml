@@ -35,7 +35,7 @@
 		</license>
 	</licenses>
 
-	<!-- scm section needs to be duplicated on child module for github-release-plugin;
+	<!-- scm section needs to be duplicated on child module for github-release-plugin; 
 		see https://github.com/jutzig/github-release-plugin/issues/14 -->
 	<scm>
 		<url>https://github.com/SmartDataAnalytics/RdfProcessingToolkit</url>
@@ -105,11 +105,11 @@
 				<version>${jena.version}</version>
 			</dependency>
 
-                        <dependency>
-                                <groupId>org.apache.jena</groupId>
-                                <artifactId>jena-serviceplugins</artifactId>
-                                <version>${jena.version}</version>
-                        </dependency>
+			<dependency>
+				<groupId>org.apache.jena</groupId>
+				<artifactId>jena-serviceenhancer</artifactId>
+				<version>${jena.version}</version>
+			</dependency>
 
 			<dependency>
 				<groupId>org.aksw.rdf-processing-toolkit</groupId>
@@ -153,7 +153,7 @@
 				<version>${project.version}</version>
 			</dependency>
 
-			<!-- <dependency> <groupId>org.aksw.rdf-processing-toolkit</groupId> <artifactId>rdf-processing-toolkit-bundle</artifactId>
+			<!-- <dependency> <groupId>org.aksw.rdf-processing-toolkit</groupId> <artifactId>rdf-processing-toolkit-bundle</artifactId> 
 				<version>${project.version}</version> </dependency> -->
 
 			<dependency>
@@ -163,21 +163,21 @@
 			</dependency>
 
 
-			<!-- <dependency> <groupId>org.aksw.sparql-integrate</groupId> <artifactId>sparql-integrate-ckan-core</artifactId>
-				<version>${project.version}</version> </dependency> <dependency> <groupId>org.aksw.sparql-integrate</groupId>
-				<artifactId>sparql-integrate-ckan-cli</artifactId> <version>${project.version}</version>
+			<!-- <dependency> <groupId>org.aksw.sparql-integrate</groupId> <artifactId>sparql-integrate-ckan-core</artifactId> 
+				<version>${project.version}</version> </dependency> <dependency> <groupId>org.aksw.sparql-integrate</groupId> 
+				<artifactId>sparql-integrate-ckan-cli</artifactId> <version>${project.version}</version> 
 				</dependency> -->
 			<dependency>
 				<groupId>org.aksw.jenax</groupId>
 				<artifactId>jenax-arq-plugins-bundle</artifactId>
 				<version>${jenax.version}</version>
-				<!-- <exclusions> <exclusion> <groupId>org.locationtech.jts</groupId>
-					<artifactId>jts-core</artifactId> </exclusion> <exclusion> <groupId>com.vividsolutions</groupId>
-					<artifactId>jts-core</artifactId> </exclusion> <exclusion> <groupId>com.vividsolutions</groupId>
-					<artifactId>jts-io</artifactId> </exclusion> <exclusion> <groupId>org.geotools</groupId>
-					<artifactId>gt-epsg-hsql</artifactId> </exclusion> <exclusion> <groupId>org.geotools</groupId>
-					<artifactId>gt-geometry</artifactId> </exclusion> <exclusion> <groupId>org.geotools</groupId>
-					<artifactId>gt-referencing</artifactId> </exclusion> <exclusion> <groupId>org.codehaus.plexus</groupId>
+				<!-- <exclusions> <exclusion> <groupId>org.locationtech.jts</groupId> 
+					<artifactId>jts-core</artifactId> </exclusion> <exclusion> <groupId>com.vividsolutions</groupId> 
+					<artifactId>jts-core</artifactId> </exclusion> <exclusion> <groupId>com.vividsolutions</groupId> 
+					<artifactId>jts-io</artifactId> </exclusion> <exclusion> <groupId>org.geotools</groupId> 
+					<artifactId>gt-epsg-hsql</artifactId> </exclusion> <exclusion> <groupId>org.geotools</groupId> 
+					<artifactId>gt-geometry</artifactId> </exclusion> <exclusion> <groupId>org.geotools</groupId> 
+					<artifactId>gt-referencing</artifactId> </exclusion> <exclusion> <groupId>org.codehaus.plexus</groupId> 
 					<artifactId>plexus-utils</artifactId> </exclusion> </exclusions> -->
 
 			</dependency>
@@ -206,8 +206,8 @@
 				<version>${jenax.version}</version>
 			</dependency>
 
-			<!-- <dependency> <groupId>io.github.galbiston</groupId> <artifactId>geosparql-jena</artifactId>
-				<version>1.1.1</version> </dependency> <dependency> <groupId>org.apache.sis.non-free</groupId>
+			<!-- <dependency> <groupId>io.github.galbiston</groupId> <artifactId>geosparql-jena</artifactId> 
+				<version>1.1.1</version> </dependency> <dependency> <groupId>org.apache.sis.non-free</groupId> 
 				<artifactId>sis-embedded-data</artifactId> <version>0.8</version> </dependency> -->
 
 			<!-- <dependency> -->
@@ -216,13 +216,13 @@
 			<!-- <version>1.78</version> -->
 			<!-- </dependency> -->
 
-			<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot</artifactId>
-				<version>${spring-boot.version}</version> </dependency> <dependency> <groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-autoconfigure</artifactId> <version>${spring-boot.version}</version>
-				</dependency> <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-loader</artifactId>
+			<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot</artifactId> 
+				<version>${spring-boot.version}</version> </dependency> <dependency> <groupId>org.springframework.boot</groupId> 
+				<artifactId>spring-boot-autoconfigure</artifactId> <version>${spring-boot.version}</version> 
+				</dependency> <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-loader</artifactId> 
 				<version>${spring-boot.version}</version> </dependency> -->
 
-			<!-- <dependency> <groupId>eu.trentorise.opendata</groupId> <artifactId>jackan</artifactId>
+			<!-- <dependency> <groupId>eu.trentorise.opendata</groupId> <artifactId>jackan</artifactId> 
 				<version>0.4.2</version> </dependency> -->
 
 			<dependency>
@@ -451,11 +451,11 @@
 								<goal>shade</goal>
 							</goals>
 							<configuration>
-								<!-- TODO Shading is currently needed for the debian packages, which
+								<!-- TODO Shading is currently needed for the debian packages, which 
 									is slow and causes huge deployments -->
-								<!-- The deb packaging should be modified to work similar to the
+								<!-- The deb packaging should be modified to work similar to the 
 									dockerfile maven plugin: -->
-								<!-- Use the resource plugin to copy deps to a lib folder and adjust
+								<!-- Use the resource plugin to copy deps to a lib folder and adjust 
 									the bash scripts -->
 								<shadedArtifactAttached>true</shadedArtifactAttached>
 								<shadedClassifierName>jar-with-dependencies</shadedClassifierName>
@@ -547,12 +547,12 @@
 	</build>
 
 	<profiles>
-		<!-- <profile> <id>doclint-java8-disable</id> <activation> <jdk>[1.8,)</jdk>
-			</activation> <build> <plugins> <plugin> <groupId>org.apache.maven.plugins</groupId>
-			<artifactId>maven-javadoc-plugin</artifactId> <version>2.10.4</version> <executions>
-			<execution> <id>attach-javadocs</id> <goals> <goal>jar</goal> </goals> <configuration>
-			<failOnError>false</failOnError> </configuration> </execution> </executions>
-			<configuration> <additionalparam>-Xdoclint:none</additionalparam> </configuration>
+		<!-- <profile> <id>doclint-java8-disable</id> <activation> <jdk>[1.8,)</jdk> 
+			</activation> <build> <plugins> <plugin> <groupId>org.apache.maven.plugins</groupId> 
+			<artifactId>maven-javadoc-plugin</artifactId> <version>2.10.4</version> <executions> 
+			<execution> <id>attach-javadocs</id> <goals> <goal>jar</goal> </goals> <configuration> 
+			<failOnError>false</failOnError> </configuration> </execution> </executions> 
+			<configuration> <additionalparam>-Xdoclint:none</additionalparam> </configuration> 
 			</plugin> </plugins> </build> </profile> -->
 
 		<profile>
