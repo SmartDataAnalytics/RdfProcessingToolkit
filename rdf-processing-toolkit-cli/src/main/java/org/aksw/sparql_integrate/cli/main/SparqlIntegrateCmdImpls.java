@@ -1,27 +1,5 @@
 package org.aksw.sparql_integrate.cli.main;
 
-import java.awt.Desktop;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jena_sparql_api.algebra.transform.TransformCollectOps;
@@ -71,21 +49,15 @@ import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
-import org.apache.jena.sparql.ARQConstants;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpService;
-import org.apache.jena.sparql.algebra.optimize.Optimize;
-import org.apache.jena.sparql.algebra.optimize.Rewrite;
-import org.apache.jena.sparql.algebra.optimize.RewriteFactory;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
-// import org.apache.jena.sparql.service.impl.ServicePlugins;
-import org.apache.jena.sparql.service.impl.TransformJoinStrategyServiceSpecial;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.sparql.util.MappingRegistry;
 import org.apache.jena.sparql.util.Symbol;
@@ -93,6 +65,19 @@ import org.apache.jena.system.Txn;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.servlet.http.HttpServletRequest;
+import java.awt.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.nio.file.*;
+import java.util.List;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
