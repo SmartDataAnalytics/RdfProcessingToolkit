@@ -4,7 +4,6 @@ import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdUtils;
 
-
 public class MainCliRdfProcessingToolkit {
     static { CliUtils.configureGlobalSettings(); }
 

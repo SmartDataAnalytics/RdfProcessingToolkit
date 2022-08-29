@@ -54,8 +54,8 @@
 	</developers>
 
 	<properties>
-		<jena.version>4.6.0-SNAPSHOT</jena.version>
-		<jenax.version>4.6.0-1-SNAPSHOT</jenax.version>
+		<jena.version>4.7.0-SNAPSHOT</jena.version>
+		<jenax.version>4.7.0-1-SNAPSHOT</jenax.version>
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 
 		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
@@ -64,7 +64,7 @@
 		<picocli.version>4.6.2</picocli.version>
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
-		<conjure.version>4.6.0-1-SNAPSHOT</conjure.version>
+		<conjure.version>4.7.0-1-SNAPSHOT</conjure.version>
 		<jackson.version>2.12.0</jackson.version>
 
 		<commons-vfs2.version>2.9.0</commons-vfs2.version>
