@@ -8,6 +8,6 @@ public class MainCliSparqlIntegrate {
     static { CliUtils.configureGlobalSettings(); }
 
     public static void main(String[] args) {
-    	CmdUtils.execCmd(CmdSparqlIntegrateMain.class, args);
+        CmdUtils.execCmd(CmdSparqlIntegrateMain.class, args);
     }
 }

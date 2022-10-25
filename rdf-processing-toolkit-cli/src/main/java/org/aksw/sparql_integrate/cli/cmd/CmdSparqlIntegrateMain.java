@@ -48,6 +48,10 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--db-loader" }, description="Wrap a datasource's default loading strategy with a different one. Supported values: sansa")
     public String dbLoader = null;
 
+    // TODO Should require --server
+    @Option(names = { "--read-only" },  description="Disable SPARQL update on the server")
+    public boolean readOnlyMode = false;
+
 
     @Option(names = { "--cache-engine" }, description="Cache engine. Supported: 'none', 'mem', 'disk'")
     public String cacheEngine = null;

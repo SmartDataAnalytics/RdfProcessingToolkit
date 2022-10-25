@@ -1,9 +1,28 @@
 package org.aksw.sparql_integrate.cli.main;
 
+import java.awt.Desktop;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
-import org.aksw.jena_sparql_api.algebra.transform.TransformCollectOps;
-import org.aksw.jena_sparql_api.algebra.visitor.OpVisitorTriplesQuads;
 import org.aksw.jena_sparql_api.cache.advanced.QueryExecFactoryQueryRangeCache;
 import org.aksw.jena_sparql_api.rx.io.resultset.OutputFormatSpec;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessor;
@@ -38,10 +57,8 @@ import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.ext.com.google.common.base.Strings;
 import org.apache.jena.ext.com.google.common.collect.Multimap;
 import org.apache.jena.ext.com.google.common.collect.Multimaps;
-import org.apache.jena.graph.Node;
 import org.apache.jena.irix.IRIx;
 import org.apache.jena.query.ARQ;
-import org.apache.jena.query.Query;
 import org.apache.jena.query.TxnType;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.riot.Lang;
@@ -49,15 +66,11 @@ import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
-import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
-import org.apache.jena.sparql.algebra.op.OpService;
 import org.apache.jena.sparql.core.Transactional;
-import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
-import org.apache.jena.sparql.pfunction.PropertyFunctionRegistry;
 import org.apache.jena.sparql.service.enhancer.init.ServiceEnhancerInit;
 // import org.apache.jena.sparql.service.impl.ServicePlugins;
 // import org.apache.jena.sparql.service.impl.TransformJoinStrategyServiceSpecial;
@@ -68,19 +81,6 @@ import org.apache.jena.system.Txn;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.servlet.http.HttpServletRequest;
-import java.awt.*;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.nio.file.*;
-import java.util.List;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
@@ -105,63 +105,6 @@ public class SparqlIntegrateCmdImpls {
         RdfDataEngine result = factory.create(spec.getMap());
         return result;
     }
-
-
-
-    public static RDFConnection wrapWithAutoDisableReorder(RDFConnection conn) {
-        return RDFConnectionUtils.wrapWithQueryTransform(conn, null, qe -> {
-            // We require the connection already provide an appropriate OpExecutor instance
-            // that can handle custom service executors!
-            // See: DatasetBasedSparqlEngine.newConnection()
-
-            Context cxt = qe.getContext();
-            Query query = qe.getQuery();
-            if (query == null) {
-                logger.warn("Could not obtain query from query execution.");
-            } else if (cxt != null) {
-
-                boolean disableTpReorder = shouldDisablePatternReorder(query);
-                if (disableTpReorder) {
-                    logger.info("Pattern reorder disabled due to presence of property functions and/or service clauses");
-                }
-
-                if (disableTpReorder) {
-                    StageBuilder.setGenerator(cxt, StageBuilder.executeInline);
-                }
-            }
-            return qe;
-        });
-    }
-
-    /**
-     * Triple pattern reordering can give significant performance boosts on SPARQL queries
-     * but when SERVICE clauses and/or user defined property functions are in use it can
-     * lead to unexpected results.
-     *
-     * This method decides whether to disable reordering
-     *
-     */
-    public static boolean shouldDisablePatternReorder(Query query) {
-        Op op = Algebra.toQuadForm(Algebra.compile(query));
-        Set<Op> ops = TransformCollectOps.collect(op, false);
-
-        boolean containsService = ops.stream().anyMatch(x -> x instanceof OpService);
-
-        // udpf = user defined property function
-        Set<String> usedUdpfs = ops.stream()
-            .flatMap(OpVisitorTriplesQuads::streamQuads)
-            .map(quad -> quad.getPredicate())
-            .filter(Node::isURI)
-            .map(Node::getURI)
-            .filter(uri -> PropertyFunctionRegistry.get().get(uri) != null)
-            .collect(Collectors.toSet());
-
-        boolean usesUdpf = !usedUdpfs.isEmpty();
-
-        boolean result = containsService || usesUdpf;
-        return result;
-    }
-
 
 //    public static Stream<Element> streamElementsDepthFirstPostOrder(Element start) {
 //    	// ElementTransformer.transform(element, transform);
@@ -408,7 +351,7 @@ public class SparqlIntegrateCmdImpls {
 
         try {
             Supplier<RDFConnection> connSupp = () -> {
-                RDFConnection ca = wrapWithAutoDisableReorder(datasetAndDelete.getConnection());
+                RDFConnection ca = RDFConnectionUtils.wrapWithAutoDisableReorder(datasetAndDelete.getConnection());
 
                 RDFConnection cb = RDFConnectionUtils.wrapWithContextMutator(ca, SparqlIntegrateCmdImpls::configureOptimizer);
 
@@ -416,6 +359,7 @@ public class SparqlIntegrateCmdImpls {
                         cb,
                         null, queryExec -> QueryExecDecoratorTxn.wrap(queryExec, cb));
             };
+
 
             // RDFConnectionFactoryEx.getQueryConnection(conn)
             Server server = null;
@@ -425,10 +369,17 @@ public class SparqlIntegrateCmdImpls {
 //                Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
 //                        prefixMapping, false);// .getQueryParser();
 
+                Supplier<RDFConnection> serverConnSupp = () -> {
+                    RDFConnection r = connSupp.get();
+                    if (cmd.readOnlyMode) {
+                        r = RDFConnectionUtils.wrapWithQueryOnly(r);
+                    }
+                    return r;
+                };
 
                 int port = cmd.serverPort;
                 server = FactoryBeanSparqlServer.newInstance()
-                        .setSparqlServiceFactory((HttpServletRequest httpRequest) -> connSupp.get())
+                        .setSparqlServiceFactory((HttpServletRequest httpRequest) -> serverConnSupp.get())
                         .setSparqlStmtParser(
                                 SparqlStmtParser.wrapWithOptimizePrefixes(processor.getSparqlParser()))
                         .setPort(port).create();
