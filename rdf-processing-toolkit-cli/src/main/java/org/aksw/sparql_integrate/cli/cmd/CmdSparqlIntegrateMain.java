@@ -115,7 +115,7 @@ public class CmdSparqlIntegrateMain
          * sparql-pattern file
          *
          */
-        @Option(names = { "-o" }, description = "output file")
+        @Option(names = { "-o", "--out-file" }, description = "output file")
         public String outFile;
 
         @Option(names = { "--io", },  description = "overwrites argument file on success with output; use with care")

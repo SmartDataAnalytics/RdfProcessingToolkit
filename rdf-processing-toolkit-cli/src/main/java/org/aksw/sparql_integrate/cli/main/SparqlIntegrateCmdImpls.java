@@ -181,6 +181,8 @@ public class SparqlIntegrateCmdImpls {
                     RDFFormat fmt = RDFWriterRegistry.defaultSerialization(lang);
                     outFormat = fmt == null ? null : fmt.toString();
                     logger.info("Inferred output format from " + outFilename + ": " + outFormat);
+                } else {
+                    throw new RuntimeException("Failed to determine output format");
                 }
             }
 
