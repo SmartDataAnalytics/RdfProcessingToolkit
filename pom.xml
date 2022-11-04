@@ -268,6 +268,23 @@
 				<version>${log4j.version}</version>
 			</dependency>
 
+			<!--
+			<dependency>
+                                <groupId>log4j</groupId>
+				<artifactId>log4j</artifactId>
+				<version>1.2.17</version>
+				<scope>provided</scope>
+			</dependency>
+
+			<dependency>
+                                <groupId>org.apache.logging.log4j</groupId>
+                                <artifactId>log4j-1.2-api</artifactId>
+                                <version>2.17.2</version>
+                                <scope>provided</scope>
+			</dependency>
+			-->
+
+
 			<!-- <dependency> -->
 			<!-- <groupId>org.slf4j</groupId> -->
 			<!-- <artifactId>slf4j-api</artifactId> -->
@@ -377,12 +394,13 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.6.0</version>
+					<version>3.9.0</version>
 					<configuration>
 						<!-- <source>${maven.compiler.source}</source> -->
 						<!-- <target>${maven.compiler.target}</target> -->
 						<release>11</release>
 						<encoding>${project.build.sourceEncoding}</encoding>
+						<!-- <multiReleaseOutput>true</multiReleaseOutput> -->
 					</configuration>
 				</plugin>
 
@@ -457,19 +475,12 @@
 					<artifactId>maven-shade-plugin</artifactId>
 					<version>2.4.3</version>
 					<executions>
-						<!-- Run shade goal on package phase -->
 						<execution>
 							<phase>package</phase>
 							<goals>
 								<goal>shade</goal>
 							</goals>
 							<configuration>
-								<!-- TODO Shading is currently needed for the debian packages, which 
-									is slow and causes huge deployments -->
-								<!-- The deb packaging should be modified to work similar to the 
-									dockerfile maven plugin: -->
-								<!-- Use the resource plugin to copy deps to a lib folder and adjust 
-									the bash scripts -->
 								<shadedArtifactAttached>true</shadedArtifactAttached>
 								<shadedClassifierName>jar-with-dependencies</shadedClassifierName>
 								<filters>
@@ -479,16 +490,12 @@
 											<exclude>META-INF/*.SF</exclude>
 											<exclude>META-INF/*.DSA</exclude>
 											<exclude>META-INF/*.RSA</exclude>
+											<exclude>**/Log4j2Plugins.dat</exclude>
 										</excludes>
 									</filter>
 								</filters>
 								<transformers>
-									<transformer
-										implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-									<!-- add Main-Class to manifest file -->
-									<!-- <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"> -->
-									<!-- <mainClass>com.mkyong.core.utils.App</mainClass> -->
-									<!-- </transformer> -->
+									<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
 								</transformers>
 							</configuration>
 						</execution>
