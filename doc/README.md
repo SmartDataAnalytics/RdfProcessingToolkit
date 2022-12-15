@@ -57,8 +57,8 @@ The following SPARQL query should bind `?x` to a JSON document.
 ```sparql
 SELECT ?x {
   BIND(url:fetchSpec("http://www.example.org/",
-    "m", "POST", "h.ContentType", "application/json", "b", "payload",
-    "cto", 5000, "rto", 10000) AS ?x)
+    "m", "POST", "h.ContentType", "application/json", "b", "{}",
+    "cto", 5000, "rto", "10000") AS ?x)
 }
 ```
 
@@ -70,11 +70,13 @@ Expected JSON value for `?x`:
   "headers": {
     "ContentType": "application/json"
   },
-  "body": "payload",
+  "body": "{}",
   "connectTimeout": 5000,
-  "readTimeout": 10000
+  "readTimeout": "10000"
 }
 ```
+Note, that in this example, the value for `readTimeout` becomes a string. As long as the string can be converted to an integer value this is valid.
+Timeout values are interpreted as milliseconds.
 
 #### url:text
 A simple but effective mechanism for unified retrieval of local or remote data is provided by the `url:text` function and property function.
