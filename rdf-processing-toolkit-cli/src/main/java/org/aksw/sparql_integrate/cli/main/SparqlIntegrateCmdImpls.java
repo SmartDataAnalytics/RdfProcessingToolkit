@@ -42,10 +42,13 @@ import org.aksw.jenax.arq.datasource.RdfDataEngineFactoryRegistry;
 import org.aksw.jenax.arq.datasource.RdfDataEngines;
 import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.connection.dataengine.RdfDataEngine;
+import org.aksw.jenax.connection.query.QueryExecDecoratorBase;
 import org.aksw.jenax.connection.query.QueryExecDecoratorTxn;
 import org.aksw.jenax.connection.query.QueryExecs;
+import org.aksw.jenax.connection.update.UpdateProcessorDecoratorBase;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtParser;
+import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
 import org.aksw.jenax.web.server.boot.FactoryBeanSparqlServer;
@@ -54,11 +57,9 @@ import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
 import org.apache.jena.JenaRuntime;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
-import org.apache.jena.ext.com.google.common.base.Strings;
-import org.apache.jena.ext.com.google.common.collect.Multimap;
-import org.apache.jena.ext.com.google.common.collect.Multimaps;
 import org.apache.jena.irix.IRIx;
 import org.apache.jena.query.ARQ;
+import org.apache.jena.query.Query;
 import org.apache.jena.query.TxnType;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.riot.Lang;
@@ -66,10 +67,13 @@ import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
+import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
+import org.apache.jena.sparql.algebra.optimize.Optimize;
 import org.apache.jena.sparql.core.Transactional;
+import org.apache.jena.sparql.exec.QueryExec;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.service.enhancer.init.ServiceEnhancerInit;
 // import org.apache.jena.sparql.service.impl.ServicePlugins;
@@ -78,9 +82,14 @@ import org.apache.jena.sparql.util.Context;
 import org.apache.jena.sparql.util.MappingRegistry;
 import org.apache.jena.sparql.util.Symbol;
 import org.apache.jena.system.Txn;
+import org.apache.jena.update.UpdateProcessor;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Strings;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
@@ -273,14 +282,14 @@ public class SparqlIntegrateCmdImpls {
                 effOut = Files.newOutputStream(clusterOutFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
             }
 
-            if (cmd.showAlgebra) {
-                for (SparqlStmt sparqlStmt : clusterStmts) {
-                    Op op = SparqlStmtUtils.toAlgebra(sparqlStmt);
-                    if (op != null) {
-                        logger.info("Algebra of " + sparqlStmt + ":\n" + op);
-                    }
-                }
-            }
+//            if (cmd.showAlgebra) {
+//                for (SparqlStmt sparqlStmt : clusterStmts) {
+//                    Op op = SparqlStmtUtils.toAlgebra(sparqlStmt);
+//                    if (op != null) {
+//                        logger.info("Algebra of " + sparqlStmt + ":\n" + op);
+//                    }
+//                }
+//            }
 
             SPARQLResultExProcessor effectiveHandler = SPARQLResultExProcessorBuilder.configureProcessor(
                     effOut, System.err,
@@ -357,9 +366,62 @@ public class SparqlIntegrateCmdImpls {
 
                 RDFConnection cb = RDFConnectionUtils.wrapWithContextMutator(ca, SparqlIntegrateCmdImpls::configureOptimizer);
 
-                return RDFConnectionUtils.wrapWithQueryTransform(
-                        cb,
-                        null, queryExec -> QueryExecDecoratorTxn.wrap(queryExec, cb));
+                // TODO Add a util method wrapWithStmtTransform
+                RDFConnection cc = RDFConnectionUtils.wrapWithQueryTransform(
+                    cb,
+                    null, queryExec -> {
+                        QueryExec r = queryExec;
+                        if (cmd.showAlgebra) {
+                            r = new QueryExecDecoratorBase<>(r) {
+                                @Override
+                                public void beforeExec() {
+                                    Query q = getQuery();
+                                    if (q != null) {
+                                        Op op = Algebra.compile(q); // SparqlStmtUtils.toAlgebra(sparqlStmt);
+                                        if (op != null) {
+                                            Context cxt = getContext();
+                                            if (cxt != null) {
+                                                op = Optimize.optimize(op, cxt);
+                                            }
+                                            if (op != null) {
+                                                logger.info("Algebra of " + q + ":\n" + op);
+                                            }
+                                        }
+                                    }
+                                }
+                            };
+                        }
+
+                        r = QueryExecDecoratorTxn.wrap(r, cb);
+                        return r;
+                    });
+
+                RDFConnection cd = RDFConnectionUtils.wrapWithUpdateTransform(cc, null, (ur, up) -> {
+                    UpdateProcessor r = up;
+                    if (cmd.showAlgebra) {
+                        r = new UpdateProcessorDecoratorBase<>(up) {
+                            @Override
+                            public void beforeExec() {
+                                if (ur != null) {
+                                    Op op = SparqlStmtUtils.toAlgebra(new SparqlStmtUpdate(ur));
+                                    if (op != null) {
+                                        Context cxt = getContext();
+                                        if (cxt != null) {
+                                            op = Optimize.optimize(op, cxt);
+                                        }
+                                        if (op != null) {
+                                            logger.info("Algebra of " + ur + ":\n" + op);
+                                        }
+                                    }
+                                }
+                            }
+                        };
+                    }
+                    return r;
+                    // r = UpdateExecDeco
+                });
+
+                return cd;
             };
 
 
