@@ -1,26 +1,8 @@
 package org.aksw.sparql_integrate.cli.main;
 
-import java.awt.Desktop;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletRequest;
-
+import com.google.common.base.Strings;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jena_sparql_api.cache.advanced.QueryExecFactoryQueryRangeCache;
@@ -37,10 +19,7 @@ import org.aksw.jenax.arq.connection.core.RDFConnectionUtils;
 import org.aksw.jenax.arq.connection.link.QueryExecFactories;
 import org.aksw.jenax.arq.connection.link.QueryExecFactory;
 import org.aksw.jenax.arq.connection.link.QueryExecFactoryQueryDecorizer;
-import org.aksw.jenax.arq.datasource.RdfDataEngineFactory;
-import org.aksw.jenax.arq.datasource.RdfDataEngineFactoryRegistry;
-import org.aksw.jenax.arq.datasource.RdfDataEngines;
-import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
+import org.aksw.jenax.arq.datasource.*;
 import org.aksw.jenax.connection.dataengine.RdfDataEngine;
 import org.aksw.jenax.connection.query.QueryExecDecoratorBase;
 import org.aksw.jenax.connection.query.QueryExecDecoratorTxn;
@@ -48,6 +27,7 @@ import org.aksw.jenax.connection.query.QueryExecs;
 import org.aksw.jenax.connection.update.UpdateProcessorDecoratorBase;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtParser;
+import org.aksw.jenax.stmt.core.SparqlStmtQuery;
 import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
@@ -57,8 +37,12 @@ import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
 import org.apache.jena.JenaRuntime;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
+import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
+import org.apache.jena.geosparql.spatial.SpatialIndex;
+import org.apache.jena.geosparql.spatial.SpatialIndexException;
 import org.apache.jena.irix.IRIx;
 import org.apache.jena.query.ARQ;
+import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.TxnType;
 import org.apache.jena.rdfconnection.RDFConnection;
@@ -76,8 +60,6 @@ import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.exec.QueryExec;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.service.enhancer.init.ServiceEnhancerInit;
-// import org.apache.jena.sparql.service.impl.ServicePlugins;
-// import org.apache.jena.sparql.service.impl.TransformJoinStrategyServiceSpecial;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.sparql.util.MappingRegistry;
 import org.apache.jena.sparql.util.Symbol;
@@ -87,9 +69,18 @@ import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
+import javax.servlet.http.HttpServletRequest;
+import java.awt.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.nio.file.*;
+import java.util.List;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
@@ -310,7 +301,11 @@ public class SparqlIntegrateCmdImpls {
 
         // Start the engine (wrooom)
 
+        Dataset dataset = null;
         RdfDataEngine dataSourceTmp = setupRdfDataEngine(cmd);
+        if (dataSourceTmp instanceof HasDataset) {
+            dataset = ((HasDataset) dataSourceTmp).getDataset();
+        }
         dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, null, QueryExecs::withDetailedHttpMessages);
 
         if (cmd.cachePath != null) {
@@ -433,10 +428,17 @@ public class SparqlIntegrateCmdImpls {
 //                Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
 //                        prefixMapping, false);// .getQueryParser();
 
+                Dataset finalDataset = dataset;
                 Supplier<RDFConnection> serverConnSupp = () -> {
                     RDFConnection r = connSupp.get();
                     if (cmd.readOnlyMode) {
                         r = RDFConnectionUtils.wrapWithQueryOnly(r);
+                    }
+                    try {
+                        RDFConnection spatialRdfConnection = getSpatialRdfConnection(cmd, finalDataset, r, true);
+                        r = spatialRdfConnection;
+                    } catch (SpatialIndexException e) {
+                        logger.error("Error encountered", e);
                     }
                     return r;
                 };
@@ -458,6 +460,9 @@ public class SparqlIntegrateCmdImpls {
                 }
             }
 
+            if (cmd.geoindex && dataset == null) {
+                logger.warn("Cannot compute geo index with non data-set connection");
+            }
             try (RDFConnection conn = connSupp.get()) {
 
                 for (Entry<SparqlStmt, Provenance> stmtEntry : workloads) {
@@ -465,13 +470,14 @@ public class SparqlIntegrateCmdImpls {
                     String clusterId = splitFolder == null ? "" : Optional.ofNullable(prov.getSourceLocalName()).orElse("");
 
                     SPARQLResultExProcessor sink = clusterToSink.get(clusterId);
-
+                    RDFConnection connB = getSpatialRdfConnection(cmd, dataset, conn, stmtEntry.getKey() instanceof SparqlStmtQuery);
                     try {
-                        execStmt(conn, stmtEntry, sink);
+                        execStmt(connB, stmtEntry, sink);
                     } catch (Exception e) {
                         logger.error("Error encountered; trying to continue but exit code will be non-zero", e);
                         exitCode = 1;
                     }
+
                 }
 
             }
@@ -517,6 +523,17 @@ public class SparqlIntegrateCmdImpls {
         }
 
         return exitCode;
+    }
+
+    private static RDFConnection getSpatialRdfConnection(CmdSparqlIntegrateMain cmd, Dataset dataset, RDFConnection conn, boolean compute) throws SpatialIndexException {
+        if (cmd.geoindex && dataset != null && compute) {
+            logger.info("Computing geo index");
+            GeoSPARQLConfig.setupSpatialIndex(dataset);
+            Object spatialIndex = dataset.getContext().get(SpatialIndex.SPATIAL_INDEX_SYMBOL);
+            return RDFConnectionUtils.wrapWithContextMutator(conn, (ctx) -> ctx.put(SpatialIndex.SPATIAL_INDEX_SYMBOL, spatialIndex));
+            //GeoSPARQLConfig.setupSpatialIndex(dataSourceTmp.getConnection().fetchDataset());
+        }
+        return conn;
     }
 
 

@@ -107,6 +107,9 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--rdf10" }, description = "RDF 1.0 mode; e.g. xsd:string on literals matter", defaultValue = "false")
     public boolean useRdf10 = false;
 
+    @Option(names = { "--geoindex" },  description = "Build Geoindex")
+    public boolean geoindex;
+
     @ArgGroup(exclusive = true, multiplicity = "0..1")
     public OutputSpec outputSpec;
 
