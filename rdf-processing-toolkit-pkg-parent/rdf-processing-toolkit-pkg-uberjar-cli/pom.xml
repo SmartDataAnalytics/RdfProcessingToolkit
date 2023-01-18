@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>org.aksw.rdf-processing-toolkit</groupId>
 		<artifactId>rdf-processing-toolkit-pkg-parent</artifactId>
-		<version>1.9.2-SNAPSHOT</version>
+		<version>1.9.3-SNAPSHOT</version>
 	</parent>
 
 	<!-- scm section needs to be duplicated on child module for github-release-plugin; 
