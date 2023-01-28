@@ -305,6 +305,17 @@ public class SparqlIntegrateCmdImpls {
         RdfDataEngine dataSourceTmp = setupRdfDataEngine(cmd);
         if (dataSourceTmp instanceof HasDataset) {
             dataset = ((HasDataset) dataSourceTmp).getDataset();
+
+            if (dataset != null) {
+                Context cxt = dataset.getContext();
+                if (cxt != null) {
+
+                    if (!cmd.server || cmd.unsafe) {
+                        cxt.setTrue(JenaUrlUtils.symAllowFileAccess);
+                    }
+                }
+            }
+
         }
         dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, null, QueryExecs::withDetailedHttpMessages);
 

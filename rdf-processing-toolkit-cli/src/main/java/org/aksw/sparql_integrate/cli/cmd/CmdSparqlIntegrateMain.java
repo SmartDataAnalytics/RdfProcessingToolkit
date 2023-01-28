@@ -101,6 +101,9 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--server" }, description = "Start a SPARQL server")
     public boolean server = false;
 
+    @Option(names = { "--unsafe" }, description = "Enable features that could pose security risks (e.g. reading file:// URLs) in server mode. default: ${DEFAULT-VALUE}", defaultValue = "false")
+    public boolean unsafe = false;
+
     @Option(names = { "--port" }, description = "Server port, default: ${DEFAULT-VALUE}", defaultValue = "8642")
     public int serverPort;
 
