@@ -46,7 +46,12 @@
 				<artifactId>jib-maven-plugin</artifactId>
 				<configuration>
 					<to>
-						<image>docker.io/aklakan/rdf-processing-toolkit</image>
+						<!-- <image>docker.io/aklakan/rdf-processing-toolkit</image> -->
+						<image>docker.io/aksw/rpt</image>
+						<tags>
+							<tag>${project.version}</tag>
+							<tag>latest</tag>
+						</tags>
 					</to>
 					<from>
 						<image>eclipse-temurin:11-jre</image>
