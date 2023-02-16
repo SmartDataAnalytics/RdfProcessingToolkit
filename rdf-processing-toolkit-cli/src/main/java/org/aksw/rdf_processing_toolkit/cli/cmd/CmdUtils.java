@@ -69,6 +69,7 @@ public class CmdUtils {
                     ExceptionUtilsAksw.rethrowIfNotBrokenPipe(ex);
                 } else {
                     ExceptionUtilsAksw.forwardRootCauseMessageUnless(ex, logger::error, ExceptionUtilsAksw::isBrokenPipeException);
+					return 1;
                 }
                 return 0;
             })
