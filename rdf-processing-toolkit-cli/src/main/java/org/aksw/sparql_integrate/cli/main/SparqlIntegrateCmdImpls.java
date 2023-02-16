@@ -472,7 +472,10 @@ public class SparqlIntegrateCmdImpls {
                 server = FactoryBeanSparqlServer.newInstance()
                         .setSparqlServiceFactory((HttpServletRequest httpRequest) -> serverConnSupp.get())
                         .setSparqlStmtParser(
-                                SparqlStmtParser.wrapWithOptimizePrefixes(processor.getSparqlParser()))
+                                //SparqlStmtParser.wrapWithOptimizePrefixes(
+                                        processor.getSparqlParser()
+                                //)
+                        )
                         .setPort(port).create();
 
                 server.start();

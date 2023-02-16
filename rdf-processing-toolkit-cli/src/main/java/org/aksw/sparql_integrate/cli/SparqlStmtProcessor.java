@@ -50,7 +50,7 @@ public class SparqlStmtProcessor {
         Stopwatch sw2 = Stopwatch.createStarted();
 
         if(usedPrefixesOnly) {
-            SparqlStmtUtils.optimizePrefixes(stmt);
+            //SparqlStmtUtils.optimizePrefixes(stmt);
             /*
             if(stmt.isQuery()) {
                 Query oldQuery = stmt.getAsQueryStmt().getQuery();
