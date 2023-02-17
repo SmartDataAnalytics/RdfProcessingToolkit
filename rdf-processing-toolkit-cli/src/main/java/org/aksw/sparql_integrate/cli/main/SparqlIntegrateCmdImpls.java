@@ -137,6 +137,10 @@ public class SparqlIntegrateCmdImpls {
             GeoSPARQLConfig.setupNoIndex();
         }
 
+        // automatically load external javascript functions from functions.js unless specified
+        Symbol jsLibrarySym = Symbol.create(MappingRegistry.mapPrefixName("arq:js-library"));
+        ARQ.getContext().setIfUndef(jsLibrarySym, "functions.js");
+
         // Set arq options
         putAll(ARQ.getContext(), cmd.arqOptions);
 
