@@ -50,7 +50,7 @@ public class CliUtils {
 
         // Init geosparql module
         // TODO Init of geosparql takes a while which is annoying during startup
-        GeoSPARQLConfig.setupNoIndex();
+        // GeoSPARQLConfig.setupNoIndex();
 
         // Retain blank node labels
         // Note, that it is not sufficient to enable only input or output bnode labels
