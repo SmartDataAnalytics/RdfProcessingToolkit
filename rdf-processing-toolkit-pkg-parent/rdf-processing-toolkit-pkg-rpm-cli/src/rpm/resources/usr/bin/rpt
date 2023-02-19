@@ -4,7 +4,7 @@ LIB_DIR="/usr/share/rdf-processing-toolkit-cli/"
 MAIN_CLASS="org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit"
 # EXTRA_OPTS=""
 
-java $EXTRA_OPTS $JAVA_OPTS -cp "$LIB_DIR/lib/*" "$MAIN_CLASS" "$@"
+java $EXTRA_OPTS $JAVA_OPTS -cp "$LIB_DIR/lib/*:$EXTRA_CP" "$MAIN_CLASS" "$@"
 
 # Examples
 

@@ -8,5 +8,5 @@ MAIN_CLASS="org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit
 JAVA=${JAVA_HOME:+$JAVA_HOME/bin/}java
 
 # EXTRA_OPTS="--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED"
-$JAVA $EXTRA_OPTS $JAVA_OPTS -cp "$LIB_DIR:$LIB_DIR/lib/*" "$MAIN_CLASS" "$@"
+$JAVA $EXTRA_OPTS $JAVA_OPTS -cp "$LIB_DIR:$LIB_DIR/lib/*:$EXTRA_CP" "$MAIN_CLASS" "$@"
 
