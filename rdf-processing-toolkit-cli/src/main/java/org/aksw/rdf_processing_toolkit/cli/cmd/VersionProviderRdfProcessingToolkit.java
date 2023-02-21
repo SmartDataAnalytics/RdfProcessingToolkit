@@ -11,5 +11,4 @@ public class VersionProviderRdfProcessingToolkit
     @Override public Collection<String> getStrings(Properties p) { return Arrays.asList(
             p.get("rdf-processing-toolkit.version") + " built at " + p.get("rdf-processing-toolkit.build.timestamp")
     ); }
-
 }

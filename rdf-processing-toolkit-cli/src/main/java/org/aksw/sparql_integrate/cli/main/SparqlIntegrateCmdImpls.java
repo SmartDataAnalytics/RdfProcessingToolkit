@@ -1,8 +1,26 @@
 package org.aksw.sparql_integrate.cli.main;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
+import java.awt.Desktop;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jena_sparql_api.cache.advanced.QueryExecFactoryQueryRangeCache;
@@ -12,6 +30,7 @@ import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessorBuilder;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExVisitor;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor.Provenance;
+import org.aksw.jena_sparql_api.sparql.ext.url.E_IriAsGiven.ExprTransformIriToIriAsGiven;
 import org.aksw.jena_sparql_api.sparql.ext.url.JenaUrlUtils;
 import org.aksw.jenax.arq.connection.core.QueryExecutionFactories;
 import org.aksw.jenax.arq.connection.core.QueryExecutionFactory;
@@ -19,7 +38,11 @@ import org.aksw.jenax.arq.connection.core.RDFConnectionUtils;
 import org.aksw.jenax.arq.connection.link.QueryExecFactories;
 import org.aksw.jenax.arq.connection.link.QueryExecFactory;
 import org.aksw.jenax.arq.connection.link.QueryExecFactoryQueryDecorizer;
-import org.aksw.jenax.arq.datasource.*;
+import org.aksw.jenax.arq.datasource.HasDataset;
+import org.aksw.jenax.arq.datasource.RdfDataEngineFactory;
+import org.aksw.jenax.arq.datasource.RdfDataEngineFactoryRegistry;
+import org.aksw.jenax.arq.datasource.RdfDataEngines;
+import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.arq.util.security.ArqSecurity;
 import org.aksw.jenax.connection.dataengine.RdfDataEngine;
 import org.aksw.jenax.connection.query.QueryExecDecoratorBase;
@@ -70,18 +93,9 @@ import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
-import java.awt.*;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.nio.file.*;
-import java.util.List;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import com.google.common.base.Strings;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
@@ -233,6 +247,14 @@ public class SparqlIntegrateCmdImpls {
                 : Paths.get(cmd.splitFolder);
 
         List<Entry<SparqlStmt, Provenance>> workloads = processor.getSparqlStmts();
+
+        if (cmd.useIriAsGiven) {
+            workloads = workloads.stream().map(e ->
+                Map.entry(
+                    SparqlStmtUtils.applyElementTransform(e.getKey(), ExprTransformIriToIriAsGiven::transformElt),
+                    e.getValue()))
+               .collect(Collectors.toList());
+        }
 
         // Workloads clustered by their split target filenames
         // If there are no splits then there is one cluster whose key is the empty string

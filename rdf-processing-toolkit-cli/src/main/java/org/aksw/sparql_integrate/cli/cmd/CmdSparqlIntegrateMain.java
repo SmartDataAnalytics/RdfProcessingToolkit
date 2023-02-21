@@ -116,6 +116,9 @@ public class CmdSparqlIntegrateMain
     @ArgGroup(exclusive = true, multiplicity = "0..1")
     public OutputSpec outputSpec;
 
+    @Option(names = { "--iriasgiven" }, arity="0", description = "Use an alternative IRI() implementation that is non-validating but fast")
+    public boolean useIriAsGiven = false;
+
     public static class OutputSpec {
         /**
          * sparql-pattern file

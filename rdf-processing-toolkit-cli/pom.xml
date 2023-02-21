@@ -21,6 +21,12 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.aksw.r2rml</groupId>
+			<artifactId>rml-jena-arq</artifactId>
+			<version>4.8.0-1-SNAPSHOT</version>			
+		</dependency>
+
+		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-serviceenhancer</artifactId>
 		</dependency>
