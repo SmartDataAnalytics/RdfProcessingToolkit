@@ -33,22 +33,66 @@ Of course, you can always run files using
 sparql-integrate file1.sparql ... filen.sparql
 ```
 
-## Retrieving remote content
+## URL Functions
+
+* `url:fetch(option1 [, option2 ... [, optionN]])` Retrieve local or remote content.
+
+* `url:fetchSpec(option1 [, option2 ... [, optionN]])`: This method is a debug version of `url:fetch`. It only assembles and returns the JSON specification from its arguments based on the following rules:
+
+    * Arguments can be any RDF types.
+    * Every non-json argument is converted into an effective json object.
+    * The resulting json specification is built by a simple merge of the effective json objects.
+    * If option1 is a string then the effective json object is `{"url": option1}`
+    * While processing left-to-right, the next string option (other than option1) is treated as a simple json path with its adjacent option\_(i + 1) as its value.
+    * A simple json path is a sequence of names separated by `.`. Example: The effective JSON for the pair of strings `("headers.Content-Type", "application/json")` is `{"headers": {"Content-Type": "application/json" } }`.
+
+Shortcuts for simple json paths:
+  * If the first segment is `h` then it is expanded to `headers`. So `"h.Content-Type"` and `"headers.Content-Type"` is equivalent.
+  * `m` is a shortcut for `method`. So `("m", "POST")` and `("method", "POST")` is equivalent.
+  * `b` is a shortcut for `body`.
+
+Example:
+
+The following SPARQL query should bind `?x` to a JSON document.
+```sparql
+SELECT ?x {
+  BIND(url:fetchSpec("http://www.example.org/",
+    "m", "POST", "h.ContentType", "application/json", "b", "{}",
+    "cto", 5000, "rto", "10000") AS ?x)
+}
+```
+
+Expected JSON value for `?x`:
+```json
+{
+  "url": "http://www.example.org/",
+  "method": "POST",
+  "headers": {
+    "ContentType": "application/json"
+  },
+  "body": "{}",
+  "connectTimeout": 5000,
+  "readTimeout": "10000"
+}
+```
+Note, that in this example, the value for `readTimeout` becomes a string. As long as the string can be converted to an integer value this is valid.
+Timeout values are interpreted as milliseconds.
+
+#### url:text
 A simple but effective mechanism for unified retrieval of local or remote data is provided by the `url:text` function and property function.
 
-```
+```sparql
 SELECT * {
   <example-data/data.csv> url:text ?str
 }
 ```
 
-```
+```sparql
 SELECT * {
   # TODO: Insert url to data.csv via a rawgit-like service
   <https://cdn.jsdelivr.net/gh/...> url:text ?str
 }
 ```
-
 
 ```
 --------------------------------
