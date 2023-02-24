@@ -31,6 +31,7 @@ import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExVisitor;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor.Provenance;
 import org.aksw.jena_sparql_api.sparql.ext.url.E_IriAsGiven.ExprTransformIriToIriAsGiven;
+import org.aksw.jena_sparql_api.sparql.ext.url.F_BNodeAsGiven.ExprTransformBNodeToBNodeAsGiven;
 import org.aksw.jena_sparql_api.sparql.ext.url.JenaUrlUtils;
 import org.aksw.jenax.arq.connection.core.QueryExecutionFactories;
 import org.aksw.jenax.arq.connection.core.QueryExecutionFactory;
@@ -255,6 +256,16 @@ public class SparqlIntegrateCmdImpls {
                     e.getValue()))
                .collect(Collectors.toList());
         }
+
+        if (true) { // bnodeasgiven enabled by default because RML test cases (representing KG construction tooling) rely on it)
+            workloads = workloads.stream().map(e ->
+                Map.entry(
+                    SparqlStmtUtils.applyElementTransform(e.getKey(), ExprTransformBNodeToBNodeAsGiven::transformElt),
+                    e.getValue()))
+               .collect(Collectors.toList());
+        }
+
+
 
         // Workloads clustered by their split target filenames
         // If there are no splits then there is one cluster whose key is the empty string
