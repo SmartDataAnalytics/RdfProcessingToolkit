@@ -2,7 +2,7 @@
 
 #WORK_DIR=`dirname "$0"`
 
-LIB_DIR="/usr/share/lib/rdf-processing-toolkit-cli/"
+LIB_DIR="/usr/share/rdf-processing-toolkit-cli/"
 MAIN_CLASS="org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit"
 
 JAVA=${JAVA_HOME:+$JAVA_HOME/bin/}java
