@@ -11,6 +11,16 @@ MCIS = $(MS) clean install
 help:   ## Show these help instructions
 	@sed -rn 's/^([a-zA-Z_-]+):.*?## (.*)$$/"\1" "\2"/p' < $(MAKEFILE_LIST) | xargs printf "make %-20s# %s\n"
 
+rpm-rebuild: ## rebuild the rpm package (minimal build of only required modules)
+	$(MCIS) -Prpm -am -pl :rdf-processing-toolkit-pkg-rpm-cli $(ARGS)
+
+rpm-reinstall: ## Reinstall rpm (requires prior build)
+	@p1=`find rdf-processing-toolkit-pkg-parent/rdf-processing-toolkit-pkg-rpm-cli/target | grep '\.rpm$$'`
+	sudo rpm -i "$$p1"
+
+rpm-rere: rpm-rebuild rpm-reinstall ## rebuild and reinstall rpm
+
+
 deb-rebuild: ## rebuild the deb package (minimal build of only required modules)
 	$(MCIS) -Pdeb -am -pl :rdf-processing-toolkit-pkg-deb-cli $(ARGS)
 
