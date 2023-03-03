@@ -44,6 +44,7 @@ import org.aksw.jenax.arq.datasource.RdfDataEngineFactory;
 import org.aksw.jenax.arq.datasource.RdfDataEngineFactoryRegistry;
 import org.aksw.jenax.arq.datasource.RdfDataEngines;
 import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
+import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.jenax.arq.util.security.ArqSecurity;
 import org.aksw.jenax.connection.dataengine.RdfDataEngine;
 import org.aksw.jenax.connection.query.QueryExecDecoratorBase;
@@ -59,9 +60,7 @@ import org.aksw.jenax.web.server.boot.FactoryBeanSparqlServer;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
-import org.apache.jena.JenaRuntime;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
-import org.apache.jena.geosparql.InitGeoSPARQL;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.geosparql.spatial.SpatialIndex;
 import org.apache.jena.geosparql.spatial.SpatialIndexException;
@@ -86,8 +85,6 @@ import org.apache.jena.sparql.exec.QueryExec;
 import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.service.enhancer.init.ServiceEnhancerInit;
 import org.apache.jena.sparql.util.Context;
-import org.apache.jena.sparql.util.MappingRegistry;
-import org.apache.jena.sparql.util.Symbol;
 import org.apache.jena.system.Txn;
 import org.apache.jena.update.UpdateProcessor;
 import org.eclipse.jetty.server.Server;
@@ -122,46 +119,33 @@ public class SparqlIntegrateCmdImpls {
         return result;
     }
 
-//    public static Stream<Element> streamElementsDepthFirstPostOrder(Element start) {
-//    	// ElementTransformer.transform(element, transform);
-////    	 return Streams.stream(Traverser.forTree(ElementUtils::getSubElements).depthFirstPostOrder(start).iterator());
-//    }
-
-
-    /** TODO Move to a ContextUtils class */
-    public static Context putAll(Context cxt, Map<String, String> map) {
-        map.forEach((key, value) -> {
-            String symbolName = MappingRegistry.mapPrefixName(key);
-            Symbol symbol = Symbol.create(symbolName);
-            cxt.set(symbol, value);
-        });
-        return cxt;
-    }
-
     public static int sparqlIntegrate(CmdSparqlIntegrateMain cmd) throws Exception {
         int exitCode = 0; // success unless error
 
-        JenaRuntime.isRDF11 = !cmd.useRdf10;
+        CmdMixinArq.configureGlobal(cmd.arqConfig);
+        CmdMixinArq.configureCxt(ARQ.getContext(), cmd.arqConfig);
 
-        CliUtils.configureGlobalSettings();
+//        JenaRuntime.isRDF11 = !cmd.useRdf10;
+//
+//        CliUtils.configureGlobalSettings();
+//
+//        if (cmd.geoindex) {
+//            System.setProperty("jena.geosparql.skip", String.valueOf(false));
+//            //InitGeoSPARQL.start();
+//            new InitGeoSPARQL().start();
+//            GeoSPARQLConfig.setupNoIndex();
+//        }
+//
+//        // Automatically load external javascript functions from functions.js unless specified
+//        Symbol jsLibrarySym = Symbol.create(MappingRegistry.mapPrefixName("arq:js-library"));
+//        ARQ.getContext().setIfUndef(jsLibrarySym, "functions.js");
+//
+//        // Set arq options
+//        ContextUtils.putAll(ARQ.getContext(), cmd.arqOptions);
 
-        if (cmd.geoindex) {
-            System.setProperty("jena.geosparql.skip", String.valueOf(false));
-            //InitGeoSPARQL.start();
-            new InitGeoSPARQL().start();
-            GeoSPARQLConfig.setupNoIndex();
-        }
-
-        // automatically load external javascript functions from functions.js unless specified
-        Symbol jsLibrarySym = Symbol.create(MappingRegistry.mapPrefixName("arq:js-library"));
-        ARQ.getContext().setIfUndef(jsLibrarySym, "functions.js");
-
-        // Set arq options
-        putAll(ARQ.getContext(), cmd.arqOptions);
-
-        if (cmd.explain) {
-            ARQ.setExecutionLogging(InfoLevel.ALL);
-        }
+//        if (cmd.explain) {
+//            ARQ.setExecutionLogging(InfoLevel.ALL);
+//        }
 
 
         Stopwatch sw = Stopwatch.createStarted();
@@ -519,7 +503,7 @@ public class SparqlIntegrateCmdImpls {
                 }
             }
 
-            if (cmd.geoindex && dataset == null) {
+            if (cmd.arqConfig.geoindex && dataset == null) {
                 logger.warn("Cannot compute geo index with non data-set connection");
             }
             try (RDFConnection conn = connSupp.get()) {
@@ -585,7 +569,7 @@ public class SparqlIntegrateCmdImpls {
     }
 
     private static RDFConnection getSpatialRdfConnection(CmdSparqlIntegrateMain cmd, Dataset dataset, RDFConnection conn, boolean compute) throws SpatialIndexException {
-        if (cmd.geoindex && dataset != null && compute) {
+        if (cmd.arqConfig.geoindex && dataset != null && compute) {
             logger.info("Computing geo index");
             GeoSPARQLConfig.setupSpatialIndex(dataset);
             Object spatialIndex = dataset.getContext().get(SpatialIndex.SPATIAL_INDEX_SYMBOL);

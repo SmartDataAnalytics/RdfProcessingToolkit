@@ -1,13 +1,13 @@
 package org.aksw.sparql_integrate.cli.cmd;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import java.util.concurrent.Callable;
 
+import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdCommonBase;
 import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 import org.aksw.sparql_integrate.cli.main.SparqlIntegrateCmdImpls;
@@ -16,6 +16,7 @@ import org.apache.jena.ext.com.google.common.base.StandardSystemProperty;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.IParameterConsumer;
+import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.ArgSpec;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
@@ -73,14 +74,22 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--db-max-result-size" }, description="Remote result size limit, ignored for local engines; defaults to ${DEFAULT-VALUE}", defaultValue = "10000")
     public Long dbMaxResultSize = null;
 
-    @Option(names = { "--explain" }, description="Enable detailed ARQ log output")
-    public boolean explain = false;
-
     @Option(names = { "--split" }, description="Create corresponding output files for each file argument with SPARQL queries")
     public String splitFolder = null;
 
-    @Option(names = { "--set" }, description="Set ARQ options (key=value)", mapFallbackValue="true")
-    public Map<String, String> arqOptions = new HashMap<>();
+    @Mixin
+    public CmdMixinArq arqConfig;
+//    @Option(names = { "--explain" }, description="Enable detailed ARQ log output")
+//    public boolean explain = false;
+
+//    @Option(names = { "--set" }, description="Set ARQ options (key=value)", mapFallbackValue="true")
+//    public Map<String, String> arqOptions = new HashMap<>();
+//
+//    @Option(names = { "--rdf10" }, description = "RDF 1.0 mode; e.g. xsd:string on literals matter", defaultValue = "false")
+//    public boolean useRdf10 = false;
+//
+//    @Option(names = { "--geoindex" },  description = "Build Geoindex")
+//    public boolean geoindex;
 
 
 //    @Option(names = { "-X" }, description = "Debug output such as full stacktraces")
@@ -106,12 +115,6 @@ public class CmdSparqlIntegrateMain
 
     @Option(names = { "--port" }, description = "Server port, default: ${DEFAULT-VALUE}", defaultValue = "8642")
     public int serverPort;
-
-    @Option(names = { "--rdf10" }, description = "RDF 1.0 mode; e.g. xsd:string on literals matter", defaultValue = "false")
-    public boolean useRdf10 = false;
-
-    @Option(names = { "--geoindex" },  description = "Build Geoindex")
-    public boolean geoindex;
 
     @ArgGroup(exclusive = true, multiplicity = "0..1")
     public OutputSpec outputSpec;
@@ -187,8 +190,6 @@ public class CmdSparqlIntegrateMain
             }
         }
     }
-
-
 
     @Parameters(arity = "0..*", description = "File names with RDF/SPARQL content and/or SPARQL statements")
     public List<String> nonOptionArgs = new ArrayList<>();
