@@ -62,6 +62,7 @@ import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
+import org.apache.jena.geosparql.configuration.GeoSPARQLOperations;
 import org.apache.jena.geosparql.spatial.SpatialIndex;
 import org.apache.jena.geosparql.spatial.SpatialIndexException;
 import org.apache.jena.irix.IRIx;
@@ -498,9 +499,9 @@ public class SparqlIntegrateCmdImpls {
                 URI browseUri = new URI("http://localhost:" + port + "/sparql");
                 if (Desktop.isDesktopSupported()) {
                     Desktop.getDesktop().browse(browseUri);
-                } else {
+                } //else {
                     logger.info("SPARQL service with in-memory result dataset running at " + browseUri);
-                }
+                //}
             }
 
             if (cmd.arqConfig.geoindex && dataset == null) {
@@ -571,7 +572,8 @@ public class SparqlIntegrateCmdImpls {
     private static RDFConnection getSpatialRdfConnection(CmdSparqlIntegrateMain cmd, Dataset dataset, RDFConnection conn, boolean compute) throws SpatialIndexException {
         if (cmd.arqConfig.geoindex && dataset != null && compute) {
             logger.info("Computing geo index");
-            GeoSPARQLConfig.setupSpatialIndex(dataset);
+            //GeoSPARQLConfig.setupSpatialIndex(dataset);
+            SpatialIndex.buildSpatialIndex(dataset, GeoSPARQLOperations.findModeSRS(dataset), true);
             Object spatialIndex = dataset.getContext().get(SpatialIndex.SPATIAL_INDEX_SYMBOL);
             return RDFConnectionUtils.wrapWithContextMutator(conn, (ctx) -> ctx.put(SpatialIndex.SPATIAL_INDEX_SYMBOL, spatialIndex));
             //GeoSPARQLConfig.setupSpatialIndex(dataSourceTmp.getConnection().fetchDataset());
