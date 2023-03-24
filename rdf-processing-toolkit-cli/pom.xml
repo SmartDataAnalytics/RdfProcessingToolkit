@@ -20,12 +20,16 @@
 			<groupId>net.sansa-stack</groupId>
 			<artifactId>sansa-spark-cmds_2.12</artifactId>
 			<version>0.8.0-RC3-SNAPSHOT</version>
-			<!--		 <exclusions> -->
+			<exclusions>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId>
+				</exclusion>
+
 			<!--		 <version>0.8.0-RC3-SNAPSHOT</version>	 <exclusion> -->
 			<!--		 <groupId>commons-logging</groupId> -->
 			<!--		 <artifactId>commons-logging</artifactId> -->
 			<!--		 </exclusion> -->
-			<!--		 </exclusions> -->
+					 </exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.aksw.conjure</groupId>
