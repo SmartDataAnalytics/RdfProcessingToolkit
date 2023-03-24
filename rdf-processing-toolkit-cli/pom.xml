@@ -3,34 +3,43 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-
 	<parent>
 		<groupId>org.aksw.rdf-processing-toolkit</groupId>
 		<artifactId>rdf-processing-toolkit-parent</artifactId>
 		<version>1.9.3-SNAPSHOT</version>
 	</parent>
-
 	<artifactId>rdf-processing-toolkit-cli</artifactId>
-
-
 	<dependencies>
-
+		<dependency>
+			<groupId>org.aksw.r2rml</groupId>
+			<artifactId>rml-picocli-cmds</artifactId>
+			<version>4.8.0-1-SNAPSHOT</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>net.sansa-stack</groupId>
+			<artifactId>sansa-spark-cmds_2.12</artifactId>
+			<version>0.8.0-RC3-SNAPSHOT</version>
+			<!--		 <exclusions> -->
+			<!--		 <version>0.8.0-RC3-SNAPSHOT</version>	 <exclusion> -->
+			<!--		 <groupId>commons-logging</groupId> -->
+			<!--		 <artifactId>commons-logging</artifactId> -->
+			<!--		 </exclusion> -->
+			<!--		 </exclusions> -->
+		</dependency>
 		<dependency>
 			<groupId>org.aksw.conjure</groupId>
 			<artifactId>conjure-datasources</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.aksw.r2rml</groupId>
 			<artifactId>rml-jena-arq</artifactId>
-			<version>4.8.0-1-SNAPSHOT</version>			
+			<version>4.8.0-1-SNAPSHOT</version>
 		</dependency>
-
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-serviceenhancer</artifactId>
 		</dependency>
-
 		<!-- <dependency> -->
 		<!-- <groupId>net.sansa-stack</groupId> -->
 		<!-- <artifactId>ansa-spark-jena-java_2.12</artifactId> -->
@@ -41,25 +50,20 @@
 		<!-- </exclusion> -->
 		<!-- </exclusions> -->
 		<!-- </dependency> -->
-
 		<dependency>
 			<groupId>info.picocli</groupId>
 			<artifactId>picocli</artifactId>
 		</dependency>
-
 		<!-- <dependency> <groupId>org.aksw.rdf-processing-toolkit</groupId> <artifactId>use-case-sportal-analysis</artifactId> 
 			</dependency> -->
-
 		<!-- <dependency> -->
 		<!-- <groupId>com.beust</groupId> -->
 		<!-- <artifactId>jcommander</artifactId> -->
 		<!-- </dependency> -->
-
 		<!-- <dependency> -->
 		<!-- <groupId>org.apache.jena</groupId> -->
 		<!-- <artifactId>jena-tdb2</artifactId> -->
 		<!-- </dependency> -->
-
 		<!-- <dependency> -->
 		<!-- <groupId>org.aksw.difs</groupId> -->
 		<!-- <artifactId>difs-system</artifactId> -->
@@ -68,110 +72,88 @@
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-picocli</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-rx-ops-syscall</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-algebra</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-hdt</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-json</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-plugins-bundle</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-rx-dataaccess</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-io-core</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-server-standalone</artifactId>
 		</dependency>
-
 		<!-- <dependency> <groupId>io.github.galbiston</groupId> <artifactId>geosparql-jena</artifactId> 
 			</dependency> <dependency> <groupId>org.apache.sis.non-free</groupId> <artifactId>sis-embedded-data</artifactId> 
 			</dependency> -->
-
 		<dependency>
 			<groupId>org.locationtech.jts.io</groupId>
 			<artifactId>jts-io-common</artifactId>
 		</dependency>
-
 		<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot</artifactId> 
 			</dependency> <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-autoconfigure</artifactId> 
 			</dependency> <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-loader</artifactId> 
 			</dependency> -->
-
 		<dependency>
 			<groupId>org.eclipse.jgit</groupId>
 			<artifactId>org.eclipse.jgit</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>com.jcraft</groupId>
 			<artifactId>jsch.agentproxy.jsch</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>com.jcraft</groupId>
 			<artifactId>jsch.agentproxy.usocket-jna</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>com.jcraft</groupId>
 			<artifactId>jsch.agentproxy.sshagent</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j-impl</artifactId>
 		</dependency>
-
 		<!-- Virtual FileSystem -->
 		<dependency>
 			<groupId>org.aksw.thirdparty.com.sshtools</groupId>
 			<artifactId>vfs2nio</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-vfs2</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-vfs2-jackrabbit1</artifactId>
 		</dependency>
-
-
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
 	<profiles>
 		<profile>
 			<id>dist</id>
@@ -208,16 +190,15 @@
 										<transformer
 											implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
 											<mainClass>org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit</mainClass>
-										 <manifestEntries>
-								                            <Multi-Release>true</Multi-Release>
-							                        </manifestEntries>
+											<manifestEntries>
+												<Multi-Release>true</Multi-Release>
+											</manifestEntries>
 										</transformer>
 									</transformers>
 								</configuration>
 							</execution>
 						</executions>
 					</plugin>
-
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-deploy-plugin</artifactId>
@@ -225,15 +206,11 @@
 							<skip>true</skip>
 						</configuration>
 					</plugin>
-
 					<!-- <plugin> <groupId>org.sonatype.plugins</groupId> <artifactId>nexus-staging-maven-plugin</artifactId> 
 						<configuration> <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo> 
 						</configuration> </plugin> -->
-
 				</plugins>
-
 			</build>
 		</profile>
 	</profiles>
 </project>
-
