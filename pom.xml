@@ -46,6 +46,9 @@
 	<properties>
 		<jena.version>4.8.0-SNAPSHOT</jena.version>
 		<jenax.version>4.8.0-1-SNAPSHOT</jenax.version>
+		<rmltk.version>4.8.0-1-SNAPSHOT</rmltk.version>
+		<sansa.version>0.8.0-RC3-SNAPSHOT</sansa.version>
+		
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
 		<log4j.version>2.17.2</log4j.version>
@@ -105,6 +108,28 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+		<dependency>
+			<groupId>org.aksw.r2rml</groupId>
+			<artifactId>rml-picocli-cmds</artifactId>
+			<version>${rmltk.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.aksw.r2rml</groupId>
+			<artifactId>rml-jena-arq</artifactId>
+			<version>${rmltk.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>net.sansa-stack</groupId>
+			<artifactId>sansa-cmds-picocli_2.12</artifactId>
+			<version>${sansa.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+			
 			<!--
 			<dependency>
 				<groupId>org.aksw.jenax</groupId>
