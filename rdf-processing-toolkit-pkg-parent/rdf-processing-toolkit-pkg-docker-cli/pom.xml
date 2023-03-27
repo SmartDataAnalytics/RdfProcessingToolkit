@@ -3,28 +3,21 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-
 	<parent>
 		<groupId>org.aksw.rdf-processing-toolkit</groupId>
 		<artifactId>rdf-processing-toolkit-pkg-parent</artifactId>
 		<version>1.9.3-SNAPSHOT</version>
 	</parent>
-
 	<artifactId>rdf-processing-toolkit-pkg-docker-cli</artifactId>
 	<packaging>jar</packaging>
-
 	<properties>
 		<deb.packageName>rdf-processing-toolkit-cli</deb.packageName>
 		<!-- <deb.jarFile>${project.artifactId}-${project.version}.jar</deb.jarFile> -->
 		<!-- <deb.jarFile>${project.artifactId}-${project.version}-jar-with-dependencies.jar</deb.jarFile> -->
 		<deb.jarFile>${project.artifactId}-${project.version}.jar</deb.jarFile>
 	</properties>
-
-
-
 	<build>
 		<plugins>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-deploy-plugin</artifactId>
@@ -32,7 +25,6 @@
 					<skip>true</skip>
 				</configuration>
 			</plugin>
-
 			<plugin>
 				<groupId>org.sonatype.plugins</groupId>
 				<artifactId>nexus-staging-maven-plugin</artifactId>
@@ -40,7 +32,6 @@
 					<skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
 				</configuration>
 			</plugin>
-
 			<plugin>
 				<groupId>com.google.cloud.tools</groupId>
 				<artifactId>jib-maven-plugin</artifactId>
@@ -59,15 +50,28 @@
 					<container>
 						<mainClass>org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit</mainClass>
 						<creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+						<jvmFlags>
+							<jvmFlag>--add-opens=java.base/java.lang=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.lang.invoke=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.lang.reflect=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.io=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.net=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.nio=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.util=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.util.concurrent=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/sun.nio.ch=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/sun.nio.cs=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/sun.security.action=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/sun.util.calendar=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED</jvmFlag>
+						</jvmFlags>
 					</container>
 					<containerizingMode>packaged</containerizingMode>
 				</configuration>
 			</plugin>
-
 		</plugins>
 	</build>
-
-
 	<dependencies>
 		<dependency>
 			<groupId>org.aksw.rdf-processing-toolkit</groupId>
@@ -75,4 +79,3 @@
 		</dependency>
 	</dependencies>
 </project>
-
