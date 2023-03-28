@@ -13,7 +13,7 @@ MCCS = $(MS) clean compile
 help:   ## Show these help instructions
 	@sed -rn 's/^([a-zA-Z_-]+):.*?## (.*)$$/"\1" "\2"/p' < $(MAKEFILE_LIST) | xargs printf "make %-20s# %s\n"
 
-distjar: ## create only the standalone jar-with-dependencies of sansa stack
+distjar: ## Create only the standalone jar-with-dependencies of rpt
 	$(MCCS) $(POM) package -Pdist -pl :rdf-processing-toolkit-pkg-uberjar-cli -am $(ARGS)
 	file=`find '$(CWD)/rdf-processing-toolkit-pkg-parent/rdf-processing-toolkit-pkg-uberjar-cli/target' -name '*-jar-with-dependencies.jar'`
 	printf '\nCreated package:\n\n%s\n\n' "$$file"
