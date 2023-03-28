@@ -11,22 +11,22 @@ MCIS = $(MS) clean install
 help:   ## Show these help instructions
 	@sed -rn 's/^([a-zA-Z_-]+):.*?## (.*)$$/"\1" "\2"/p' < $(MAKEFILE_LIST) | xargs printf "make %-20s# %s\n"
 
-rpm-rebuild: ## rebuild the rpm package (minimal build of only required modules)
+rpm-rebuild: ## Rebuild the rpm package (minimal build of only required modules)
 	$(MCIS) -Prpm -am -pl :rdf-processing-toolkit-pkg-rpm-cli $(ARGS)
 
 rpm-reinstall: ## Reinstall rpm (requires prior build)
 	@p1=`find rdf-processing-toolkit-pkg-parent/rdf-processing-toolkit-pkg-rpm-cli/target | grep '\.rpm$$'`
 	sudo rpm -i "$$p1"
 
-rpm-rere: rpm-rebuild rpm-reinstall ## rebuild and reinstall rpm
+rpm-rere: rpm-rebuild rpm-reinstall ## Rebuild and reinstall rpm package
 
 
-deb-rebuild: ## rebuild the deb package (minimal build of only required modules)
+deb-rebuild: ## Rebuild the deb package (minimal build of only required modules)
 	$(MCIS) -Pdeb -am -pl :rdf-processing-toolkit-pkg-deb-cli $(ARGS)
 
 deb-reinstall: ## Reinstall deb (requires prior build)
 	@p1=`find rdf-processing-toolkit-pkg-parent/rdf-processing-toolkit-pkg-deb-cli/target | grep '\.deb$$'`
 	sudo dpkg -i "$$p1"
 
-deb-rere: deb-rebuild deb-reinstall ## rebuild and reinstall deb
+deb-rere: deb-rebuild deb-reinstall ## Rebuild and reinstall deb package
 
