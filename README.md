@@ -1,25 +1,38 @@
 # RDF Processing Toolkit
 
-RDF/SPARQL Workflows on the Command Line made easy. The toolkit provides the following commands for running SPARQL-queries on triple and quad based data
+## News
 
-* [sparql-integrate](README-SI.md): Ad-hoc querying and transformation of datasets featuring SPARQL-extensions for CSV, XML and JSON processing and JSON output that allows for building bash pipes in a breeze
+* 2023-03-28 Started updating documentation to latest changes (ongoing)
+
+[Previous entries](#History)
+
+
+## Overview
+
+RDF/SPARQL Workflows on the Command Line made easy. The RDF Processing Toolkit (RPT) integrates several of our tools into a single CLI frontend:
+It features commands for running SPARQL-statements on triple and quad based data both streaming and static.
+SPARQL extensions for working with CSV, JSON and XML are included. So is an RML toolkit that allows one to convert RML to SPARQL (or TARQL).
+Ships with Jena's ARQ and TDB SPARQL engines as well as one based on Apache Spark.
+
+* [integrate](README-SI.md): This command is the most relevant one for day-to-day RDF processing. It features ad-hoc querying, transformation and updating of RDF datasets with support for SPARQL-extensions for ingesting CSV, XML and JSON. Also supports `jq`-compatible JSON output that allows for building bash pipes in a breeze.
 * [ngs](README-NGS.md): Processor for named graph streams (ngs) which enables processing for collections of named graphs in streaming fashion. Process huge datasets without running into memory issues.
 * [sbs](README-SBS.md): Processor for SPARQL binding streams (sbs) which enables processing of SPARQL result sets in streaming fashion. Most prominently for use in aggregating the output of a `ngs map` operation.
+* [rmltk] These are the (sub-)commands of our (R2)RML toolkit. The full documentation is available [here](https://github.com/SmartDataAnalytics/r2rml-api-jena).
+* [sansa] These are the (sub-)commands of our Semantic Analysis Stack (Stack) - a Big Data RDF Processing Framework. Features parallel execution of RML/SPARQL and TARQL (if the involved sources support it).
 
 
 **Check this [documentation](doc) for the supported SPARQL extensions with many examples**
 
 ## Example Usage
 
-* `sparql-integrate` allows one to load multiple RDF files and run multiple queries on them in a single invocation. Further prefixes from a snapshot of [prefix.cc](https://prefix.cc) are predefined and we made the SELECT keyword of SPARQL optional in order to make scripting less verbose. The `--jq` flag enables JSON output for interoperability with the conventional jq tool
+* `integrate` allows one to load multiple RDF files and run multiple queries on them in a single invocation. Further prefixes from a snapshot of [prefix.cc](https://prefix.cc) are predefined and we made the SELECT keyword of SPARQL optional in order to make scripting less verbose. The `--jq` flag enables JSON output for interoperability with the conventional `jq` tool
 
 
 ```
-sparql-integrate loadFile.rdf update.sparql loadAnotherFile.rdf query.sparql
+rpt data.nt update.ru more-data.ttl query.rq
 
-sparql-integrate --jq file.ttl '?s { ?s a foaf:Person }' | jq '.[].s'
+rpt --jq file.ttl '?s { ?s a foaf:Person }' | jq '.[].s'
 ```
-
 
 * `ngs` is your well known bash tooling such as `head`, `tail`, `wc` adapted to named graphs instead of lines of text
 ```
@@ -40,34 +53,36 @@ ngs wc file.trig
 
 
 ## Building
-The build requires maven. 
+The build requires maven.
 
-```bash
-mvn clean install
-```
+For convenience, this [Makefile](Makefile) which defines essential goals for common tasks.
+To build a "jar-with-dependencies" use the `distjar` goal. The path to the created jar bundle is shown when the build finishes.
+In order to build and and install a deb or rpm package use the `deb-rere` or `rpm-rere` goals, respectively.
 
-The all-in-one jar is built in the `rdf-processing-toolkit-bundle` folder, which is also the jar file available in the [Releases Section](https://github.com/SmartDataAnalytics/RdfProcessingToolkit/releases).
 ```
-java -cp rdf-processing-toolkit-bundle/target/rdf-processing-toolkit-bundle-VERSION-jar-with-dependencies.jar rpt
-```
+$ make
 
-Installing the Debian packages can be easily accomplished using:
+make help                # Show these help instructions
+make distjar             # Create only the standalone jar-with-dependencies of rpt
+make rpm-rebuild         # Rebuild the rpm package (minimal build of only required modules)
+make rpm-reinstall       # Reinstall rpm (requires prior build)
+make rpm-rere            # Rebuild and reinstall rpm package
+make deb-rebuild         # Rebuild the deb package (minimal build of only required modules)
+make deb-reinstall       # Reinstall deb (requires prior build)
+make deb-rere            # Rebuild and reinstall deb package
 ```
-sudo dpkg -i $(find . -name "rdf-processing-toolkit*.deb")
-```
-
-The bare-metal approach is to manually start the tool from the 'rdf-processing-toolkit-cli/target` folder using:
-```bash
-java -cp ".:lib/*" "-Dloader.main=org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit" "org.springframework.boot.loader.PropertiesLauncher" "your" "args"
-```
-
 
 ## License
 The source code of this repo is published under the [Apache License Version 2.0](LICENSE).
-Dependencies may be licensed under different terms. When in doubt please refer to the licenses of the dependencies declared in the pom.xml files.
+Dependencies may be licensed under different terms. When in doubt please refer to the licenses of the dependencies declared in the `pom.xml` files.
+The dependency tree can be viewed with Maven using `mvn dependency:tree`.
 
 
 ## Acknowledgements
 
 * This project is developed with funding from the [QROWD](http://qrowd-project.eu/) H2020 project. Visit the [QROWD GitHub Organization](https://github.com/Qrowd) for more Open Source tools!
+
+## History
+
+* (no entry yet)
 
