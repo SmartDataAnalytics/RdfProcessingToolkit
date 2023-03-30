@@ -14,6 +14,8 @@ It features commands for running SPARQL-statements on triple and quad based data
 SPARQL extensions for working with CSV, JSON and XML are included. So is an RML toolkit that allows one to convert RML to SPARQL (or TARQL).
 Ships with Jena's ARQ and TDB SPARQL engines as well as one based on Apache Spark.
 
+RPT is Java tool which comes with debian and rpm packaging. It can be invoked using `rpt <command>` where the following commands are supported:
+
 * [integrate](README-SI.md): This command is the most relevant one for day-to-day RDF processing. It features ad-hoc querying, transformation and updating of RDF datasets with support for SPARQL-extensions for ingesting CSV, XML and JSON. Also supports `jq`-compatible JSON output that allows for building bash pipes in a breeze.
 * [ngs](README-NGS.md): Processor for named graph streams (ngs) which enables processing for collections of named graphs in streaming fashion. Process huge datasets without running into memory issues.
 * [sbs](README-SBS.md): Processor for SPARQL binding streams (sbs) which enables processing of SPARQL result sets in streaming fashion. Most prominently for use in aggregating the output of a `ngs map` operation.
