@@ -326,8 +326,6 @@ public class SparqlIntegrateCmdImpls {
             clusterToSink.put(filename, effectiveHandler);
         }
 
-
-
         // Start the engine (wrooom)
 
         Dataset dataset = null;
