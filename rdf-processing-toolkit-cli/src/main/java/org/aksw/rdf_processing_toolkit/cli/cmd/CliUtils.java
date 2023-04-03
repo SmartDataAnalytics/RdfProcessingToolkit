@@ -33,7 +33,7 @@ public class CliUtils {
     }
 
     public static void configureGlobalSettings() {
-        System.setProperty("jena.geosparql.skip", String.valueOf(true));
+        // System.setProperty("jena.geosparql.skip", String.valueOf(true));
         RDFLanguages.init();
 
         // Disable creation of a derby.log file ; triggered by the GeoSPARQL module
