@@ -2,6 +2,7 @@
 
 ## News
 
+* 2023-04-04 Release v0.9.5! RPT now ships with `sansa` (Apache Spark based tooling) and `rmltk` (RML Toolkit) features. A proper GitHub release will follow once Apache Jena 4.8.0 is out as some code depends on its latest SNAPSHOT changes.
 * 2023-03-28 Started updating documentation to latest changes (ongoing)
 
 [Previous entries](#History)
