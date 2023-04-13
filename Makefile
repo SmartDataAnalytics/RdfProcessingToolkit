@@ -23,7 +23,7 @@ rpm-rebuild: ## Rebuild the rpm package (minimal build of only required modules)
 
 rpm-reinstall: ## Reinstall rpm (requires prior build)
 	@p1=`find rdf-processing-toolkit-pkg-parent/rdf-processing-toolkit-pkg-rpm-cli/target | grep '\.rpm$$'`
-	sudo rpm -i "$$p1"
+	sudo rpm -U "$$p1"
 
 rpm-rere: rpm-rebuild rpm-reinstall ## Rebuild and reinstall rpm package
 
