@@ -28,6 +28,7 @@ import org.aksw.jena_sparql_api.rx.io.resultset.OutputFormatSpec;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessor;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessorBuilder;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExVisitor;
+import org.aksw.jena_sparql_api.rx.script.MultiException;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor.Provenance;
 import org.aksw.jena_sparql_api.sparql.ext.url.E_IriAsGiven.ExprTransformIriToIriAsGiven;
@@ -520,7 +521,7 @@ public class SparqlIntegrateCmdImpls {
                         if (cmd.isDebugMode()) {
                             logger.error(message, e);
                         } else {
-                            logger.error(message + ": " + ExceptionUtils.getRootCauseMessage(e));
+                            logger.error(message + ": " + MultiException.getEMessage(e));
                         }
                         exitCode = 1;
                     }
