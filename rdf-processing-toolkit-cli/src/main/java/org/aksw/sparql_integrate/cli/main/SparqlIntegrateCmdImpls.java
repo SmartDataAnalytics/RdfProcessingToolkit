@@ -60,6 +60,7 @@ import org.aksw.jenax.web.server.boot.FactoryBeanSparqlServer;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.geosparql.spatial.SpatialIndex;
@@ -515,7 +516,12 @@ public class SparqlIntegrateCmdImpls {
                     try {
                         execStmt(connB, stmtEntry, sink);
                     } catch (Exception e) {
-                        logger.error("Error encountered; trying to continue but exit code will be non-zero", e);
+                        String message = "Error encountered; trying to continue but exit code will be non-zero";
+                        if (cmd.isDebugMode()) {
+                            logger.error(message, e);
+                        } else {
+                            logger.error(message + ": " + ExceptionUtils.getRootCauseMessage(e));
+                        }
                         exitCode = 1;
                     }
 
