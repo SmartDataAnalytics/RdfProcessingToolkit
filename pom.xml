@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.aksw.rdf-processing-toolkit</groupId>
 	<artifactId>rdf-processing-toolkit-parent</artifactId>
-	<version>1.9.3-SNAPSHOT</version>
+	<version>1.9.5-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>RDF Processing Toolkit</name>
 	<description>Sparql-based tool for the integration of heterogeneous data</description>
@@ -44,9 +44,9 @@
 		</developer>
 	</developers>
 	<properties>
-		<jena.version>4.8.0-SNAPSHOT</jena.version>
-		<jenax.version>4.8.0-1-SNAPSHOT</jenax.version>
-		<rmltk.version>4.8.0-1-SNAPSHOT</rmltk.version>
+		<jena.version>4.8.0</jena.version>
+		<jenax.version>4.8.0-1</jenax.version>
+		<rmltk.version>4.8.0-1</rmltk.version>
 		<sansa.version>0.8.0-RC3-SNAPSHOT</sansa.version>
 		
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
@@ -109,12 +109,12 @@
 				<scope>import</scope>
 			</dependency>
 		<dependency>
-			<groupId>org.aksw.r2rml</groupId>
-			<artifactId>rml-picocli-cmds</artifactId>
+			<groupId>org.aksw.rmltk</groupId>
+			<artifactId>rmltk-picocli-cmds</artifactId>
 			<version>${rmltk.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.aksw.r2rml</groupId>
+			<groupId>org.aksw.rmltk</groupId>
 			<artifactId>rml-jena-arq</artifactId>
 			<version>${rmltk.version}</version>
 		</dependency>

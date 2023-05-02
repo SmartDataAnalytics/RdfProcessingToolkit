@@ -6,16 +6,16 @@
 	<parent>
 		<groupId>org.aksw.rdf-processing-toolkit</groupId>
 		<artifactId>rdf-processing-toolkit-parent</artifactId>
-		<version>1.9.3-SNAPSHOT</version>
+		<version>1.9.5-SNAPSHOT</version>
 	</parent>
 	<artifactId>rdf-processing-toolkit-cli</artifactId>
 	<dependencies>
 		<dependency>
-			<groupId>org.aksw.r2rml</groupId>
-			<artifactId>rml-picocli-cmds</artifactId>
+			<groupId>org.aksw.rmltk</groupId>
+			<artifactId>rmltk-picocli-cmds</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.aksw.r2rml</groupId>
+			<groupId>org.aksw.rmltk</groupId>
 			<artifactId>rml-jena-arq</artifactId>
 		</dependency>
 		<dependency>
