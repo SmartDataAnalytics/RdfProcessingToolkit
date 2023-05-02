@@ -14,6 +14,7 @@ import picocli.CommandLine;
  *
  */
 public class CmdUtils {
+	static { CliUtils.configureGlobalSettings(); }
     private static final Logger logger = LoggerFactory.getLogger(CmdUtils.class);
 
     public static void execCmd(Class<?> cmdClass, String[] args) {
