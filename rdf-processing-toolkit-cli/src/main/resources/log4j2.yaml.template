@@ -1,0 +1,38 @@
+# YAML requires additional dependencies to work; i guess its easier to use slightly more verbose properties files
+# rather than fiddling with jackson databinding...
+Configuration:
+  name: RptLoggerConfig
+  status: debug
+  appenders:
+    Console:
+      name: STDERR
+      target: SYSTEM_ERR
+      PatternLayout:
+        Pattern: "[%p] %m%n"
+
+  Loggers:
+    Root:
+      level: debug
+      AppenderRef:
+        ref: STDERR
+    logger:
+      -
+        name: org.eclipse.jetty
+        level: warn
+      -
+        name: org.springframework
+        level: warn
+      -
+        name: org.aksw.jena_sparql_api.web.filters.CorsFilter
+        level: warn
+      -
+        name: org.apache.jena.riot.resultset.rw
+        level: off
+      -
+        name: org.apache.jena.sparql.syntax.syntaxtransform.ElementTransformer
+        level: off
+      -
+        name: org.aksw.jena_sparql_api.sparql.ext.fs.QueryIterServiceOrFile
+        level: info
+
+

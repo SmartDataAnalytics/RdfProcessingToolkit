@@ -1,0 +1,2 @@
+SELECT (COUNT(*) AS ?c) { { ?s ?p ?o } UNION { GRAPH ?g { ?s ?p ?o } } }
+

@@ -33,22 +33,66 @@ Of course, you can always run files using
 sparql-integrate file1.sparql ... filen.sparql
 ```
 
-## Retrieving remote content
+## URL Functions
+
+* `url:fetch(option1 [, option2 ... [, optionN]])` Retrieve local or remote content.
+
+* `url:fetchSpec(option1 [, option2 ... [, optionN]])`: This method is a debug version of `url:fetch`. It only assembles and returns the JSON specification from its arguments based on the following rules:
+
+    * Arguments can be any RDF types.
+    * Every non-json argument is converted into an effective json object.
+    * The resulting json specification is built by a simple merge of the effective json objects.
+    * If option1 is a string then the effective json object is `{"url": option1}`
+    * While processing left-to-right, the next string option (other than option1) is treated as a simple json path with its adjacent option\_(i + 1) as its value.
+    * A simple json path is a sequence of names separated by `.`. Example: The effective JSON for the pair of strings `("headers.Content-Type", "application/json")` is `{"headers": {"Content-Type": "application/json" } }`.
+
+Shortcuts for simple json paths:
+  * If the first segment is `h` then it is expanded to `headers`. So `"h.Content-Type"` and `"headers.Content-Type"` is equivalent.
+  * `m` is a shortcut for `method`. So `("m", "POST")` and `("method", "POST")` is equivalent.
+  * `b` is a shortcut for `body`.
+
+Example:
+
+The following SPARQL query should bind `?x` to a JSON document.
+```sparql
+SELECT ?x {
+  BIND(url:fetchSpec("http://www.example.org/",
+    "m", "POST", "h.ContentType", "application/json", "b", "{}",
+    "cto", 5000, "rto", "10000") AS ?x)
+}
+```
+
+Expected JSON value for `?x`:
+```json
+{
+  "url": "http://www.example.org/",
+  "method": "POST",
+  "headers": {
+    "ContentType": "application/json"
+  },
+  "body": "{}",
+  "connectTimeout": 5000,
+  "readTimeout": "10000"
+}
+```
+Note, that in this example, the value for `readTimeout` becomes a string. As long as the string can be converted to an integer value this is valid.
+Timeout values are interpreted as milliseconds.
+
+#### url:text
 A simple but effective mechanism for unified retrieval of local or remote data is provided by the `url:text` function and property function.
 
-```
+```sparql
 SELECT * {
   <example-data/data.csv> url:text ?str
 }
 ```
 
-```
+```sparql
 SELECT * {
   # TODO: Insert url to data.csv via a rawgit-like service
   <https://cdn.jsdelivr.net/gh/...> url:text ?str
 }
 ```
-
 
 ```
 --------------------------------
@@ -139,7 +183,7 @@ This operation transform literal values (boolean, string and numeric) into corre
 One can also specify a specific index:
 ```
 SELECT * {
-  '[true, 1, "hi", {}, []]'^^xsd:json json:unnest (?item 1)
+  '[true, 1, "hi", {}, []]'^^xsd:json json:unnest (?item 2)
 }
 
 ```
@@ -150,6 +194,26 @@ SELECT * {
 ========
 | "hi" |
 --------
+```
+
+* Converting JSON objects to JSON arrays
+The `json:entries` function converts a JSON object to a JSON array of corresponding items.
+Each item is a JSON object having a `key` and a `value` attribute:
+```
+SELECT ?index ?entry {
+  BIND('{"k1": "v1", "k2": "v2"}'^^xsd:json AS ?obj)
+  BIND(json:entries(?obj) AS ?arr)
+  ?arr json:unnest (?entry ?index)
+}
+```
+
+```
+----------------------------------------------------------------------------------------
+| index | entry                                                                        |
+========================================================================================
+| 0     | "{\"key\":\"k1\",\"value\":\"v1\"}"^^<http://www.w3.org/2001/XMLSchema#json> |
+| 1     | "{\"key\":\"k2\",\"value\":\"v2\"}"^^<http://www.w3.org/2001/XMLSchema#json> |
+----------------------------------------------------------------------------------------
 ```
 
 * Zipping JSON arrays
@@ -193,6 +257,127 @@ WHERE {
 ------------------------------------------
 ```
 
+* Converting RDF terms to JSON Primitives
+Non-json RDF terms can be converted to json using`json:convert(?rdfTerm)`.
+The conversion mechanism relies on the `gson` library and the Java object that backs an RDF term.
+Several examples are shown below.
+Note, that in some cases, such as xsd:date, this approach can expose Java internals.
+
+
+```sparql
+SELECT ?before ?after {
+  # COALESCE() without arguments yields null
+  { BIND(COALESCE() AS ?before) } UNION
+  { BIND(true AS ?before) } UNION
+  { BIND(1 AS ?before) } UNION
+  { BIND(3.14 AS ?before) } UNION
+  { BIND("string" AS ?before) } UNION
+  { BIND(<urn:foobar> AS ?before) } UNION
+  { BIND('{"key": "value"}'^^xsd:json AS ?before) } UNION
+  { BIND('2021-06-21'^^xsd:date AS ?before) } UNION
+  { BIND(str('2021-06-21'^^xsd:date) AS ?before) }  BIND(json:convert(?before) AS ?after)
+}
+```
+
+```
+------------------------------------------------------------------------------------------------------
+| before                           | after                                                           |
+======================================================================================================
+|                                  |                                                                 |
+| true                             | "true"^^xsd:json                                                |
+| 1                                | "1"^^xsd:json                                                   |
+| 3.34                             | "3.34"^^xsd:json                                                |
+| "string"                         | "\"string\""^^xsd:json                                          |
+| <urn:foobar>                     | "\"urn:foobar\""^^xsd:json                                      |
+| "{\"key\": \"value\"}"^^xsd:json | "{\"key\":\"value\"}"^^xsd:json                                 |
+| "2021-06-21"^^xsd:date           | "{\"mask\":7,\"data\":[2021,6,21,0,0,0,0,0,0], ... }"^^xsd:json |
+| "2021-06-21"                     | "\"2021-06-21\""^^xsd:json                                      |
+------------------------------------------------------------------------------------------------------
+
+```
+
+
+* Creating JSON Objects
+`json:object` takes a variable number of arguments which are interpreted as a sequence of key-value pairs.
+Hence, the number of arguments must be even.
+The key must always be a string, whereas the values are converted to json elements using `json:toJson`.
+A type error with any of the arguments causes the object construction to raise a type error.
+
+
+```sparql
+SELECT ?jsonObject {
+  BIND(1 AS ?value1)
+  BIND('key2' AS ?key2)
+  BIND(json:object('key1', ?value1, ?key2, 'value2') AS ?jsonObject)
+}
+
+```
+
+```
+-------------------------------------------------------------------------------
+| json                                                                        |
+===============================================================================
+| "{\"key1\":1,\"key2\":\"value2\"}"^^<http://www.w3.org/2001/XMLSchema#json> |
+-------------------------------------------------------------------------------
+```
+
+
+* Creating a JSON Array
+Arrays can be constructed from a variable number of arguments that become the items.
+Non-json objects are implicitly converted to json ones using `json:toJson`.
+A type error with any of the arguments causes the array construction to raise a type error.
+
+```sparql
+SELECT ?json {
+  BIND(true AS ?item1)
+  BIND('item2' AS ?item2)
+  BIND(json:array(?item1, ?item2, 3, json:object('item', 4)) AS ?json)
+}
+```
+
+```
+------------------------------------------------------------------------------
+| jsonArray                                                                  |
+==============================================================================
+| "[true,\"item2\",3,{\"item\":4}]"^^<http://www.w3.org/2001/XMLSchema#json> |
+------------------------------------------------------------------------------
+```
+
+* Calling JavaScript Functions
+The function `json:js` takes a Javascript function definition as the first argument, followed by a variable number of
+arguments that are passed to that function. Arguments are converted to JSON using the RDF-term-to-JSON conversion approach mentioned above.
+
+**JavaScript's lambda syntax using the arrow operator (=>) does not yet work for function definitions**
+
+```sparql
+SELECT * {
+  BIND(json:js("function(x) { return x.join('-'); }", "[1, 2, 3]"^^xsd:json) AS ?result)
+}
+```
+
+```
+-----------
+| result  |
+===========
+| "1-2-3" |
+-----------
+```
+
+
+The following example shows that arguments need not be xsd:json literals:
+```sparql
+SELECT * { BIND(json:js("function(x) { v = {}; v.hello = x; return v; }", "world") AS ?value) }
+SELECT * { BIND(json:js("function(x) { v = {}; v.hello = x.key; return v; }", "{\"key\":\"world\"}"^^xsd:json) AS ?value) }
+```
+
+```
+--------------------------------------------------------------------
+| value                                                            |
+====================================================================
+| "{\"hello\":\"world\"}"^^<http://www.w3.org/2001/XMLSchema#json> |
+--------------------------------------------------------------------
+```
+
 
 ## Processing CSV
 In general, the `csv:parse` property function is used to make CSV data available in a SPARQL query with each CSV row becoming an entry in the result set. The syntax is `?s csv:parse(?rowJson "optionsString)"`.
@@ -234,15 +419,24 @@ SELECT * { <example-data/people.csv> csv:parse (?rowJson "excel -h") }
 
 
 ## Processing XML
-For XML processing, the `xml:path` function and property functions are provided.
+The XML processing functionality is based on the `xsd:xml` datatype.
+**NOTE: In order to avoid potential conflicts with Jena's machinery, this version of RPT introduces a custom xsd:xml datatype instead of reusing rdf:XMLLiteral.**
+Most notably the `xml:path` function and property functions are provided.
 Unlike JSON, XML does not have a native array datatype which could be used for storing XML nodes matching an XPath expression.
-In order to avoid having to introduce one, the `xml:path` *property function* can be used to unnest XML nodes based on an XPath expression, whereas the `xml:path` *function* can be used to access attributes and texts:
+In order to avoid having to introduce one, the `xml:path` *property function* can be used to unnest XML nodes based on an XPath expression, whereas the `xml:path` *function* can be used to access attributes and texts.
+XML parsing is namespace aware and any namespaces used in the XML can be used in xpath expressions.
+**NOTE: Prefixes in xpath expressions are resolved using the first matching namespace found by means of a depth first traversal over the document**
 
-**NOTE: In order to avoid potential conflicts with Jena's machinery, this version of sparql-integrate introduces a custom xsd:xml datatype instead of reusing rdf:XMLLiteral.**
+Large XML files (> 2GB) can be ingested with the `xml:parse` function and property functions. This parses the input XML document into an in-memory object model (without intermediate string serialization).
+Loading 2GB of XML with `xml:parse` using a modern (2022) notebook takes less than 10 seconds.
+Be aware, that any attempt to serialize such a large literal will result in an OutOfMemoryError regardless of remaining available memory because it simply exceeds Java's maximum String length.
+Use `xml:unnest` to split a large XML document into smaller parts.
+**NOTE: While xml:parse can handle large XML documents, STRDT(url:text(<file.xml>), xsd:xml) cannot because url:text will attempt to create a huge intermediary string**
+
 
 **NOTE: XPath matches are converted to independent RDF terms, i.e. the link to a match's parent element is lost and so is e.g. namespace information defined on ancestors. In most cases, XPath's `local-name` function should be usable as a workaround: `//[local-name()="elementNameWithoutNamespace"]`**
 
-```
+```sparql
 SELECT * {
   BIND('<ul id="ul1"><li>item</li></ul>'^^xsd:xml AS ?xml)
   BIND(xml:path(?xml, "//ul/@id") AS ?id)
@@ -259,12 +453,23 @@ SELECT * {
 
 ```
 
-Unnesting an XML document is done in regard to a given xpath expression:
-```
+Unnesting an XML document is done in regard to a given xpath expression. Unnesting is a streaming operation: If a LIMIT is present then matching will stop as soon as a sufficient number of result bindings has been generated.
+
+```sparql
 SELECT * {
   """<ul id="ul1"><li>item</li></ul>"""^^xsd:xml xml:unnest ("//li" ?item)
 }
 ```
+
+
+Parsing flavors:
+```sparql
+SELECT * {
+  BIND(xml:parse(<file1.xml> AS ?xml1)
+  <file2.xml> xml:parse ?xml2
+}
+```
+
 
 ```
 -----------------------------------------------------------------------------------------------------------------------
@@ -278,7 +483,7 @@ SELECT * {
 ## Querying the file system
 
 * Simple recursive listing of files
-(fs-list-files.sparql)[fs-list-files.sparql]
+[fs-list-all-files.sparql](fs-list-all-files.sparql)
 
 ```
 SELECT * {
@@ -340,6 +545,67 @@ SELECT * {
 ==============================================================================================================================
 | <file:///.../example-data/data.ttl> | <http://www.example.org/s> | <http://www.example.org/p> | <http://www.example.org/o> |
 ------------------------------------------------------------------------------------------------------------------------------
+```
+
+# Federation
+
+## Federating to Virtual Files
+
+The `vfs:` URI scheme can be used to address virtual files. This feature relies on [Apache's Virtual File System](https://github.com/apache/commons-vfs) and the Java NIO integration [vfs2nio](https://github.com/sshtools/vfs2nio/tree/master/src/main/java).
+If a URL in the SERVICE clause resolves to a file then it will be probed for any encodings (= byte level transformations, such as compression) and the content type. If the effective content type of the file belongs to the class of RDF formats supported by Jena, then it will be loaded into an **in-memory** model. (Obviously this approach should not be done with large files).
+
+
+```sparql
+SELECT ?endpoint ?status {
+  SERVICE <vfs:https://raw.githubusercontent.com/SmartDataAnalytics/lodservatory/master/latest-status.ttl> {
+    ?s
+      sd:endpoint ?endpoint ;
+      <https://schema.org/serverStatus> ?status
+} } LIMIT 3
+```
+
+```
+---------------------------------------------------------------------------------------
+| endpoint                                  | status                                  |
+=======================================================================================
+| <https://bmrbpub.pdbj.org/search/rdf>     | <https://schema.org/Online>             |
+| <https://upr.eagle-i.net/sparqler/sparql> | <https://schema.org/Online>             |
+| <http://babelnet.org/sparql/>             | <https://schema.org/OfflineTemporarily> |
+---------------------------------------------------------------------------------------
+
+```
+
+
+## Federating to Sorted (Bzip2 Encoded) N-Triples
+
+Binary search mode allows for lookups by subject on files containing n-triples.
+This mode can operate directly on remote http(s) resources that support HTTP range requests - without the need to download them.
+
+The `x-binsearch:` URI scheme enables this mode. The remainder must be an URI that resolves to a (virtual) file containing n-triples data sorted on the bytes (rather than characters). One way to sort data that way is to invoke the unix sort tool like this: `LC_ALL sort -u file.nt`.
+The binary search system also supports operation on top of bzip2 encoding based on hadoop's bzip2 codec. This could be extended to any of hadoop's splittable codecs.
+
+
+The example below demonstrates the use of `x-binsearch:` in conjunction with `vfs:` in order to perform binary search lookup on a remote resource:
+
+
+```sparql
+SELECT * {
+  SERVICE <x-binsearch:vfs:https://databus.dbpedia.org/dnkg/cartridge-input/kb/2020.09.29/kb_partition=person_set=thes_content=facts_origin=export.nt.bz2> {
+    <http://data.bibliotheken.nl/id/thes/p067461255> ?p ?o .
+    FILTER(strStarts(str(?p), "http://schema.org/"))
+  }
+}
+```
+
+```
+-----------------------------------------------------------------------
+| p                                 | o                               |
+=======================================================================
+| <http://schema.org/birthDate>     | "1885"                          |
+| <http://schema.org/name>          | "Lavedan, Pierre"               |
+| <http://schema.org/sameAs>        | <http://viaf.org/viaf/34459176> |
+| <http://schema.org/alternateName> | "Lavedan, Pierre Louis Léon"    |
+-----------------------------------------------------------------------
 ```
 
 

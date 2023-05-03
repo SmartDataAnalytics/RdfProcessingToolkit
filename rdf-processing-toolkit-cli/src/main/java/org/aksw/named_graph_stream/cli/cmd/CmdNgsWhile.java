@@ -31,7 +31,7 @@ public class CmdNgsWhile implements Callable<Integer>
     public String sparqlCondition;
 
     @Option(names={"-o", "--out-format"})
-    public String outFormat = "trig/pretty";
+    public String outFormat = "trig/blocks";
 
     @Parameters(arity = "0..*", description = "Input files")
     public List<String> nonOptionArgs = new ArrayList<>();

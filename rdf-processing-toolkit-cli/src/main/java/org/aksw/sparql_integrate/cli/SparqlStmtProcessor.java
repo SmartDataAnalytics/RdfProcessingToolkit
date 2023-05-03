@@ -2,10 +2,10 @@ package org.aksw.sparql_integrate.cli;
 
 import java.util.concurrent.TimeUnit;
 
-import org.aksw.jena_sparql_api.stmt.SPARQLResultVisitor;
-import org.aksw.jena_sparql_api.stmt.SparqlStmt;
-import org.aksw.jena_sparql_api.stmt.SparqlStmtUtils;
-import org.aksw.jena_sparql_api.utils.NodeUtils;
+import org.aksw.jenax.arq.util.node.NodeEnvsubst;
+import org.aksw.jenax.stmt.core.SparqlStmt;
+import org.aksw.jenax.stmt.resultset.SPARQLResultVisitor;
+import org.aksw.jenax.stmt.util.SparqlStmtUtils;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.sparql.algebra.Op;
 import org.slf4j.Logger;
@@ -45,12 +45,12 @@ public class SparqlStmtProcessor {
 
     public void processSparqlStmt(RDFConnection conn, SparqlStmt stmt, SPARQLResultVisitor sink) {
 
-        stmt = SparqlStmtUtils.applyNodeTransform(stmt, x -> NodeUtils.substWithLookup(x, System::getenv));
+        stmt = SparqlStmtUtils.applyNodeTransform(stmt, x -> NodeEnvsubst.subst(x, System::getenv));
 
         Stopwatch sw2 = Stopwatch.createStarted();
 
         if(usedPrefixesOnly) {
-            SparqlStmtUtils.optimizePrefixes(stmt);
+            //SparqlStmtUtils.optimizePrefixes(stmt);
             /*
             if(stmt.isQuery()) {
                 Query oldQuery = stmt.getAsQueryStmt().getQuery();
@@ -82,7 +82,7 @@ public class SparqlStmtProcessor {
 
         // Apply node transforms
 
-        SparqlStmtUtils.process(conn, stmt, sink);
+        SparqlStmtUtils.process(conn, stmt, null, sink);
         if(logTime) {
             logger.info("SPARQL stmt execution finished after " + sw2.stop().elapsed(TimeUnit.MILLISECONDS) + "ms");
         }

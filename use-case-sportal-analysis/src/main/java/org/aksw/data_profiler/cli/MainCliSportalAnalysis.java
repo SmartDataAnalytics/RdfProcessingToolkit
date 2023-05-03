@@ -21,11 +21,12 @@ import org.aksw.commons.graph.index.jena.SubgraphIsomorphismIndexJena;
 import org.aksw.commons.graph.index.jena.transform.QueryToGraph;
 import org.aksw.commons.jena.jgrapht.PseudoGraphJenaGraph;
 import org.aksw.jena_sparql_api.algebra.utils.AlgebraUtils;
-import org.aksw.jena_sparql_api.algebra.utils.ConjunctiveQuery;
 import org.aksw.jena_sparql_api.algebra.utils.OpExtConjunctiveQuery;
 import org.aksw.jena_sparql_api.algebra.utils.OpUtils;
+import org.aksw.jena_sparql_api.stmt.SparqlStmtMgr;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParser;
 import org.aksw.jena_sparql_api.stmt.SparqlStmtParserImpl;
+import org.aksw.jena_sparql_api.utils.QueryUtils;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.Query;
@@ -34,6 +35,8 @@ import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQuery;
+import org.apache.jena.sparql.algebra.optimize.Rewrite;
+import org.apache.jena.sys.JenaSystem;
 import org.apache.jena.vocabulary.VOID;
 import org.jgrapht.graph.DefaultGraphType;
 
@@ -80,7 +83,14 @@ public class MainCliSportalAnalysis {
     }
 
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
+        JenaSystem.init();
+//        Query q = SparqlStmtMgr.loadQuery("compact/qf6.sparql");
+//        Rewrite rewrite = AlgebraUtils.createDefaultRewriter();
+//        q = QueryUtils.rewrite(q, rewrite::rewrite);
+//        System.out.println(q);
+
+
         SubgraphIsomorphismIndex<String, Graph, Node> base =
                 SubgraphIsomorphismIndexWrapper.wrap(
                         SubgraphIsomorphismIndexJena.create(),

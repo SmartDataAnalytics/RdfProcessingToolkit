@@ -1,9 +1,14 @@
 package org.aksw.named_graph_stream.cli.cmd;
 
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
+import org.aksw.rdf_processing_toolkit.cli.cmd.CmdCommonBase;
+import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 
-@Command(name="ngs", description = "Named Graph Stream Subcommands", subcommands = {
+import picocli.CommandLine.Command;
+
+@Command(name="ngs",
+            versionProvider = VersionProviderRdfProcessingToolkit.class,
+            description = "Named Graph Stream Subcommands",
+            subcommands = {
         CmdNgsCat.class,
         CmdNgsFilter.class,
         CmdNgsHead.class,
@@ -15,13 +20,10 @@ import picocli.CommandLine.Option;
         CmdNgsSubjects.class,
         CmdNgsUntil.class,
         CmdNgsWc.class,
-        CmdNgsWhile.class
+        CmdNgsWhile.class,
+        CmdNgsGit.class
 })
-public class CmdNgsMain {
-    @Option(names = { "-h", "--help" }, usageHelp = true)
-    public boolean help = false;
-
-//    @Parameter(names={"-o", "--out-format"})
-//    public String format = "trig/pretty";
-
+public class CmdNgsMain
+	extends CmdCommonBase
+{
 }

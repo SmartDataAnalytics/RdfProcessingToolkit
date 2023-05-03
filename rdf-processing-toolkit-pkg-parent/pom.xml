@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.aksw.rdf-processing-toolkit</groupId>
+		<artifactId>rdf-processing-toolkit-parent</artifactId>
+		<version>1.9.6</version>
+	</parent>
+
+	<scm>
+		<url>https://github.com/SmartDataAnalytics/RdfProcessingToolkit</url>
+		<connection>scm:git:git@github.com:SmartDataAnalytics/RdfProcessingToolkit.git</connection>
+		<developerConnection>scm:git:git@github.com:SmartDataAnalytics/RdfProcessingToolkit.git</developerConnection>
+		<tag>HEAD</tag>
+	</scm>
+
+	<artifactId>rdf-processing-toolkit-pkg-parent</artifactId>
+	<packaging>pom</packaging>
+
+	<modules>
+		<module>rdf-processing-toolkit-pkg-deb-cli</module>
+		<module>rdf-processing-toolkit-pkg-rpm-cli</module>
+		<module>rdf-processing-toolkit-pkg-docker-cli</module>
+		<module>rdf-processing-toolkit-pkg-uberjar-cli</module>
+		<module>rdf-processing-toolkit-pkg-dummy</module>
+	</modules>
+
+<!--
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>de.jutzig</groupId>
+				<artifactId>github-release-plugin</artifactId>
+				<configuration>
+					<description>RDF Processing Toolking</description>
+					<releaseName>Release ${project.version}</releaseName>
+					<tag>v${project.version}</tag>
+
+					<! - - If your project has additional artifacts, such as ones produced 
+						by the maven-assembly-plugin, you can define the following (requires version 
+						1.1.1 of the plugin or higher): - - >
+					<fileSets>
+						<fileSet>
+							<directory>${basedir}</directory>
+							<includes>
+								<include>rdf-processing-toolkit-pkg-rpm-cli/target/${project.artifactId}*.rpm</include>
+								<include>rdf-processing-toolkit-pkg-deb-cli/target/${project.artifactId}*.deb</include>
+							</includes>
+						</fileSet>
+					</fileSets>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+-->
+</project>
+

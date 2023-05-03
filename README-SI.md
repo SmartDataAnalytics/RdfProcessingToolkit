@@ -10,6 +10,29 @@ Integrate heterogeneous data with **standard SPARQL syntax** plus function exten
   * Note, that remote SPARQL queries can be performed using standard SPARQL simple federation
 
 
+## Sparql Engines
+
+Sparql integrate is a command line front end to different SPARQL engines of which some are embedded and can thus be used without having to launch a separate server.
+A basic abstraction over the engines is provided by means of `--db-location` attribute which allows for referring to e.g. a name, directory, file or URL.
+
+`rpt integrate --db-engine $ENGINE --db-location $LOCATION --db-loader $LOADER`
+
+| Engine | Description                               |
+|--------|-------------------------------------------|
+| mem    | Jena's default ARQ engine (in-memory)     |
+| tdb2   | Jena's tdb2 engine (disk-based)           |
+| remote | Use any remote SPARQL endpoint            |
+| difs   | Dataset in FileSystem engine              |
+
+
+| Loader  | Description                                                                      |
+|---------|----------------------------------------------------------------------------------|
+| default | Use the engine's default loader                                                  |
+| sansa   | Attempts to read RDF files in parallel and fires concurrent INSERT DATA requests |
+
+
+
+
 ## Function Reference and Programmatic Usage
 This tool is just a thin command line wrapper for Jena ARQ and our extensions.
 

@@ -23,7 +23,7 @@ public class CmdNgsMerge implements Callable<Integer> {
     public boolean help = false;
 
     @Option(names = { "-o", "--out-format" })
-    public String outFormat = "trig/pretty";
+    public String outFormat = "trig/blocks";
 
     @Parameters(arity = "0..*", description = "Input files")
     public List<String> nonOptionArgs = new ArrayList<>();

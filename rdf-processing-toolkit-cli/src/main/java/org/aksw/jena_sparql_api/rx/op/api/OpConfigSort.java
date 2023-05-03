@@ -3,7 +3,7 @@ package org.aksw.jena_sparql_api.rx.op.api;
 import java.nio.file.Path;
 import java.util.function.Function;
 
-import org.aksw.jena_sparql_api.utils.model.ResourceInDataset;
+import org.aksw.jenax.arq.dataset.api.ResourceInDataset;
 
 import io.reactivex.rxjava3.core.FlowableTransformer;
 

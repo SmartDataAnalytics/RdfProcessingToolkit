@@ -11,7 +11,7 @@ CONSTRUCT {
 {
   {
     SELECT
-      (IRI(CONCAT('x-cp://', ENCODE_FOR_URI(STR(?t)))) AS ?k)
+      (IRI(CONCAT(STR(<env:B>), '/cp/', ENCODE_FOR_URI(STR(?t)))) AS ?k)
       ?t
       (COUNT(DISTINCT ?o) AS ?c)
     {

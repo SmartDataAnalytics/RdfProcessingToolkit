@@ -19,7 +19,7 @@ public class CmdNgsSubjects implements Callable<Integer> {
     public List<String> nonOptionArgs = new ArrayList<>();
 
     @Option(names={"-o", "--out-format"})
-    public String outFormat = "trig/pretty";
+    public String outFormat = "trig/blocks";
 
     @Override
     public Integer call() throws Exception {

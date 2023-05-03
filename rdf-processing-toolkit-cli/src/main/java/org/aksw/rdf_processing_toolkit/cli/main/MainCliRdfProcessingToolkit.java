@@ -1,20 +1,12 @@
 package org.aksw.rdf_processing_toolkit.cli.main;
 
-import org.aksw.commons.util.exception.ExceptionUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
-
-import picocli.CommandLine;
-
+import org.aksw.rdf_processing_toolkit.cli.cmd.CmdUtils;
 
 public class MainCliRdfProcessingToolkit {
-    public static void main(String[] args) {
-        int exitCode = new CommandLine(new CmdRptMain())
-                .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                    ExceptionUtils.rethrowIfNotBrokenPipe(ex);
-                    return 0;
-                })
-                .execute(args);
 
-        System.exit(exitCode);
+    public static void main(String[] args) {
+        CmdUtils.execCmd(CmdRptMain.class, args);
     }
+
 }

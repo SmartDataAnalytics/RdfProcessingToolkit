@@ -15,15 +15,15 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.aksw.commons.io.block.api.PageManager;
+import org.aksw.commons.io.block.impl.PageManagerForByteBuffer;
+import org.aksw.commons.io.block.impl.PageManagerForFileChannel;
+import org.aksw.commons.io.block.impl.PageNavigator;
+import org.aksw.commons.io.hadoop.binseach.bz2.CharSequenceFromSeekable;
+import org.aksw.commons.io.hadoop.binseach.bz2.ReverseCharSequenceFromSeekable;
+import org.aksw.commons.io.seekable.api.Seekable;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
-import org.aksw.jena_sparql_api.io.binseach.CharSequenceFromSeekable;
-import org.aksw.jena_sparql_api.io.binseach.PageManager;
-import org.aksw.jena_sparql_api.io.binseach.PageManagerForByteBuffer;
-import org.aksw.jena_sparql_api.io.binseach.PageManagerForFileChannel;
-import org.aksw.jena_sparql_api.io.binseach.PageNavigator;
-import org.aksw.jena_sparql_api.io.binseach.ReverseCharSequenceFromSeekable;
-import org.aksw.jena_sparql_api.io.binseach.Seekable;
-import org.aksw.jena_sparql_api.rx.RDFDataMgrRx;
+import org.aksw.jenax.sparql.query.rx.RDFDataMgrRx;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jena.query.DatasetFactory;
@@ -45,7 +45,7 @@ public class MainPlaygroundScanTrig {
         file = file + "w3c_ex2-no-default-graph.trig";
 
         Model m = ModelFactory.createDefaultModel();
-        m.setNsPrefixes(DefaultPrefixes.prefixes);
+        m.setNsPrefixes(DefaultPrefixes.get());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         RDFDataMgr.write(baos, m, RDFFormat.TURTLE_PRETTY);
         byte[] prefixBytes = baos.toByteArray();
@@ -176,7 +176,7 @@ public class MainPlaygroundScanTrig {
 
             long maxRegionLength = 10l * 1024l * 1024l * 1024l;
             int availableRegionLength = isFwd
-                    ? Ints.saturatedCast(pageManager.getEndPos() - absMatcherStartPos)
+                    ? Ints.saturatedCast(pageManager.size() - absMatcherStartPos)
                     : Ints.saturatedCast(absMatcherStartPos + 1);
 
 

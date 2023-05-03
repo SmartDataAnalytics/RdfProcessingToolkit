@@ -1,0 +1,5 @@
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix void: <http://rdfs.org/ns/void#> .
+
+<env://D>  void:classes                 193 ;
+        void:distinctBlankNodeSubjects  3 .

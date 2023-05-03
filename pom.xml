@@ -3,34 +3,23 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-
 	<groupId>org.aksw.rdf-processing-toolkit</groupId>
 	<artifactId>rdf-processing-toolkit-parent</artifactId>
-	<version>1.0.6</version>
-
+	<version>1.9.6</version>
 	<packaging>pom</packaging>
-
 	<name>RDF Processing Toolkit</name>
 	<description>Sparql-based tool for the integration of heterogeneous data</description>
 	<url>https://github.com/SmartDataAnalytics/RdfProcessingToolkit</url>
-
 	<modules>
 		<module>rdf-processing-toolkit-cli</module>
-		<module>rdf-processing-toolkit-debian-cli</module>
-
-		<module>rdf-processing-toolkit-web-service</module>
-
-		<module>rdf-processing-toolkit-bundle</module>
-		<module>rdf-processing-toolkit-dummy</module>
-
-<!--		<module>use-case-sportal-analysis</module> -->
+		<module>rdf-processing-toolkit-pkg-parent</module>
+		<!-- <module>rdf-processing-toolkit-web-service</module> -->
+		<!-- <module>use-case-sportal-analysis</module> -->
 	</modules>
-
 	<issueManagement>
 		<url>https://github.com/SmartDataAnalytics/RdfProcessingToolkit/issues</url>
 		<system>GitHub</system>
 	</issueManagement>
-
 	<licenses>
 		<license>
 			<name>Apache License 2.0</name>
@@ -38,7 +27,6 @@
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
-
 	<!-- scm section needs to be duplicated on child module for github-release-plugin; 
 		see https://github.com/jutzig/github-release-plugin/issues/14 -->
 	<scm>
@@ -47,7 +35,6 @@
 		<developerConnection>scm:git:git@github.com:SmartDataAnalytics/RdfProcessingToolkit.git</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
-
 	<developers>
 		<developer>
 			<name>Claus Stadler</name>
@@ -56,87 +43,143 @@
 			<organizationUrl>http://aksw.org</organizationUrl>
 		</developer>
 	</developers>
-
 	<properties>
-		<jena.version>3.15.0</jena.version>
-		<jena-sparql-api.subversion>2</jena-sparql-api.subversion>
-
-		<jena-sparql-api.version>${jena.version}-${jena-sparql-api.subversion}</jena-sparql-api.version>
-		<!-- <jena-sparql-api.version>3.14.0-2-SNAPSHOT</jena-sparql-api.version> -->
-
-		<spring-boot.version>1.5.8.RELEASE</spring-boot.version>
-
+		<jena.version>4.8.0</jena.version>
+		<jenax.version>4.8.0-2</jenax.version>
+		<rmltk.version>4.8.0-2</rmltk.version>
+		<sansa.version>0.8.7</sansa.version>
+		
+		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
+		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
+		<log4j.version>2.17.2</log4j.version>
+		<picocli.version>4.6.2</picocli.version>
+		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
+		<conjure.version>4.8.0-2</conjure.version>
+		<jackson.version>2.12.0</jackson.version>
+		<commons-vfs2.version>2.9.0</commons-vfs2.version>
+		<timestamp>${maven.build.timestamp}</timestamp>
+		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
 		<!-- Project Settings -->
-		<maven.compiler.source>1.8</maven.compiler.source>
-		<maven.compiler.target>1.8</maven.compiler.target>
+		<!-- <maven.compiler.source>1.8</maven.compiler.source> -->
+		<!-- <maven.compiler.target>1.8</maven.compiler.target> -->
+		<maven.compiler.release>11</maven.compiler.release>
 		<java.version.javadoc>http://java.sun.com/javase/8/docs/api/</java.version.javadoc>
 		<file.encoding>UTF-8</file.encoding>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<gpg.keyname>AKSW</gpg.keyname>
+		
+		<nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
 	</properties>
-
-
 	<dependencyManagement>
 		<dependencies>
-
+			<dependency>
+				<groupId>org.aksw.conjure</groupId>
+				<artifactId>conjure-datasources</artifactId>
+				<version>${conjure.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-annotations</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.jena</groupId>
+				<artifactId>jena-tdb2</artifactId>
+				<version>${jena.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.jena</groupId>
+				<artifactId>jena-serviceenhancer</artifactId>
+				<version>${jena.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>org.aksw.rdf-processing-toolkit</groupId>
 				<artifactId>use-case-sportal-analysis</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>info.picocli</groupId>
 				<artifactId>picocli</artifactId>
-				<version>4.4.0</version>
+				<version>${picocli.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-bom</artifactId>
+				<version>${jenax.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		<dependency>
+			<groupId>org.aksw.rmltk</groupId>
+			<artifactId>rmltk-picocli-cmds</artifactId>
+			<version>${rmltk.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.aksw.rmltk</groupId>
+			<artifactId>rml-jena-arq</artifactId>
+			<version>${rmltk.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>net.sansa-stack</groupId>
+			<artifactId>sansa-cmds-picocli_2.12</artifactId>
+			<version>${sansa.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+			
+			<!--
+			<dependency>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-rx-ops-syscall</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-rx</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-arq-connection-virtuoso</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-virtuoso</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-arq-algebra</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-algebra</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-arq-hdt</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
-
-			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-io-hdt</artifactId>
-				<version>${jena-sparql-api.version}</version>
-			</dependency>
-
+-->
 			<dependency>
 				<groupId>org.aksw.rdf-processing-toolkit</groupId>
 				<artifactId>rdf-processing-toolkit-cli</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-
+			<!-- <dependency> <groupId>org.aksw.rdf-processing-toolkit</groupId> <artifactId>rdf-processing-toolkit-bundle</artifactId> 
+				<version>${project.version}</version> </dependency> -->
 			<dependency>
-				<groupId>org.aksw.rdf-processing-toolkit</groupId>
-				<artifactId>rdf-processing-toolkit-bundle</artifactId>
-				<version>${project.version}</version>
+				<groupId>org.locationtech.jts.io</groupId>
+				<artifactId>jts-io-common</artifactId>
+				<version>1.18.1</version>
 			</dependency>
-
 			<!-- <dependency> <groupId>org.aksw.sparql-integrate</groupId> <artifactId>sparql-integrate-ckan-core</artifactId> 
 				<version>${project.version}</version> </dependency> <dependency> <groupId>org.aksw.sparql-integrate</groupId> 
 				<artifactId>sparql-integrate-ckan-cli</artifactId> <version>${project.version}</version> 
-				</dependency> -->
+			</dependency> -->
+			<!--
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-sparql-ext</artifactId>
-				<version>${jena-sparql-api.version}</version>
-				<!-- <exclusions> <exclusion> <groupId>org.locationtech.jts</groupId> 
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-arq-plugins-bundle</artifactId>
+				<version>${jenax.version}</version>
+			-->
+			<!-- <exclusions> <exclusion> <groupId>org.locationtech.jts</groupId> 
 					<artifactId>jts-core</artifactId> </exclusion> <exclusion> <groupId>com.vividsolutions</groupId> 
 					<artifactId>jts-core</artifactId> </exclusion> <exclusion> <groupId>com.vividsolutions</groupId> 
 					<artifactId>jts-io</artifactId> </exclusion> <exclusion> <groupId>org.geotools</groupId> 
@@ -144,114 +187,166 @@
 					<artifactId>gt-geometry</artifactId> </exclusion> <exclusion> <groupId>org.geotools</groupId> 
 					<artifactId>gt-referencing</artifactId> </exclusion> <exclusion> <groupId>org.codehaus.plexus</groupId> 
 					<artifactId>plexus-utils</artifactId> </exclusion> </exclusions> -->
-
+			<!-- </dependency> -->
+			<!--
+			<dependency>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-rx-dataaccess</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-core</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-io-core</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-io-core</artifactId>
-				<version>${jena-sparql-api.version}</version>
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-arq-json</artifactId>
+				<version>${jenax.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-json</artifactId>
-				<version>${jena-sparql-api.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.aksw.jena-sparql-api</groupId>
-				<artifactId>jena-sparql-api-server-standalone</artifactId>
-				<version>${jena-sparql-api.version}</version>
-			</dependency>
-
+				<groupId>org.aksw.jenax</groupId>
+				<artifactId>jenax-server-standalone</artifactId>
+				<version>${jenax.version}</version>
+				</dependency>
+			-->
 			<!-- <dependency> <groupId>io.github.galbiston</groupId> <artifactId>geosparql-jena</artifactId> 
 				<version>1.1.1</version> </dependency> <dependency> <groupId>org.apache.sis.non-free</groupId> 
 				<artifactId>sis-embedded-data</artifactId> <version>0.8</version> </dependency> -->
-
+			<!-- <dependency> -->
+			<!-- <groupId>com.beust</groupId> -->
+			<!-- <artifactId>jcommander</artifactId> -->
+			<!-- <version>1.78</version> -->
+			<!-- </dependency> -->
+			<!-- <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot</artifactId> 
+				<version>${spring-boot.version}</version> </dependency> <dependency> <groupId>org.springframework.boot</groupId> 
+				<artifactId>spring-boot-autoconfigure</artifactId> <version>${spring-boot.version}</version> 
+				</dependency> <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-loader</artifactId> 
+				<version>${spring-boot.version}</version> </dependency> -->
+			<!-- <dependency> <groupId>eu.trentorise.opendata</groupId> <artifactId>jackan</artifactId> 
+				<version>0.4.2</version> </dependency> -->
 			<dependency>
-				<groupId>com.beust</groupId>
-				<artifactId>jcommander</artifactId>
-				<version>1.78</version>
+				<groupId>org.eclipse.jgit</groupId>
+				<artifactId>org.eclipse.jgit</artifactId>
+				<version>5.6.0.201912101111-r</version>
+			</dependency>
+			<dependency>
+				<groupId>com.jcraft</groupId>
+				<artifactId>jsch.agentproxy.jsch</artifactId>
+				<version>0.0.9</version>
+			</dependency>
+			<dependency>
+				<groupId>com.jcraft</groupId>
+				<artifactId>jsch.agentproxy.usocket-jna</artifactId>
+				<version>0.0.9</version>
+			</dependency>
+			<dependency>
+				<groupId>com.jcraft</groupId>
+				<artifactId>jsch.agentproxy.sshagent</artifactId>
+				<version>0.0.9</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-slf4j-impl</artifactId>
+				<version>${log4j.version}</version>
+			</dependency>
+			<!--
+			<dependency>
+                                <groupId>log4j</groupId>
+				<artifactId>log4j</artifactId>
+				<version>1.2.17</version>
+				<scope>provided</scope>
 			</dependency>
 
 			<dependency>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot</artifactId>
-				<version>${spring-boot.version}</version>
+                                <groupId>org.apache.logging.log4j</groupId>
+                                <artifactId>log4j-1.2-api</artifactId>
+                                <version>2.17.2</version>
+                                <scope>provided</scope>
 			</dependency>
-
+			-->
+			<!-- <dependency> -->
+			<!-- <groupId>org.slf4j</groupId> -->
+			<!-- <artifactId>slf4j-api</artifactId> -->
+			<!-- <version>${slf4j.version}</version> -->
+			<!-- </dependency> -->
+			<!-- Virtual FileSystem -->
 			<dependency>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-autoconfigure</artifactId>
-				<version>${spring-boot.version}</version>
+				<groupId>org.aksw.thirdparty.com.sshtools</groupId>
+				<artifactId>vfs2nio</artifactId>
+				<version>0.0.1-2</version>
 			</dependency>
-
 			<dependency>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-loader</artifactId>
-				<version>${spring-boot.version}</version>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-vfs2</artifactId>
+				<version>${commons-vfs2.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>commons-logging</groupId>
+						<artifactId>commons-logging</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
-
 			<dependency>
-				<groupId>eu.trentorise.opendata</groupId>
-				<artifactId>jackan</artifactId>
-				<version>0.4.2</version>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-vfs2-jackrabbit1</artifactId>
+				<version>${commons-vfs2.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>commons-logging</groupId>
+						<artifactId>commons-logging</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
-
-			<dependency>
-				<groupId>org.slf4j</groupId>
-				<artifactId>slf4j-log4j12</artifactId>
-				<version>1.7.25</version>
-			</dependency>
-
 			<dependency>
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
 				<version>4.13.1</version>
 			</dependency>
-
 		</dependencies>
 	</dependencyManagement>
-
-
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>src/main/resources-filtered</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>com.amashchenko.maven.plugin</groupId>
 				<artifactId>gitflow-maven-plugin</artifactId>
 			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
 			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
 			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 			</plugin>
-
 		</plugins>
-
 		<pluginManagement>
 			<plugins>
+				<plugin>
+					<groupId>de.jutzig</groupId>
+					<artifactId>github-release-plugin</artifactId>
+					<version>1.4.0</version>
+				</plugin>
 				<plugin>
 					<groupId>com.amashchenko.maven.plugin</groupId>
 					<artifactId>gitflow-maven-plugin</artifactId>
@@ -262,18 +357,18 @@
 						</gitFlowConfig>
 					</configuration>
 				</plugin>
-
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.6.0</version>
+					<version>3.9.0</version>
 					<configuration>
-						<source>${maven.compiler.source}</source>
-						<target>${maven.compiler.target}</target>
+						<!-- <source>${maven.compiler.source}</source> -->
+						<!-- <target>${maven.compiler.target}</target> -->
+						<release>11</release>
 						<encoding>${project.build.sourceEncoding}</encoding>
+						<!-- <multiReleaseOutput>true</multiReleaseOutput> -->
 					</configuration>
 				</plugin>
-
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-source-plugin</artifactId>
@@ -288,7 +383,6 @@
 						</execution>
 					</executions>
 				</plugin>
-
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-javadoc-plugin</artifactId>
@@ -308,7 +402,6 @@
 						<additionalparam>-Xdoclint:none</additionalparam>
 					</configuration>
 				</plugin>
-
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
@@ -323,31 +416,32 @@
 						<skipTests>false</skipTests>
 					</configuration>
 				</plugin>
-
+				<plugin>
+					<groupId>com.google.cloud.tools</groupId>
+					<artifactId>jib-maven-plugin</artifactId>
+					<version>3.2.0</version>
+				</plugin>
 				<plugin>
 					<artifactId>jdeb</artifactId>
 					<groupId>org.vafer</groupId>
 					<version>1.8</version>
 				</plugin>
-
+				<plugin>
+					<groupId>de.dentrassi.maven</groupId>
+					<artifactId>rpm</artifactId>
+					<version>1.8.0</version>
+				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-shade-plugin</artifactId>
 					<version>2.4.3</version>
 					<executions>
-						<!-- Run shade goal on package phase -->
 						<execution>
 							<phase>package</phase>
 							<goals>
 								<goal>shade</goal>
 							</goals>
 							<configuration>
-								<!-- TODO Shading is currently needed for the debian packages, which 
-									is slow and causes huge deployments -->
-								<!-- The deb packaging should be modified to work similar to the 
-									dockerfile maven plugin: -->
-								<!-- Use the resource plugin to copy deps to a lib folder and adjust 
-									the bash scripts -->
 								<shadedArtifactAttached>true</shadedArtifactAttached>
 								<shadedClassifierName>jar-with-dependencies</shadedClassifierName>
 								<filters>
@@ -357,22 +451,17 @@
 											<exclude>META-INF/*.SF</exclude>
 											<exclude>META-INF/*.DSA</exclude>
 											<exclude>META-INF/*.RSA</exclude>
+											<exclude>**/Log4j2Plugins.dat</exclude>
 										</excludes>
 									</filter>
 								</filters>
 								<transformers>
-									<transformer
-										implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-									<!-- add Main-Class to manifest file -->
-									<!-- <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"> -->
-									<!-- <mainClass>com.mkyong.core.utils.App</mainClass> -->
-									<!-- </transformer> -->
+									<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
 								</transformers>
 							</configuration>
 						</execution>
 					</executions>
 				</plugin>
-
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-gpg-plugin</artifactId>
@@ -391,11 +480,10 @@
 						</execution>
 					</executions>
 				</plugin>
-
 				<plugin>
 					<groupId>org.sonatype.plugins</groupId>
 					<artifactId>nexus-staging-maven-plugin</artifactId>
-					<version>1.6.8</version>
+					<version>${nexus-staging-maven-plugin.version}</version>
 					<extensions>true</extensions>
 					<configuration>
 						<serverId>ossrh</serverId>
@@ -403,13 +491,11 @@
 						<autoReleaseAfterClose>true</autoReleaseAfterClose>
 					</configuration>
 				</plugin>
-
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-deploy-plugin</artifactId>
 					<version>2.8.2</version>
 				</plugin>
-
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-dependency-plugin</artifactId>
@@ -431,12 +517,9 @@
 						<outputDirectory>${project.build.directory}/lib</outputDirectory>
 					</configuration>
 				</plugin>
-
-
 			</plugins>
 		</pluginManagement>
 	</build>
-
 	<profiles>
 		<!-- <profile> <id>doclint-java8-disable</id> <activation> <jdk>[1.8,)</jdk> 
 			</activation> <build> <plugins> <plugin> <groupId>org.apache.maven.plugins</groupId> 
@@ -445,7 +528,6 @@
 			<failOnError>false</failOnError> </configuration> </execution> </executions> 
 			<configuration> <additionalparam>-Xdoclint:none</additionalparam> </configuration> 
 			</plugin> </plugins> </build> </profile> -->
-
 		<profile>
 			<id>release</id>
 			<activation>
@@ -454,57 +536,58 @@
 					<value>true</value>
 				</property>
 			</activation>
-
 			<build>
 				<plugins>
-
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
 					</plugin>
-
 					<plugin>
 						<groupId>org.sonatype.plugins</groupId>
 						<artifactId>nexus-staging-maven-plugin</artifactId>
+						<version>${nexus-staging-maven-plugin.version}</version>
 					</plugin>
-
 				</plugins>
 			</build>
 		</profile>
 	</profiles>
-
 	<repositories>
 		<repository>
 			<id>maven.aksw.internal</id>
 			<name>University Leipzig, AKSW Maven2 Internal Repository</name>
-			<url>http://maven.aksw.org/repository/internal/</url>
+			<url>https://maven.aksw.org/repository/internal/</url>
 		</repository>
-
 		<repository>
 			<id>maven.aksw.snapshots</id>
 			<name>University Leipzig, AKSW Maven2 Snapshot Repository</name>
-			<url>http://maven.aksw.org/repository/snapshots/</url>
+			<url>https://maven.aksw.org/repository/snapshots/</url>
+		</repository>
+		<!-- Repo for latest jena snapshots -->
+		<repository>
+			<id>apache-repo-snapshots</id>
+			<url>https://repository.apache.org/content/repositories/snapshots/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
 		</repository>
 	</repositories>
-
 	<distributionManagement>
 		<!-- <repository> -->
 		<!-- <id>maven.aksw.internal</id> -->
 		<!-- <name>AKSW Internal Release Repository</name> -->
 		<!-- <url>http://maven.aksw.org/repository/internal</url> -->
 		<!-- </repository> -->
-
 		<repository>
 			<id>ossrh</id>
 			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
 		</repository>
-
 		<snapshotRepository>
 			<id>maven.aksw.snapshots</id>
 			<name>AKSW Snapshot Repository</name>
-			<url>http://maven.aksw.org/repository/snapshots</url>
+			<url>https://maven.aksw.org/repository/snapshots</url>
 		</snapshotRepository>
-
 	</distributionManagement>
-
 </project>

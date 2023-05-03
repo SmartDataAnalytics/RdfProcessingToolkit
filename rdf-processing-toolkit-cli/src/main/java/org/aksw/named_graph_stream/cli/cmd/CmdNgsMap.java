@@ -36,8 +36,11 @@ public class CmdNgsMap implements Callable<Integer> {
         public boolean defaultGraph = false;
     }
 
+    @Option(names = { "-o", "--out-format" }, description = "Output format")
+    public String outFormat;
 
-    @Option(names = { "-t", "--service-timeout" }, description = "connect and/or query timeout in ms. E.g -t 1000 or -t 1000,2000")
+
+    @Option(names = { "-t", "--service-timeout" }, description = "Connect and/or query timeout in ms. E.g -t 1000 or -t 1000,2000")
     public String serviceTimeout = null;
 
     @Parameters(arity = "0..*", description = "Input files")
