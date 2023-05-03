@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.aksw.rdf-processing-toolkit</groupId>
 	<artifactId>rdf-processing-toolkit-parent</artifactId>
-	<version>1.9.6</version>
+	<version>1.9.7-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>RDF Processing Toolkit</name>
 	<description>Sparql-based tool for the integration of heterogeneous data</description>
