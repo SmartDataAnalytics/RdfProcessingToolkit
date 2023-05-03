@@ -45,9 +45,9 @@
 	</developers>
 	<properties>
 		<jena.version>4.8.0</jena.version>
-		<jenax.version>4.8.0-1</jenax.version>
-		<rmltk.version>4.8.0-1</rmltk.version>
-		<sansa.version>0.8.0-RC3-SNAPSHOT</sansa.version>
+		<jenax.version>4.8.0-2</jenax.version>
+		<rmltk.version>4.8.0-2</rmltk.version>
+		<sansa.version>0.8.7</sansa.version>
 		
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
