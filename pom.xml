@@ -54,7 +54,7 @@
 		<log4j.version>2.17.2</log4j.version>
 		<picocli.version>4.6.2</picocli.version>
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
-		<conjure.version>4.8.0-1-SNAPSHOT</conjure.version>
+		<conjure.version>4.8.0-2</conjure.version>
 		<jackson.version>2.12.0</jackson.version>
 		<commons-vfs2.version>2.9.0</commons-vfs2.version>
 		<timestamp>${maven.build.timestamp}</timestamp>
