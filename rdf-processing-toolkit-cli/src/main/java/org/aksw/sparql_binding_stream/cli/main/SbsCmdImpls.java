@@ -25,6 +25,7 @@ import org.aksw.jenax.stmt.parser.query.SparqlQueryParserImpl;
 import org.aksw.jenax.stmt.parser.query.SparqlQueryParserWrapperSelectShortForm;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsFilter;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsMap;
+import org.apache.hadoop.shaded.org.apache.commons.compress.utils.CloseShieldFilterInputStream;
 import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Query;
@@ -68,11 +69,17 @@ public class SbsCmdImpls {
 
         in.mark(100 * 1024 * 1024);
 
-        ResultSet rs = ResultSetMgr.read(in, lang);
-        List<Var> result = ResultSetUtils.getVars(rs);
+        List<Var> result;
+        try (InputStream shielded = new CloseShieldFilterInputStream(in)) {
+            ResultSet rs = ResultSetMgr.read(shielded, lang);
+            try {
+                result = ResultSetUtils.getVars(rs);
+            } finally {
+                rs.close();
+            }
+        }
 
         in.reset();
-
         return result;
     }
 
@@ -95,7 +102,6 @@ public class SbsCmdImpls {
         ResultSetRx result;
         try(TypedInputStream tin = inSupp.call()) {
             List<Var> vars = readResultSetHeader(tin);
-
             Flowable<Binding> flowable = RDFDataMgrRx.createFlowableBindings(inSupp);
             result = ResultSetRxImpl.create(vars, flowable);
         } catch (Exception e) {
