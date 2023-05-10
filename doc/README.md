@@ -405,6 +405,37 @@ John,Doe""" csv:parse (?rowJson "excel -h")
 ```
 SELECT * { <example-data/people.csv> csv:parse (?rowJson "excel -h") }
 ```
+## Lambdas in SPARQL
+
+The function pair `norse:fn.of` and `norse:fn.call` is used to define and invoke a lambda. The definition of a lambda allows
+is based on conventional SPARQL expressions which however are evaluated lazily.
+
+* The function `norse:fn.of(var1, ... varN, expr)` first accepts a list of input sparql variables followed by a single sparql expression.
+  Any non-input variable mentioned in `expr` is substituted with the current binding's value.
+  The result of the function is an RDF literal of type `norse:lambda` which holds the lambda. The syntax of lambda literals is `?v1 v2 -> expr`.
+* The function `norse:fn.call(lambdaLiteral, value1, ... valueN)` is used to invoke a lambda. The declared input variables are thereby substituted with the corresponding
+  values. The thereby obtained effective SPARQL expression is then evaluated as usual and the result is returned.
+
+> Note: The implementation takes advantage of a feature of Jena's function extension system that allows for accessing SPARQL expressions prior to their evaluation.
+
+
+```
+PREFIX norse: <https://w3id.org/aksw/norse#>
+SELECT ?resultA ?resultB {
+  BIND('Dear' AS ?salutation)
+  BIND(norse:fn.of(?honorific, ?name, CONCAT(?salutation, ' ', ?honorific, ' ', ?name)) AS ?greetingsFn)
+  BIND(norse:fn.call(?greetingsFn, "Mrs.", "Miller") AS ?resultA)
+  BIND(norse:fn.call(?greetingsFn, "Ms.", "Smith") AS ?resultB)
+}
+```
+
+```
+-----------------------------------------
+| resultA            | resultB          |
+=========================================
+| "Dear Mrs. Miller" | "Dear Ms. Smith" |
+-----------------------------------------
+```
 
 ```
 ---------------------------------------------------------------------------------
@@ -477,6 +508,40 @@ SELECT * {
 =======================================================================================================================
 | "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><li>item</li>"^^<http://www.w3.org/2001/XMLSchema#xml> |
 -----------------------------------------------------------------------------------------------------------------------
+```
+
+
+
+## Lambdas in SPARQL
+
+The function pair `norse:fn.of` and `norse:fn.call` is used to define and invoke a lambda. The definition of a lambda allows
+is based on conventional SPARQL expressions which however are evaluated lazily.
+
+* The function `norse:fn.of(var1, ... varN, expr)` first accepts a list of input sparql variables followed by a single sparql expression.
+  Any non-input variable mentioned in `expr` is substituted with the current binding's value.
+  The result of the function is an RDF literal of type `norse:lambda` which holds the lambda. The syntax of lambda literals is `?v1 v2 -> expr`.
+* The function `norse:fn.call(lambdaLiteral, value1, ... valueN)` is used to invoke a lambda. The declared input variables are thereby substituted with the corresponding
+  values. The thereby obtained effective SPARQL expression is then evaluated as usual and the result is returned.
+
+> Note: The implementation takes advantage of a feature of Jena's function extension system that allows for accessing SPARQL expressions prior to their evaluation.
+
+
+```
+PREFIX norse: <https://w3id.org/aksw/norse#>
+SELECT ?resultA ?resultB {
+  BIND('Dear' AS ?salutation)
+  BIND(norse:fn.of(?honorific, ?name, CONCAT(?salutation, ' ', ?honorific, ' ', ?name)) AS ?greetingsFn)
+  BIND(norse:fn.call(?greetingsFn, "Mrs.", "Miller") AS ?resultA)
+  BIND(norse:fn.call(?greetingsFn, "Ms.", "Smith") AS ?resultB)
+}
+```
+
+```
+-----------------------------------------
+| resultA            | resultB          |
+=========================================
+| "Dear Mrs. Miller" | "Dear Ms. Smith" |
+-----------------------------------------
 ```
 
 
