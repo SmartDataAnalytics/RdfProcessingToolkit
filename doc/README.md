@@ -419,7 +419,7 @@ is based on conventional SPARQL expressions which however are evaluated lazily.
 > Note: The implementation takes advantage of a feature of Jena's function extension system that allows for accessing SPARQL expressions prior to their evaluation.
 
 
-```
+```sparql
 PREFIX norse: <https://w3id.org/aksw/norse#>
 SELECT ?resultA ?resultB {
   BIND('Dear' AS ?salutation)
