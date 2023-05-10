@@ -447,8 +447,6 @@ SELECT ?resultA ?resultB {
 
 ```
 
-
-
 ## Processing XML
 The XML processing functionality is based on the `xsd:xml` datatype.
 **NOTE: In order to avoid potential conflicts with Jena's machinery, this version of RPT introduces a custom xsd:xml datatype instead of reusing rdf:XMLLiteral.**
@@ -542,6 +540,38 @@ SELECT ?resultA ?resultB {
 =========================================
 | "Dear Mrs. Miller" | "Dear Ms. Smith" |
 -----------------------------------------
+```
+
+
+### Execution-Local Maps in SPARQL
+
+One use case of lambdas is for use with `norse:map.computeIfAbsent(mapId, key, lambda)`.
+The argument for `mapId` is an arbitrary RDF term that is used to refer to a map in the query's execution context. Empty maps are registered in the execution context whenever a new `mapId` is seen. All maps cease to exist once query execution completes. Two concurrently running queries cannot see each other's execution contexts.
+Maps are in-memory objects so they are limited by the available RAM.
+
+```
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX eg: <http://www.example.org/>
+PREFIX norse: <https://w3id.org/aksw/norse#>
+SELECT ?rdfTerm ?value {
+  VALUES ?rdfTerm { eg:a eg:b eg:a eg:b }
+  # Set up a lambda that computes a random value for any argument
+  BIND(norse:fn.of(?x, xsd:int(RAND() * 100)) AS ?fn)
+  # Add map entries for each so-far unseen value of ?rdfTerm
+  BIND(norse:map.computeIfAbsent('myMapIdInTheExecCxt', ?rdfTerm, ?fn) AS ?value)
+}
+```
+
+As can be seen from the output, a and b are mapped only to a single random value each:
+```
+-----------------------------------------------------------------------------
+| rdfTerm                    | value                                        |
+=============================================================================
+| <http://www.example.org/a> | "32"^^<http://www.w3.org/2001/XMLSchema#int> |
+| <http://www.example.org/b> | "86"^^<http://www.w3.org/2001/XMLSchema#int> |
+| <http://www.example.org/a> | "32"^^<http://www.w3.org/2001/XMLSchema#int> |
+| <http://www.example.org/b> | "86"^^<http://www.w3.org/2001/XMLSchema#int> |
+-----------------------------------------------------------------------------
 ```
 
 
