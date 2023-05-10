@@ -549,7 +549,7 @@ One use case of lambdas is for use with `norse:map.computeIfAbsent(mapId, key, l
 The argument for `mapId` is an arbitrary RDF term that is used to refer to a map in the query's execution context. Empty maps are registered in the execution context whenever a new `mapId` is seen. All maps cease to exist once query execution completes. Two concurrently running queries cannot see each other's execution contexts.
 Maps are in-memory objects so they are limited by the available RAM.
 
-```
+```sparql
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX eg: <http://www.example.org/>
 PREFIX norse: <https://w3id.org/aksw/norse#>
