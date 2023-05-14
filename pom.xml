@@ -45,16 +45,15 @@
 	</developers>
 	<properties>
 		<jena.version>4.8.0</jena.version>
-		<jenax.version>4.8.0-2</jenax.version>
-		<rmltk.version>4.8.0-2</rmltk.version>
-		<sansa.version>0.8.7</sansa.version>
+		<jenax.version>4.8.0-3-SNAPSHOT</jenax.version>
+		<rmltk.version>4.8.0-3-SNAPSHOT</rmltk.version>
+		<sansa.version>0.8.8-SNAPSHOT</sansa.version>
 		
-		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
 		<log4j.version>2.17.2</log4j.version>
 		<picocli.version>4.6.2</picocli.version>
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
-		<conjure.version>4.8.0-2</conjure.version>
+		<conjure.version>4.8.0-3-SNAPSHOT</conjure.version>
 		<jackson.version>2.12.0</jackson.version>
 		<commons-vfs2.version>2.9.0</commons-vfs2.version>
 		<timestamp>${maven.build.timestamp}</timestamp>
