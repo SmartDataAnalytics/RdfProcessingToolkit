@@ -8,7 +8,6 @@ import org.junit.Test;
 public class TestSparqlBindingStreamOperators {
 
     @Test
-    @Ignore
     public void test1() {
         // TODO Make the output stream of the mainCore functions configurable so that we can intercept the results
 
