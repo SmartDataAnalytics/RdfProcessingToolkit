@@ -2,6 +2,7 @@
 
 ## News
 
+* 2023-05-19 New quality of life features: `cpcat` command and the canned queries `tree.rq` and `gtree.rq`.
 * 2023-04-04 Release v1.9.5! RPT now ships with `sansa` (Apache Spark based tooling) and `rmltk` (RML Toolkit) features. A proper GitHub release will follow once Apache Jena 4.8.0 is out as some code depends on its latest SNAPSHOT changes.
 * 2023-03-28 Started updating documentation to latest changes (ongoing)
 
@@ -32,9 +33,9 @@ RPT is Java tool which comes with debian and rpm packaging. It is invoked using 
 
 
 ```
-rpt data.nt update.ru more-data.ttl query.rq
+rpt integrate data.nt update.ru more-data.ttl query.rq
 
-rpt --jq file.ttl '?s { ?s a foaf:Person }' | jq '.[].s'
+rpt integrate --jq file.ttl '?s { ?s a foaf:Person }' | jq '.[].s'
 ```
 
 * `ngs` is your well known bash tooling such as `head`, `tail`, `wc` adapted to named graphs instead of lines of text
@@ -43,11 +44,42 @@ rpt --jq file.ttl '?s { ?s a foaf:Person }' | jq '.[].s'
 cat file.ttl | ngs subjects | ngs map --sparql 'CONSTRUCT { ?s eg:triples ?c} { SELECT ?s COUNT(*) { ?s ?p ?o } GROUP ?s }
 
 # Count number of named graphs
-ngs wc file.trig
+rpt ngs wc file.trig
 
 # Output the first 3 graphs produced by another command
 ./produce-graphs.sh | ngs head -n 3
 ```
+
+## Canned Queries
+RPT ships with several useful queries on its classpath. Classpath resources can be printed out using `cpcat`. The following snippet shows examples of invocations and their output:
+
+### Overview
+```bash
+$ rpt cpcat spo.rq
+CONSTRUCT WHERE { ?s ?p ?o }
+
+$ rpt cpcat gspo.rq
+CONSTRUCT WHERE { GRAPH ?g { ?s ?p ?o } }
+```
+
+Any resource (query or data) on the classpath can be used as an argument to the `integrate` command:
+
+```
+rpt integrate yourdata.nt spo.rq
+# When spo.rq is executed then the data is queried and printed out on STDOUT
+```
+
+### Reference
+
+The exact definitions can be viewed with `rpt cpcat resource.rq`.
+
+* `spo.rq`: Output triples from the default graph
+* `gspo.rq`: Output quads from the named graphs
+* `tree.rq`: Deterministically replaces all intermediate nodes with blank nodes. Intermediate nodes are those that appear both as subject and as objects. Useful in conjunction with `--out-format turtle/pretty` for formatting e.g. RML.
+* `gtree.rq`: Named graph version of `tree.rq`
+* `rename.rq`: Replaces all occurrences of an IRI in subject and object positions with a different one. Usage: `FROM='urn:from` TO `urn:to` rpt integrate data.nt rename.rq`
+* `count.rq`: Return the sum of the counts of triples in the default graph and quads in the named graphs.
+* `s.rq`: List the distinct subjects in the default graph
 
 ## Example Use Cases
 
