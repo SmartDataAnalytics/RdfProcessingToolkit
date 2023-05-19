@@ -1,0 +1,15 @@
+# This query turns every intermediate RDF node into a blank node.
+# An intermediate node is any RDF term that appears both as a subject and an object.
+# Formatting the resulting RDF graph with jena's 'turtle/pretty' format outputs nicely formatted trees.
+# Example usage: rpt integrate --out-format turtle/pretty data.nt tree.rq
+
+PREFIX norse: <https://w3id.org/aksw/norse#>
+
+CONSTRUCT {
+  ?s ?p ?o
+}
+WHERE {
+  ?sub ?p ?obj
+  BIND(IF(EXISTS { [] ?p1 ?sub . ?sub ?p2 [] }, norse:bnode.asGiven(?sub), ?sub) AS ?s)
+  BIND(IF(EXISTS { [] ?p1 ?obj . ?obj ?p2 [] }, norse:bnode.asGiven(?obj), ?obj) AS ?o)
+}

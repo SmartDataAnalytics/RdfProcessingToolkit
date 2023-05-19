@@ -1,5 +1,6 @@
 package org.aksw.rdf_processing_toolkit.cli.cmd;
 
+import org.aksw.commons.picocli.CmdCatClasspathResource;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMain;
 import org.aksw.rml.cli.cmd.CmdRmlTkParent;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsMain;
@@ -13,7 +14,8 @@ import picocli.CommandLine.Command;
         CmdSparqlIntegrateMain.class,
         CmdSbsMain.class,
         CmdRmlTkParent.class,
-        CmdSansaParent.class
+        CmdSansaParent.class,
+        CmdCatClasspathResource.class
 })
 public class CmdRptMain
     extends CmdCommonBase
