@@ -77,7 +77,7 @@ The exact definitions can be viewed with `rpt cpcat resource.rq`.
 * `gspo.rq`: Output quads from the named graphs
 * `tree.rq`: Deterministically replaces all intermediate nodes with blank nodes. Intermediate nodes are those that appear both as subject and as objects. Useful in conjunction with `--out-format turtle/pretty` for formatting e.g. RML.
 * `gtree.rq`: Named graph version of `tree.rq`
-* `rename.rq`: Replaces all occurrences of an IRI in subject and object positions with a different one. Usage: `FROM='urn:from` TO `urn:to` rpt integrate data.nt rename.rq`
+* `rename.rq`: Replaces all occurrences of an IRI in subject and object positions with a different one. Usage (using environment variables): `FROM='urn:from' TO='urn:to' rpt integrate data.nt rename.rq`
 * `count.rq`: Return the sum of the counts of triples in the default graph and quads in the named graphs.
 * `s.rq`: List the distinct subjects in the default graph
 
