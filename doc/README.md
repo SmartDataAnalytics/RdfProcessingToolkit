@@ -703,5 +703,42 @@ SELECT * {
 -----------------------------------------------------------------------
 ```
 
+## Using RML Sources
 
+https://rml.io/docs/rml/data-retrieval/
+
+### RDB
+The following example shows how to connect to a relational database from within SPARQL using the `norse:rml.source` service.
+The example combines [RML](https://rml.io/docs/rml/data-retrieval/) with [R2RML](https://www.w3.org/TR/r2rml/) and [d2rq-language](http://d2rq.org/d2rq-language).
+
+```sparql
+PREFIX norse: <https://w3id.org/aksw/norse#>
+PREFIX rr:    <http://www.w3.org/ns/r2rml#>
+PREFIX d2rq:  <http://www.wiwiss.fu-berlin.de/suhl/bizer/D2RQ/0.1#>
+PREFIX ql:    <http://semweb.mmlab.be/ns/ql#>
+PREFIX rml:   <http://semweb.mmlab.be/ns/rml#>
+
+SELECT ?name ?url {
+  SERVICE norse:rml.source {
+    norse:rml.source
+      rml:source <#DB_source> ;
+      rml:referenceFormulation ql:RDB ;
+      rr:tableName "agency" ;
+      norse:rml.output ?x ;
+      # rr:sqlVersion rr:SQL2008 ;
+    .
+
+    <#DB_source>
+      a d2rq:Database;
+      d2rq:jdbcDSN "jdbc:mysql://localhost/dbname";
+      d2rq:jdbcDriver "com.mysql.jdbc.Driver";
+      d2rq:username "user";
+      d2rq:password "pass" ;
+    .
+  }
+
+  BIND(norse:binding.get(?x, 'agency_name') AS ?name)
+  BIND(norse:binding.get(?x, 'agency_url') AS ?url)
+}
+```
 
