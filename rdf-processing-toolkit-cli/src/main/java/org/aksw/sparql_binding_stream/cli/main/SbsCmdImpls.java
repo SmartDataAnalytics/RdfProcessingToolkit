@@ -25,7 +25,7 @@ import org.aksw.jenax.stmt.parser.query.SparqlQueryParserImpl;
 import org.aksw.jenax.stmt.parser.query.SparqlQueryParserWrapperSelectShortForm;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsFilter;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsMap;
-import org.apache.hadoop.shaded.org.apache.commons.compress.utils.CloseShieldFilterInputStream;
+import org.apache.commons.compress.utils.CloseShieldFilterInputStream;
 import org.apache.jena.atlas.web.TypedInputStream;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Query;

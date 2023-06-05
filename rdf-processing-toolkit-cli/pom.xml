@@ -21,6 +21,22 @@
 		<dependency>
 			<groupId>net.sansa-stack</groupId>
 			<artifactId>sansa-cmds-picocli_2.12</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-client-runtime</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+		  <groupId>org.apache.hadoop</groupId>
+		  <artifactId>hadoop-client</artifactId>
+		  <version>${hadoop.version}</version>
+		</dependency>
+		<dependency>
+		  <groupId>org.apache.hadoop</groupId>
+		  <artifactId>hadoop-client-api</artifactId>
+		  <version>${hadoop.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.aksw.conjure</groupId>
