@@ -74,6 +74,79 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
+				<!--				<groupId>org.apache.hadoop</groupId>-->
+				<!--				<artifactId>hadoop-client</artifactId>-->
+				<!--				<version>${hadoop.version}</version>-->
+				<!--			</dependency>-->
+				<!--			<dependency>-->
+				<!--				<groupId>org.apache.hadoop</groupId>-->
+				<!--				<artifactId>hadoop-client-api</artifactId>-->
+				<!--				<version>${hadoop.version}</version>-->
+				<groupId>org.apache.hadoop</groupId>
+				<artifactId>hadoop-common</artifactId>
+				<version>${hadoop.version}</version>
+				<!-- <exclusions> <exclusion> <groupId>*</groupId> <artifactId>*</artifactId> 
+                                        </exclusion> </exclusions> -->
+				<!-- Exclude web stuff (jetty, jersey)from hadoop -->
+				<exclusions>
+					<exclusion>
+						<groupId>org.eclipse.jetty</groupId>
+						<artifactId>jetty-server</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>org.eclipse.jetty</groupId>
+						<artifactId>jetty-util</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>org.eclipse.jetty</groupId>
+						<artifactId>jetty-servlet</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>org.eclipse.jetty</groupId>
+						<artifactId>jetty-webapp</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>javax.servlet.jsp</groupId>
+						<artifactId>jsp-api</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>com.sun.jersey</groupId>
+						<artifactId>jersey-core</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>com.sun.jersey</groupId>
+						<artifactId>jersey-servlet</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>com.sun.jersey</groupId>
+						<artifactId>jersey-json</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>com.sun.jersey</groupId>
+						<artifactId>jersey-server</artifactId>
+					</exclusion>
+					<!-- <exclusion> <groupId>ch.qos.reload4j</groupId> <artifactId>reload4j</artifactId> 
+                                                </exclusion> -->
+					<exclusion>
+						<groupId>org.slf4j</groupId>
+						<artifactId>slf4j-reload4j</artifactId>
+					</exclusion>
+					<!-- <exclusion> <groupId>log4j</groupId> <artifactId>log4j</artifactId> 
+                                                </exclusion> -->
+					<exclusion>
+						<groupId>org.slf4j</groupId>
+						<artifactId>slf4j-log4j12</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>commons-logging</groupId>
+						<artifactId>commons-logging</artifactId>
+					</exclusion>
+					<!-- <exclusion> <groupId>org.codehaus.woodstox</groupId> <artifactId>stax2-api</artifactId> 
+                                                </exclusion> <exclusion> <groupId>com.fasterxml.woodstox</groupId> <artifactId>woodstox-core</artifactId> 
+                                                </exclusion> -->
+				</exclusions>
+			</dependency>
+			<dependency>
 				<groupId>org.aksw.conjure</groupId>
 				<artifactId>conjure-datasources</artifactId>
 				<version>${conjure.version}</version>
@@ -306,79 +379,79 @@
 			</dependency>
 			<!-- explicit jetty dependencies to pin version conflict with hadoop-client -->
 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-client</artifactId>
-			  <version>${jetty.version}</version>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-client</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-util</artifactId>
-			  <version>${jetty.version}</version>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-util</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-io</artifactId>
-			  <version>${jetty.version}</version>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-io</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-http</artifactId>
-			  <version>${jetty.version}</version>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-http</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
- 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-servlets</artifactId>
-			  <version>${jetty.version}</version>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-servlets</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
- 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-servlet</artifactId>
-			  <version>${jetty.version}</version>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-servlet</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
- 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-server</artifactId>
-			  <version>${jetty.version}</version>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-server</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
- 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-webapp</artifactId>
-			  <version>${jetty.version}</version>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-webapp</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
- 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-xml</artifactId>
-			  <version>${jetty.version}</version>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-xml</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
- 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-security</artifactId>
-			  <version>${jetty.version}</version>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-security</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
- 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-util-ajax</artifactId>
-			  <version>${jetty.version}</version>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-util-ajax</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
- 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-annotations</artifactId>
-			  <version>${jetty.version}</version>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-annotations</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
- 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-plus</artifactId>
-			  <version>${jetty.version}</version>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-plus</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
- 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>jetty-jndi</artifactId>
-			  <version>${jetty.version}</version>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-jndi</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
- 			<dependency>
-			  <groupId>org.eclipse.jetty</groupId>
-			  <artifactId>apache-jsp</artifactId>
-			  <version>${jetty.version}</version>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>apache-jsp</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>junit</groupId>
