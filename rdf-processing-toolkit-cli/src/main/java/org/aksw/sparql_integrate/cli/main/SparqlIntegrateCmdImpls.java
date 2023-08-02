@@ -52,6 +52,7 @@ import org.aksw.jenax.connection.query.QueryExecDecoratorBase;
 import org.aksw.jenax.connection.query.QueryExecDecoratorTxn;
 import org.aksw.jenax.connection.query.QueryExecs;
 import org.aksw.jenax.connection.update.UpdateProcessorDecoratorBase;
+import org.aksw.jenax.connection.update.UpdateProcessorDecoratorTxn;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtQuery;
 import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
@@ -426,7 +427,6 @@ public class SparqlIntegrateCmdImpls {
                                 }
                             };
                         }
-
                         r = QueryExecDecoratorTxn.wrap(r, cb);
                         return r;
                     });
@@ -452,8 +452,8 @@ public class SparqlIntegrateCmdImpls {
                             }
                         };
                     }
+                    r = UpdateProcessorDecoratorTxn.wrap(r, cb);
                     return r;
-                    // r = UpdateExecDeco
                 });
 
                 return cd;
