@@ -60,7 +60,8 @@ public class CliUtils {
         // Jena (at least up to 3.11.0) handles pseudo iris for blank nodes on the parser level
         // {@link org.apache.jena.sparql.lang.ParserBase}
         // This means, that blank nodes in SERVICE clauses would not be passed on as such
-        ARQ.setFalse(ARQ.constantBNodeLabels);
+        // FIXME check what is broken by NOT turning this off (n.b parsing <_:....> in sparql queries fails if False)
+        //ARQ.setFalse(ARQ.constantBNodeLabels);
 
         JenaExtensionHttp.register(() -> HttpClientBuilder.create().build());
 
