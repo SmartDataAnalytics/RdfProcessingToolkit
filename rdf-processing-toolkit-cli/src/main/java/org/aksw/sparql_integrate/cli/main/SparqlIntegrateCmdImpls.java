@@ -44,7 +44,9 @@ import org.aksw.jenax.arq.datasource.HasDataset;
 import org.aksw.jenax.arq.datasource.RdfDataEngineFactory;
 import org.aksw.jenax.arq.datasource.RdfDataEngineFactoryRegistry;
 import org.aksw.jenax.arq.datasource.RdfDataEngines;
+import org.aksw.jenax.arq.datasource.RdfDataSourceDecorator;
 import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
+import org.aksw.jenax.arq.datasource.RdfDataSourceWithBnodeRewrite;
 import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.jenax.arq.util.security.ArqSecurity;
 import org.aksw.jenax.connection.dataengine.RdfDataEngine;
@@ -62,7 +64,6 @@ import org.aksw.jenax.web.server.boot.FactoryBeanSparqlServer;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jena.ext.com.google.common.base.Stopwatch;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.geosparql.spatial.SpatialIndex;
@@ -85,7 +86,6 @@ import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.optimize.Optimize;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.exec.QueryExec;
-import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sparql.service.enhancer.init.ServiceEnhancerInit;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.system.Txn;
@@ -371,6 +371,12 @@ public class SparqlIntegrateCmdImpls {
         if ("sansa".equalsIgnoreCase(cmd.dbLoader)) {
             logger.info("Using sansa loader for loading RDF files");
             dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, new RdfDataSourceDecoratorSansa());
+        }
+
+        String bnodeProfile = cmd.bnodeProfile;
+        if (!Strings.isNullOrEmpty(bnodeProfile)) {
+            RdfDataSourceDecorator decorator = (x, conf) -> new RdfDataSourceWithBnodeRewrite(x, bnodeProfile);
+            dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, decorator);
         }
 
         RdfDataEngine datasetAndDelete = dataSourceTmp;
