@@ -81,7 +81,7 @@ public class CmdSparqlIntegrateMain
     public CmdMixinArq arqConfig;
 
 
-    @Option(names= {"-b", "--bp", "--bnode-profile"}, description="Blank node profile, empty string ('') to disable; defaults to ${DEFAULT-VALUE}", defaultValue = "")
+    @Option(names= {"--bnp", "--bnode-profile"}, description="Blank node profile, empty string ('') to disable; defaults to ${DEFAULT-VALUE}", defaultValue = "")
     public String bnodeProfile = null;
 
 //    @Option(names = { "--explain" }, description="Enable detailed ARQ log output")
@@ -201,8 +201,6 @@ public class CmdSparqlIntegrateMain
 
     @Override
     public Integer call() throws Exception {
-
         return SparqlIntegrateCmdImpls.sparqlIntegrate(this);
     }
-
 }
