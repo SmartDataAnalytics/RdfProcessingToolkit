@@ -37,3 +37,7 @@ deb-reinstall: ## Reinstall deb (requires prior build)
 
 deb-rere: deb-rebuild deb-reinstall ## Rebuild and reinstall deb package
 
+
+docker: ## Build Docker image
+	$(MCIS) $(POM) -am -pl :rdf-processing-toolkit-pkg-docker-cli $(ARGS)
+	cd rdf-processing-toolkit-pkg-parent/rdf-processing-toolkit-pkg-docker-cli && $(MS) jib:dockerBuild && cd ../..
