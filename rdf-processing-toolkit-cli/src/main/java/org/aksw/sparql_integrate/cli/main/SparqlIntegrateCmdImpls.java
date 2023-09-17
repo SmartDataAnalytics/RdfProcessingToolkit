@@ -10,13 +10,14 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -24,6 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jena_sparql_api.cache.advanced.QueryExecFactoryQueryRangeCache;
+import org.aksw.jena_sparql_api.core.QueryTransform;
 import org.aksw.jena_sparql_api.rx.io.resultset.OutputFormatSpec;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessor;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessorBuilder;
@@ -34,12 +36,14 @@ import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor.Provenance;
 import org.aksw.jena_sparql_api.sparql.ext.url.E_IriAsGiven.ExprTransformIriToIriAsGiven;
 import org.aksw.jena_sparql_api.sparql.ext.url.F_BNodeAsGiven.ExprTransformBNodeToBNodeAsGiven;
 import org.aksw.jena_sparql_api.sparql.ext.url.JenaUrlUtils;
+import org.aksw.jena_sparql_api.user_defined_function.UserDefinedFunctions;
 import org.aksw.jenax.arq.connection.core.QueryExecutionFactories;
 import org.aksw.jenax.arq.connection.core.QueryExecutionFactory;
 import org.aksw.jenax.arq.connection.core.RDFConnectionUtils;
 import org.aksw.jenax.arq.connection.link.QueryExecFactories;
 import org.aksw.jenax.arq.connection.link.QueryExecFactory;
 import org.aksw.jenax.arq.connection.link.QueryExecFactoryQueryDecorizer;
+import org.aksw.jenax.arq.connection.link.RDFLinkUtils;
 import org.aksw.jenax.arq.datasource.HasDataset;
 import org.aksw.jenax.arq.datasource.RdfDataEngineFactory;
 import org.aksw.jenax.arq.datasource.RdfDataEngineFactoryRegistry;
@@ -49,13 +53,16 @@ import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.arq.datasource.RdfDataSourceWithBnodeRewrite;
 import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.jenax.arq.util.security.ArqSecurity;
+import org.aksw.jenax.arq.util.syntax.QueryUtils;
 import org.aksw.jenax.connection.dataengine.RdfDataEngine;
+import org.aksw.jenax.connection.datasource.RdfDataSource;
 import org.aksw.jenax.connection.query.QueryExecDecoratorBase;
 import org.aksw.jenax.connection.query.QueryExecDecoratorTxn;
 import org.aksw.jenax.connection.query.QueryExecs;
 import org.aksw.jenax.connection.update.UpdateProcessorDecoratorBase;
 import org.aksw.jenax.connection.update.UpdateProcessorDecoratorTxn;
 import org.aksw.jenax.stmt.core.SparqlStmt;
+import org.aksw.jenax.stmt.core.SparqlStmtMgr;
 import org.aksw.jenax.stmt.core.SparqlStmtQuery;
 import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
@@ -73,6 +80,7 @@ import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.TxnType;
+import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
@@ -86,6 +94,9 @@ import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.optimize.Optimize;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.exec.QueryExec;
+import org.apache.jena.sparql.expr.ExprTransform;
+import org.apache.jena.sparql.function.user.ExprTransformExpand;
+import org.apache.jena.sparql.function.user.UserDefinedFunctionDefinition;
 import org.apache.jena.sparql.service.enhancer.init.ServiceEnhancerInit;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.system.Txn;
@@ -166,7 +177,6 @@ public class SparqlIntegrateCmdImpls {
 
 
         String outFormat = cmd.outFormat;
-
 
         // If an in/out file is given prepend it to the arguments
         Path outFile = null;
@@ -366,17 +376,40 @@ public class SparqlIntegrateCmdImpls {
             dataSourceTmp = RdfDataEngines.adapt(l);
         }
 
-
-
         if ("sansa".equalsIgnoreCase(cmd.dbLoader)) {
             logger.info("Using sansa loader for loading RDF files");
             dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, new RdfDataSourceDecoratorSansa());
         }
 
-        String bnodeProfile = cmd.bnodeProfile;
+        String rawBnodeProfile = cmd.bnodeProfile;
+
+        if ("auto".equalsIgnoreCase(rawBnodeProfile)) {
+            try (RDFConnection conn = dataSourceTmp.getConnection()) {
+                rawBnodeProfile = RdfDataSourceWithBnodeRewrite.detectProfile(conn);
+            }
+        }
+
+        String bnodeProfile = rawBnodeProfile;
         if (!Strings.isNullOrEmpty(bnodeProfile)) {
             RdfDataSourceDecorator decorator = (x, conf) -> new RdfDataSourceWithBnodeRewrite(x, bnodeProfile);
             dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, decorator);
+        }
+
+        Map<String, UserDefinedFunctionDefinition> udfRegistry = new LinkedHashMap<>();
+        for (String macroSource : cmd.macroSources) {
+            Set<String> macroProfiles = new HashSet<>();
+            Model model = RDFDataMgr.loadModel(macroSource);
+            SparqlStmtMgr.execSparql(model, "udf-inferences.sparql");
+            Map<String, UserDefinedFunctionDefinition> contrib = UserDefinedFunctions.load(model, macroProfiles);
+            udfRegistry.putAll(contrib);
+        }
+
+        if (!cmd.macroSources.isEmpty()) {
+            logger.info("Loaded functions: {}", udfRegistry.keySet());
+            logger.info("Loaded {} function definitions from  {} macro sources.", udfRegistry.size(), cmd.macroSources.size());
+            ExprTransform eform = new ExprTransformExpand(udfRegistry);
+            QueryTransform qform = q -> QueryUtils.rewrite(q, op -> Transformer.transform(null, eform, op));
+            dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, qform, null);
         }
 
         RdfDataEngine datasetAndDelete = dataSourceTmp;
@@ -403,10 +436,15 @@ public class SparqlIntegrateCmdImpls {
         // QueryExecutionFactoryRangeCache.decorate(null, splitFolder, jqDepth);
 
         try {
-            Supplier<RDFConnection> connSupp = () -> {
+            RdfDataSource[] dataSourceTmp2 = new RdfDataSource[1];
+            dataSourceTmp2[0] = () -> {
                 RDFConnection ca = RDFConnectionUtils.wrapWithAutoDisableReorder(datasetAndDelete.getConnection());
 
-                RDFConnection cb = RDFConnectionUtils.wrapWithContextMutator(ca, SparqlIntegrateCmdImpls::configureOptimizer);
+                RDFConnection cb = RDFConnectionUtils.wrapWithContextMutator(ca, cxt -> {
+                    SparqlIntegrateCmdImpls.configureOptimizer(cxt);
+                    RdfDataSource thisDataSource = dataSourceTmp2[0];
+                    cxt.put(RDFLinkUtils.symRdfDataSource, thisDataSource);
+                });
 
                 // TODO Add a util method wrapWithStmtTransform
                 RDFConnection cc = RDFConnectionUtils.wrapWithQueryTransform(
@@ -465,6 +503,8 @@ public class SparqlIntegrateCmdImpls {
                 return cd;
             };
 
+            RdfDataSource connSupp = dataSourceTmp2[0];
+
 
             // RDFConnectionFactoryEx.getQueryConnection(conn)
             Server server = null;
@@ -475,8 +515,8 @@ public class SparqlIntegrateCmdImpls {
 //                        prefixMapping, false);// .getQueryParser();
 
                 Dataset finalDataset = dataset;
-                Supplier<RDFConnection> serverConnSupp = () -> {
-                    RDFConnection r = connSupp.get();
+                RdfDataSource serverDataSource = () -> {
+                    RDFConnection r = connSupp.getConnection();
                     if (cmd.readOnlyMode) {
                         r = RDFConnectionUtils.wrapWithQueryOnly(r);
                     }
@@ -491,7 +531,7 @@ public class SparqlIntegrateCmdImpls {
 
                 int port = cmd.serverPort;
                 server = FactoryBeanSparqlServer.newInstance()
-                        .setSparqlServiceFactory((HttpServletRequest httpRequest) -> serverConnSupp.get())
+                        .setSparqlServiceFactory((HttpServletRequest httpRequest) -> serverDataSource.getConnection())
                         .setSparqlStmtParser(
                                 //SparqlStmtParser.wrapWithOptimizePrefixes(
                                         processor.getSparqlParser()
@@ -512,7 +552,7 @@ public class SparqlIntegrateCmdImpls {
             if (cmd.arqConfig.geoindex && dataset == null) {
                 logger.warn("Cannot compute geo index with non data-set connection");
             }
-            try (RDFConnection conn = connSupp.get()) {
+            try (RDFConnection conn = connSupp.getConnection()) {
 
                 for (Entry<SparqlStmt, Provenance> stmtEntry : workloads) {
                     Provenance prov = stmtEntry.getValue();

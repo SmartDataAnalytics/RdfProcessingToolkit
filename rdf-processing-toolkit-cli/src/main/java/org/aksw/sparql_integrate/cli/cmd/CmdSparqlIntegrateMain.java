@@ -2,8 +2,10 @@ package org.aksw.sparql_integrate.cli.cmd;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.Callable;
 
@@ -80,8 +82,7 @@ public class CmdSparqlIntegrateMain
     @Mixin
     public CmdMixinArq arqConfig;
 
-
-    @Option(names= {"--bnp", "--bnode-profile"}, description="Blank node profile, empty string ('') to disable; defaults to ${DEFAULT-VALUE}", defaultValue = "")
+    @Option(names= {"--bnp", "--bnode-profile"}, description="Blank node profile, empty string ('') to disable; 'auto' to autodetect, defaults to ${DEFAULT-VALUE}", defaultValue = "")
     public String bnodeProfile = null;
 
 //    @Option(names = { "--explain" }, description="Enable detailed ARQ log output")
@@ -163,14 +164,18 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--jq" }, parameterConsumer = ConsumeDepthValue.class, arity="0..1", fallbackValue = "3", description = "Enable jq mode")
     public Integer jqDepth = null;
 
-
-
     /**
      *
      *
      */
     @Option(names = { "--flat" }, description = "Suppress JSON arrays for single valued properties")
     public boolean jqFlatMode = false;
+
+    @Option(names = { "--macro" }, description = "RDF file or URL with macro definitions")
+    public List<String> macroSources = new ArrayList<>();
+
+    @Option(names= {"--macro-profile"}, description="Macro profile. 'auto' to auto-detect.") //, defaults to: '${DEFAULT-VALUE}'", defaultValue = "")
+    public Set<String> macroProfiles = new LinkedHashSet<>();
 
     /**
      * --jq may be followed by an integer - picocli seems to greedily parse any argument even if it is not an integer
