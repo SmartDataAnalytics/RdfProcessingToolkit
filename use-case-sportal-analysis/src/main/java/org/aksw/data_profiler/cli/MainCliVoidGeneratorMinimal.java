@@ -20,7 +20,7 @@ import org.aksw.jena_sparql_api.rx.SparqlRx;
 import org.aksw.jena_sparql_api.rx.query_flow.QueryFlowOps;
 import org.aksw.jena_sparql_api.rx.query_flow.RxUtils;
 import org.aksw.jena_sparql_api.utils.Vars;
-import org.apache.jena.ext.com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheBuilder;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.GraphUtil;
 import org.apache.jena.graph.Node;

@@ -44,10 +44,10 @@
 		</developer>
 	</developers>
 	<properties>
-		<jena.version>4.8.0</jena.version>
-		<jenax.version>4.8.0-3-SNAPSHOT</jenax.version>
-		<rmltk.version>4.8.0-3-SNAPSHOT</rmltk.version>
-		<sansa.version>0.8.8-SNAPSHOT</sansa.version>
+		<jena.version>4.9.0</jena.version>
+		<jenax.version>4.9.0-1-SNAPSHOT</jenax.version>
+		<rmltk.version>4.9.0-1-SNAPSHOT</rmltk.version>
+		<sansa.version>0.9.0-SNAPSHOT</sansa.version>
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
 		<log4j.version>2.17.2</log4j.version>

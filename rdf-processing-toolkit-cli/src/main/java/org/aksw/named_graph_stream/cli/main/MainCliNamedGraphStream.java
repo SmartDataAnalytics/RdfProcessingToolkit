@@ -14,7 +14,7 @@ import org.aksw.jenax.stmt.resultset.SPARQLResultSinkQuads;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMain;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdUtils;
-import org.apache.jena.ext.com.google.common.collect.Streams;
+import com.google.common.collect.Streams;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;

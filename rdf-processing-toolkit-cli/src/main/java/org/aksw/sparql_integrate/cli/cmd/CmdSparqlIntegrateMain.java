@@ -1,5 +1,6 @@
 package org.aksw.sparql_integrate.cli.cmd;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -13,7 +14,7 @@ import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdCommonBase;
 import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 import org.aksw.sparql_integrate.cli.main.SparqlIntegrateCmdImpls;
-import org.apache.jena.ext.com.google.common.base.StandardSystemProperty;
+import com.google.common.base.StandardSystemProperty;
 
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
@@ -84,6 +85,10 @@ public class CmdSparqlIntegrateMain
 
     @Option(names= {"--bnp", "--bnode-profile"}, description="Blank node profile, empty string ('') to disable; 'auto' to autodetect, defaults to ${DEFAULT-VALUE}", defaultValue = "")
     public String bnodeProfile = null;
+
+
+    @Option(names= {"--delay"}, description="Delay query execution. Simulates 'hanging' connections.", defaultValue = "", converter = ConverterDuration.class)
+    public Duration delay = Duration.ZERO;
 
 //    @Option(names = { "--explain" }, description="Enable detailed ARQ log output")
 //    public boolean explain = false;

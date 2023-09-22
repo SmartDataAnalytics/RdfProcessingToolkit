@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -26,6 +27,8 @@ import org.aksw.commons.io.util.StdIo;
 import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jena_sparql_api.cache.advanced.QueryExecFactoryQueryRangeCache;
 import org.aksw.jena_sparql_api.core.QueryTransform;
+import org.aksw.jena_sparql_api.delay.extra.Delayer;
+import org.aksw.jena_sparql_api.delay.extra.DelayerDefault;
 import org.aksw.jena_sparql_api.rx.io.resultset.OutputFormatSpec;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessor;
 import org.aksw.jena_sparql_api.rx.io.resultset.SPARQLResultExProcessorBuilder;
@@ -71,7 +74,7 @@ import org.aksw.jenax.web.server.boot.FactoryBeanSparqlServer;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
-import org.apache.jena.ext.com.google.common.base.Stopwatch;
+import com.google.common.base.Stopwatch;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.geosparql.spatial.SpatialIndex;
 import org.apache.jena.geosparql.spatial.SpatialIndexException;
@@ -307,7 +310,7 @@ public class SparqlIntegrateCmdImpls {
                 String fileExt = spec.getFileExtension();
                 fileExt = fileExt == null ? "dat" : fileExt;
 
-                String baseFilename = org.apache.jena.ext.com.google.common.io.Files.getNameWithoutExtension(filename);
+                String baseFilename = com.google.common.io.Files.getNameWithoutExtension(filename);
                 String newFilename = baseFilename + "." + fileExt;
 
                 Path clusterOutFile = splitFolder.resolve(newFilename);
@@ -451,6 +454,23 @@ public class SparqlIntegrateCmdImpls {
                     cb,
                     null, queryExec -> {
                         QueryExec r = queryExec;
+
+                        Duration delayDuration = cmd.delay;
+                        if (!delayDuration.isZero()) {
+                            r = new QueryExecDecoratorBase<>(r) {
+                                @Override
+                                public void beforeExec() {
+                                    Delayer delayer = DelayerDefault.createFromNow(delayDuration.toMillis());
+                                    try {
+                                        delayer.doDelay();
+                                    } catch (InterruptedException e) {
+                                        // XXX Should we fail on interrupt?
+                                    }
+                                    super.beforeExec();
+                                }
+                            };
+                        }
+
                         if (cmd.showAlgebra) {
                             r = new QueryExecDecoratorBase<>(r) {
                                 @Override
@@ -471,6 +491,7 @@ public class SparqlIntegrateCmdImpls {
                                 }
                             };
                         }
+
                         r = QueryExecDecoratorTxn.wrap(r, cb);
                         return r;
                     });
@@ -503,7 +524,7 @@ public class SparqlIntegrateCmdImpls {
                 return cd;
             };
 
-            RdfDataSource connSupp = dataSourceTmp2[0];
+            RdfDataSource finalDataSource = dataSourceTmp2[0];
 
 
             // RDFConnectionFactoryEx.getQueryConnection(conn)
@@ -516,7 +537,7 @@ public class SparqlIntegrateCmdImpls {
 
                 Dataset finalDataset = dataset;
                 RdfDataSource serverDataSource = () -> {
-                    RDFConnection r = connSupp.getConnection();
+                    RDFConnection r = finalDataSource.getConnection();
                     if (cmd.readOnlyMode) {
                         r = RDFConnectionUtils.wrapWithQueryOnly(r);
                     }
@@ -552,7 +573,7 @@ public class SparqlIntegrateCmdImpls {
             if (cmd.arqConfig.geoindex && dataset == null) {
                 logger.warn("Cannot compute geo index with non data-set connection");
             }
-            try (RDFConnection conn = connSupp.getConnection()) {
+            try (RDFConnection conn = finalDataSource.getConnection()) {
 
                 for (Entry<SparqlStmt, Provenance> stmtEntry : workloads) {
                     Provenance prov = stmtEntry.getValue();
