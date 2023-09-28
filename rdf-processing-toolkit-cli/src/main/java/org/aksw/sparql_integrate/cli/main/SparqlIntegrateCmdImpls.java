@@ -384,23 +384,37 @@ public class SparqlIntegrateCmdImpls {
             dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, new RdfDataSourceDecoratorSansa());
         }
 
-        String rawBnodeProfile = cmd.bnodeProfile;
-
-        if ("auto".equalsIgnoreCase(rawBnodeProfile)) {
-            try (RDFConnection conn = dataSourceTmp.getConnection()) {
-                rawBnodeProfile = RdfDataSourceWithBnodeRewrite.detectProfile(conn);
+        // Attempt to detect the dbms name.
+        // If one is detected then use it as an active profile name.
+        String dmbsProfile = null;
+        try (RDFConnection conn = dataSourceTmp.getConnection()) {
+            dmbsProfile = RdfDataSourceWithBnodeRewrite.detectProfile(conn);
+            if (logger.isInfoEnabled()) {
+                logger.info("Detected DBMS: " + dmbsProfile);
             }
         }
 
-        String bnodeProfile = rawBnodeProfile;
-        if (!Strings.isNullOrEmpty(bnodeProfile)) {
-            RdfDataSourceDecorator decorator = (x, conf) -> new RdfDataSourceWithBnodeRewrite(x, bnodeProfile);
-            dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, decorator);
+        String bnodeProfile = cmd.bnodeProfile;
+        if ("auto".equalsIgnoreCase(bnodeProfile)) {
+            bnodeProfile = dmbsProfile;
         }
 
+        Set<String> macroProfiles = new HashSet<>();
+        if (dmbsProfile != null) {
+            macroProfiles.add(dmbsProfile);
+        }
+
+        if (!Strings.isNullOrEmpty(bnodeProfile)) {
+            dataSourceTmp = RdfDataEngines.of(
+                    new RdfDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile),
+                    dataSourceTmp::close);
+            // RdfDataSourceDecorator decorator = (x, conf) -> new RdfDataSourceWithBnodeRewrite(x, bnodeProfile);
+            // dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, decorator);
+        }
+
+        // Load function macros (run sparql inferences first)
         Map<String, UserDefinedFunctionDefinition> udfRegistry = new LinkedHashMap<>();
         for (String macroSource : cmd.macroSources) {
-            Set<String> macroProfiles = new HashSet<>();
             Model model = RDFDataMgr.loadModel(macroSource);
             SparqlStmtMgr.execSparql(model, "udf-inferences.sparql");
             Map<String, UserDefinedFunctionDefinition> contrib = UserDefinedFunctions.load(model, macroProfiles);
@@ -416,7 +430,6 @@ public class SparqlIntegrateCmdImpls {
         }
 
         RdfDataEngine datasetAndDelete = dataSourceTmp;
-
 
         // Dataset dataset = datasetAndDelete.getKey();
         // Closeable deleteAction = datasetAndDelete.getValue();
