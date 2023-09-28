@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.aksw.rdf-processing-toolkit</groupId>
 		<artifactId>rdf-processing-toolkit-pkg-parent</artifactId>
-		<version>1.9.7-SNAPSHOT</version>
+		<version>1.9.8-SNAPSHOT</version>
 	</parent>
 	<artifactId>rdf-processing-toolkit-pkg-docker-cli</artifactId>
 	<packaging>jar</packaging>
