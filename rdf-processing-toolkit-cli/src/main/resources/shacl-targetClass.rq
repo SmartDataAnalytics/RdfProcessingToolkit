@@ -1,6 +1,7 @@
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 
 PREFIX ns: <http://www.example.org/>
+
 CONSTRUCT  {
    ?shape
      a sh:NodeShape ;

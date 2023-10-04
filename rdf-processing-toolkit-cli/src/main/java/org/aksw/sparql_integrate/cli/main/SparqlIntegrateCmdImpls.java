@@ -51,7 +51,6 @@ import org.aksw.jenax.arq.datasource.HasDataset;
 import org.aksw.jenax.arq.datasource.RdfDataEngineFactory;
 import org.aksw.jenax.arq.datasource.RdfDataEngineFactoryRegistry;
 import org.aksw.jenax.arq.datasource.RdfDataEngines;
-import org.aksw.jenax.arq.datasource.RdfDataSourceDecorator;
 import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.arq.datasource.RdfDataSourceWithBnodeRewrite;
 import org.aksw.jenax.arq.picocli.CmdMixinArq;
@@ -64,17 +63,21 @@ import org.aksw.jenax.connection.query.QueryExecDecoratorTxn;
 import org.aksw.jenax.connection.query.QueryExecs;
 import org.aksw.jenax.connection.update.UpdateProcessorDecoratorBase;
 import org.aksw.jenax.connection.update.UpdateProcessorDecoratorTxn;
+import org.aksw.jenax.graphql.impl.core.GraphQlExecFactoryLazy;
+import org.aksw.jenax.graphql.impl.sparql.GraphQlExecFactoryOverSparql;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtMgr;
 import org.aksw.jenax.stmt.core.SparqlStmtQuery;
 import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
-import org.aksw.jenax.web.server.boot.FactoryBeanSparqlServer;
+import org.aksw.jenax.web.server.boot.ServerBuilder;
+import org.aksw.jenax.web.server.boot.ServletBuilder;
+import org.aksw.jenax.web.server.boot.ServletBuilderGraphQl;
+import org.aksw.jenax.web.server.boot.ServletBuilderSparql;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
-import com.google.common.base.Stopwatch;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.geosparql.spatial.SpatialIndex;
 import org.apache.jena.geosparql.spatial.SpatialIndexException;
@@ -108,6 +111,7 @@ import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -564,12 +568,17 @@ public class SparqlIntegrateCmdImpls {
                 };
 
                 int port = cmd.serverPort;
-                server = FactoryBeanSparqlServer.newInstance()
-                        .setSparqlServiceFactory((HttpServletRequest httpRequest) -> serverDataSource.getConnection())
-                        .setSparqlStmtParser(
-                                //SparqlStmtParser.wrapWithOptimizePrefixes(
-                                        processor.getSparqlParser()
-                                //)
+                server = ServerBuilder.newBuilder()
+                        .addServletBuilder(ServletBuilderSparql.newBuilder()
+                            .setSparqlServiceFactory((HttpServletRequest httpRequest) -> serverDataSource.getConnection())
+                            .setSparqlStmtParser(
+                                    //SparqlStmtParser.wrapWithOptimizePrefixes(
+                                    processor.getSparqlParser()
+                                    //)
+                            )
+                        )
+                        .addServletBuilder(ServletBuilderGraphQl.newBuilder()
+                                .setGraphQlExecFactory(GraphQlExecFactoryOverSparql.lazyAutoConf(serverDataSource))
                         )
                         .setPort(port).create();
 
