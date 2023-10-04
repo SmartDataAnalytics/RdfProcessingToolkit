@@ -578,7 +578,7 @@ public class SparqlIntegrateCmdImpls {
                             )
                         )
                         .addServletBuilder(ServletBuilderGraphQl.newBuilder()
-                                .setGraphQlExecFactory(GraphQlExecFactoryOverSparql.lazyAutoConf(serverDataSource))
+                                .setGraphQlExecFactory(GraphQlExecFactoryOverSparql.autoConfigureLazy(serverDataSource))
                         )
                         .setPort(port).create();
 
