@@ -43,16 +43,22 @@ import org.aksw.jena_sparql_api.user_defined_function.UserDefinedFunctions;
 import org.aksw.jenax.arq.connection.core.QueryExecutionFactories;
 import org.aksw.jenax.arq.connection.core.QueryExecutionFactory;
 import org.aksw.jenax.arq.connection.core.RDFConnectionUtils;
+import org.aksw.jenax.arq.connection.link.LinkSparqlQueryDecorizer;
+import org.aksw.jenax.arq.connection.link.LinkSparqlQueryTmp;
+import org.aksw.jenax.arq.connection.link.QueryExecBaseSelect;
+import org.aksw.jenax.arq.connection.link.QueryExecBuilderDelegateBaseParse;
 import org.aksw.jenax.arq.connection.link.QueryExecFactories;
 import org.aksw.jenax.arq.connection.link.QueryExecFactory;
 import org.aksw.jenax.arq.connection.link.QueryExecFactoryQueryDecorizer;
 import org.aksw.jenax.arq.connection.link.RDFLinkUtils;
+import org.aksw.jenax.arq.connection.link.RowSetDelegateBase;
 import org.aksw.jenax.arq.datasource.HasDataset;
 import org.aksw.jenax.arq.datasource.RdfDataEngineFactory;
 import org.aksw.jenax.arq.datasource.RdfDataEngineFactoryRegistry;
 import org.aksw.jenax.arq.datasource.RdfDataEngines;
 import org.aksw.jenax.arq.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.arq.datasource.RdfDataSourceWithBnodeRewrite;
+import org.aksw.jenax.arq.datasource.RdfDataSources;
 import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.jenax.arq.util.security.ArqSecurity;
 import org.aksw.jenax.arq.util.syntax.QueryUtils;
@@ -63,7 +69,6 @@ import org.aksw.jenax.connection.query.QueryExecDecoratorTxn;
 import org.aksw.jenax.connection.query.QueryExecs;
 import org.aksw.jenax.connection.update.UpdateProcessorDecoratorBase;
 import org.aksw.jenax.connection.update.UpdateProcessorDecoratorTxn;
-import org.aksw.jenax.graphql.impl.core.GraphQlExecFactoryLazy;
 import org.aksw.jenax.graphql.impl.sparql.GraphQlExecFactoryOverSparql;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtMgr;
@@ -72,7 +77,6 @@ import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
 import org.aksw.jenax.web.server.boot.ServerBuilder;
-import org.aksw.jenax.web.server.boot.ServletBuilder;
 import org.aksw.jenax.web.server.boot.ServletBuilderGraphQl;
 import org.aksw.jenax.web.server.boot.ServletBuilderSparql;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
@@ -100,6 +104,8 @@ import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.optimize.Optimize;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.exec.QueryExec;
+import org.apache.jena.sparql.exec.QueryExecBuilder;
+import org.apache.jena.sparql.exec.RowSet;
 import org.apache.jena.sparql.expr.ExprTransform;
 import org.apache.jena.sparql.function.user.ExprTransformExpand;
 import org.apache.jena.sparql.function.user.UserDefinedFunctionDefinition;
@@ -541,7 +547,15 @@ public class SparqlIntegrateCmdImpls {
                 return cd;
             };
 
-            RdfDataSource finalDataSource = dataSourceTmp2[0];
+            RdfDataSource dataSource = dataSourceTmp2[0];
+
+            // TODO Make this configurable
+            boolean clientSideConstructQuads = true;
+            if (clientSideConstructQuads) {
+                dataSource = RdfDataSources.execAsSelect(dataSource, query -> query.isConstructQuad());
+            }
+
+            RdfDataSource finalDataSource = dataSource;
 
 
             // RDFConnectionFactoryEx.getQueryConnection(conn)
