@@ -64,7 +64,10 @@ import org.aksw.jenax.dataaccess.sparql.factory.execution.query.QueryExecutionFa
 import org.aksw.jenax.dataaccess.sparql.factory.execution.query.QueryExecutionFactory;
 import org.aksw.jenax.dataaccess.sparql.link.common.RDFLinkUtils;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithBnodeRewrite;
+import org.aksw.jenax.graphql.GraphQlExecFactory;
+import org.aksw.jenax.graphql.impl.core.GraphQlResolverAlwaysFail;
 import org.aksw.jenax.graphql.impl.sparql.GraphQlExecFactoryOverSparql;
+import org.aksw.jenax.graphql.impl.sparql.GraphQlToSparqlConverter;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtMgr;
 import org.aksw.jenax.stmt.core.SparqlStmtQuery;
@@ -543,9 +546,9 @@ public class SparqlIntegrateCmdImpls {
             RdfDataSource dataSource = dataSourceTmp2[0];
 
             // TODO Make this configurable
-            boolean clientSideConstructQuads = true;
+            boolean clientSideConstructQuads = false;
             if (clientSideConstructQuads) {
-                dataSource = RdfDataSources.execAsSelect(dataSource, query -> query.isConstructQuad());
+                dataSource = RdfDataSources.execQueryViaSelect(dataSource, query -> query.isConstructQuad());
             }
 
             RdfDataSource finalDataSource = dataSource;
@@ -574,6 +577,10 @@ public class SparqlIntegrateCmdImpls {
                     return r;
                 };
 
+                GraphQlExecFactory graphQlExecFactory = cmd.graphQlAutoConfigure
+                    ? GraphQlExecFactoryOverSparql.autoConfigureLazy(serverDataSource)
+                    : new GraphQlExecFactoryOverSparql(serverDataSource, new GraphQlToSparqlConverter(new GraphQlResolverAlwaysFail()));
+
                 int port = cmd.serverPort;
                 server = ServerBuilder.newBuilder()
                         .addServletBuilder(ServletBuilderSparql.newBuilder()
@@ -585,7 +592,7 @@ public class SparqlIntegrateCmdImpls {
                             )
                         )
                         .addServletBuilder(ServletBuilderGraphQl.newBuilder()
-                                .setGraphQlExecFactory(GraphQlExecFactoryOverSparql.autoConfigureLazy(serverDataSource))
+                            .setGraphQlExecFactory(graphQlExecFactory)
                         )
                         .setPort(port).create();
 
