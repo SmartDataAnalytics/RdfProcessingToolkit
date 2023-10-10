@@ -109,6 +109,8 @@ make docker              # Build Docker image
 make release-bundle      # Create files for Github upload
 ```
 
+A docker image is available at https://registry.hub.docker.com/r/aksw/rpt
+
 ## License
 The source code of this repo is published under the [Apache License Version 2.0](LICENSE).
 Dependencies may be licensed under different terms. When in doubt please refer to the licenses of the dependencies declared in the `pom.xml` files.
