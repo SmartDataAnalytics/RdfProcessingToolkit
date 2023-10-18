@@ -53,6 +53,7 @@ import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactories;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactory;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactoryQueryTransform;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecs;
+import org.aksw.jenax.dataaccess.sparql.exec.update.UpdateExecDecoratorBase;
 import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorDecoratorBase;
 import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorDecoratorTxn;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFactory;
@@ -64,13 +65,10 @@ import org.aksw.jenax.dataaccess.sparql.factory.execution.query.QueryExecutionFa
 import org.aksw.jenax.dataaccess.sparql.factory.execution.query.QueryExecutionFactory;
 import org.aksw.jenax.dataaccess.sparql.link.common.RDFLinkUtils;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithBnodeRewrite;
-import org.aksw.jenax.graphql.GraphQlExecFactory;
-import org.aksw.jenax.graphql.impl.core.GraphQlResolverAlwaysFail;
-import org.aksw.jenax.graphql.impl.sparql.GraphQlExecFactoryOverSparql;
-import org.aksw.jenax.graphql.impl.sparql.GraphQlToSparqlConverter;
+import org.aksw.jenax.graphql.api.GraphQlExecFactory;
+import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtMgr;
-import org.aksw.jenax.stmt.core.SparqlStmtQuery;
 import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
@@ -81,8 +79,6 @@ import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
-import org.apache.jena.geosparql.spatial.SpatialIndex;
-import org.apache.jena.geosparql.spatial.SpatialIndexException;
 import org.apache.jena.irix.IRIx;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
@@ -102,6 +98,7 @@ import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.optimize.Optimize;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.exec.QueryExec;
+import org.apache.jena.sparql.exec.UpdateExec;
 import org.apache.jena.sparql.expr.ExprTransform;
 import org.apache.jena.sparql.function.user.ExprTransformExpand;
 import org.apache.jena.sparql.function.user.UserDefinedFunctionDefinition;
@@ -350,13 +347,12 @@ public class SparqlIntegrateCmdImpls {
 
         // Start the engine (wrooom)
 
-        Dataset dataset = null;
+        Dataset datasetTmp = null;
         RdfDataEngine dataSourceTmp = setupRdfDataEngine(cmd);
         if (dataSourceTmp instanceof HasDataset) {
-            dataset = ((HasDataset) dataSourceTmp).getDataset();
-
-            if (dataset != null) {
-                Context cxt = dataset.getContext();
+            datasetTmp = ((HasDataset) dataSourceTmp).getDataset();
+            if (datasetTmp != null) {
+                Context cxt = datasetTmp.getContext();
                 if (cxt != null) {
 
                     if (!cmd.server || cmd.unsafe) {
@@ -364,8 +360,12 @@ public class SparqlIntegrateCmdImpls {
                     }
                 }
             }
-
         }
+
+
+        Dataset finalDataset = datasetTmp;
+
+
         dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, null, QueryExecs::withDetailedHttpMessages);
 
         if (cmd.cachePath != null) {
@@ -545,6 +545,31 @@ public class SparqlIntegrateCmdImpls {
 
             RdfDataSource dataSource = dataSourceTmp2[0];
 
+
+            if (cmd.arqConfig.geoindex) {
+                if (finalDataset == null) {
+                    throw new RuntimeException("GeoIndex requested but the configured engine does not appear to be Jena-based as the dataset was null!");
+                } else {
+                    dataSource = RdfDataSources.decorateUpdate(dataSource, (UpdateExec ue) -> {
+                        return new UpdateExecDecoratorBase<>(ue) {
+                            @Override
+                            protected void afterExec() {
+                                logger.info("(Re-)computing geo index");
+                                try {
+                                    GeoSPARQLConfig.setupSpatialIndex(finalDataset);
+                                } catch (Exception e) {
+                                    if (e.getMessage().toLowerCase().contains("no srs found")) {
+                                        // ignore - assuming simply no geodata present
+                                    } else {
+                                        logger.error("Failed to udpate geo index after update", e);
+                                    }
+                                }
+                            }
+                        };
+                    });
+                }
+            }
+
             // TODO Make this configurable
             boolean clientSideConstructQuads = false;
             if (clientSideConstructQuads) {
@@ -552,7 +577,6 @@ public class SparqlIntegrateCmdImpls {
             }
 
             RdfDataSource finalDataSource = dataSource;
-
 
             // RDFConnectionFactoryEx.getQueryConnection(conn)
             Server server = null;
@@ -562,24 +586,23 @@ public class SparqlIntegrateCmdImpls {
 //                Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
 //                        prefixMapping, false);// .getQueryParser();
 
-                Dataset finalDataset = dataset;
                 RdfDataSource serverDataSource = () -> {
                     RDFConnection r = finalDataSource.getConnection();
                     if (cmd.readOnlyMode) {
                         r = RDFConnectionUtils.wrapWithQueryOnly(r);
                     }
-                    try {
-                        RDFConnection spatialRdfConnection = getSpatialRdfConnection(cmd, finalDataset, r, true);
-                        r = spatialRdfConnection;
-                    } catch (SpatialIndexException e) {
-                        logger.error("Error encountered", e);
-                    }
+//                    try {
+//                        RDFConnection spatialRdfConnection = getSpatialRdfConnection(cmd, finalDataset, r, true);
+//                        r = spatialRdfConnection;
+//                    } catch (SpatialIndexException e) {
+//                        logger.error("Error encountered", e);
+//                    }
                     return r;
                 };
 
                 GraphQlExecFactory graphQlExecFactory = cmd.graphQlAutoConfigure
-                    ? GraphQlExecFactoryOverSparql.autoConfigureLazy(serverDataSource)
-                    : new GraphQlExecFactoryOverSparql(serverDataSource, new GraphQlToSparqlConverter(new GraphQlResolverAlwaysFail()));
+                    ? GraphQlExecFactoryOverSparql.autoConfLazy(serverDataSource)
+                    : GraphQlExecFactoryOverSparql.of(serverDataSource);
 
                 int port = cmd.serverPort;
                 server = ServerBuilder.newBuilder()
@@ -606,9 +629,6 @@ public class SparqlIntegrateCmdImpls {
                 }
             }
 
-            if (cmd.arqConfig.geoindex && dataset == null) {
-                logger.warn("Cannot compute geo index with non data-set connection");
-            }
             try (RDFConnection conn = finalDataSource.getConnection()) {
 
                 for (Entry<SparqlStmt, Provenance> stmtEntry : workloads) {
@@ -616,9 +636,9 @@ public class SparqlIntegrateCmdImpls {
                     String clusterId = splitFolder == null ? "" : Optional.ofNullable(prov.getSourceLocalName()).orElse("");
 
                     SPARQLResultExProcessor sink = clusterToSink.get(clusterId);
-                    RDFConnection connB = getSpatialRdfConnection(cmd, dataset, conn, stmtEntry.getKey() instanceof SparqlStmtQuery);
+//                    RDFConnection connB = getSpatialRdfConnection(cmd, dataset, conn, stmtEntry.getKey() instanceof SparqlStmtQuery);
                     try {
-                        execStmt(connB, stmtEntry, sink);
+                        execStmt(conn, stmtEntry, sink);
                     } catch (Exception e) {
                         String message = "Error encountered; trying to continue but exit code will be non-zero";
                         if (cmd.isDebugMode()) {
@@ -676,16 +696,17 @@ public class SparqlIntegrateCmdImpls {
         return exitCode;
     }
 
-    private static RDFConnection getSpatialRdfConnection(CmdSparqlIntegrateMain cmd, Dataset dataset, RDFConnection conn, boolean compute) throws SpatialIndexException {
-        if (cmd.arqConfig.geoindex && dataset != null && compute) {
-            logger.info("Computing geo index");
-            GeoSPARQLConfig.setupSpatialIndex(dataset);
-            Object spatialIndex = dataset.getContext().get(SpatialIndex.SPATIAL_INDEX_SYMBOL);
-            return RDFConnectionUtils.wrapWithContextMutator(conn, (ctx) -> ctx.put(SpatialIndex.SPATIAL_INDEX_SYMBOL, spatialIndex));
-            //GeoSPARQLConfig.setupSpatialIndex(dataSourceTmp.getConnection().fetchDataset());
-        }
-        return conn;
-    }
+
+//    private static RDFConnection getSpatialRdfConnection(CmdSparqlIntegrateMain cmd, Dataset dataset, RDFConnection conn, boolean compute) throws SpatialIndexException {
+//        if (cmd.arqConfig.geoindex && dataset != null && compute) {
+//            logger.info("Computing geo index");
+//            GeoSPARQLConfig.setupSpatialIndex(dataset);
+//            Object spatialIndex = dataset.getContext().get(SpatialIndex.SPATIAL_INDEX_SYMBOL);
+//            return RDFConnectionUtils.wrapWithContextMutator(conn, (ctx) -> ctx.put(SpatialIndex.SPATIAL_INDEX_SYMBOL, spatialIndex));
+//            //GeoSPARQLConfig.setupSpatialIndex(dataSourceTmp.getConnection().fetchDataset());
+//        }
+//        return conn;
+//    }
 
 
     // This needs to be do on the connection's context
