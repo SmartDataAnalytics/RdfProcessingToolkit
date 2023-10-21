@@ -47,15 +47,15 @@ import org.aksw.jenax.arq.util.syntax.QueryUtils;
 import org.aksw.jenax.dataaccess.sparql.connection.common.RDFConnectionUtils;
 import org.aksw.jenax.dataaccess.sparql.dataengine.RdfDataEngine;
 import org.aksw.jenax.dataaccess.sparql.datasource.RdfDataSource;
-import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecDecoratorBase;
-import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecDecoratorTxn;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactories;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactory;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactoryQueryTransform;
+import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecWrapperBase;
+import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecWrapperTxn;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecs;
-import org.aksw.jenax.dataaccess.sparql.exec.update.UpdateExecDecoratorBase;
-import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorDecoratorBase;
-import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorDecoratorTxn;
+import org.aksw.jenax.dataaccess.sparql.exec.update.UpdateExecWrapperBase;
+import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorWrapperBase;
+import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorWrapperTxn;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFactory;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFactoryRegistry;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngines;
@@ -98,14 +98,18 @@ import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.optimize.Optimize;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.exec.QueryExec;
-import org.apache.jena.sparql.exec.UpdateExec;
 import org.apache.jena.sparql.expr.ExprTransform;
 import org.apache.jena.sparql.function.user.ExprTransformExpand;
 import org.apache.jena.sparql.function.user.UserDefinedFunctionDefinition;
+import org.apache.jena.sparql.modify.request.UpdateData;
+import org.apache.jena.sparql.modify.request.UpdateLoad;
+import org.apache.jena.sparql.modify.request.UpdateModify;
 import org.apache.jena.sparql.service.enhancer.init.ServiceEnhancerInit;
 import org.apache.jena.sparql.util.Context;
+import org.apache.jena.sparql.util.Symbol;
 import org.apache.jena.system.Txn;
 import org.apache.jena.update.UpdateProcessor;
+import org.apache.jena.update.UpdateRequest;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,6 +142,9 @@ public class SparqlIntegrateCmdImpls {
         RdfDataEngine result = factory.create(spec.getMap());
         return result;
     }
+
+    public static final Symbol SPATIAL_INDEX_IS_CLEAN = Symbol.create("http://jena.apache.org/spatial#indexIsClean");
+
 
     public static int sparqlIntegrate(CmdSparqlIntegrateMain cmd) throws Exception {
         int exitCode = 0; // success unless error
@@ -362,9 +369,13 @@ public class SparqlIntegrateCmdImpls {
             }
         }
 
-
         Dataset finalDataset = datasetTmp;
 
+        if (cmd.arqConfig.geoindex) {
+            if (finalDataset == null) {
+                throw new RuntimeException("GeoIndex requested but the configured engine does not appear to be Jena-based as the dataset was null!");
+            }
+        }
 
         dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, null, QueryExecs::withDetailedHttpMessages);
 
@@ -476,7 +487,7 @@ public class SparqlIntegrateCmdImpls {
 
                         Duration delayDuration = cmd.delay;
                         if (!delayDuration.isZero()) {
-                            r = new QueryExecDecoratorBase<>(r) {
+                            r = new QueryExecWrapperBase<>(r) {
                                 @Override
                                 public void beforeExec() {
                                     Delayer delayer = DelayerDefault.createFromNow(delayDuration.toMillis());
@@ -491,7 +502,7 @@ public class SparqlIntegrateCmdImpls {
                         }
 
                         if (cmd.showAlgebra) {
-                            r = new QueryExecDecoratorBase<>(r) {
+                            r = new QueryExecWrapperBase<>(r) {
                                 @Override
                                 public void beforeExec() {
                                     Query q = getQuery();
@@ -511,14 +522,25 @@ public class SparqlIntegrateCmdImpls {
                             };
                         }
 
-                        r = QueryExecDecoratorTxn.wrap(r, cb);
+                        r = QueryExecWrapperTxn.wrap(r, cb);
+
+                        if (cmd.arqConfig.geoindex) {
+                            r = new QueryExecWrapperBase<>(r) {
+                                @Override
+                                public void beforeExec() {
+                                    // Txn.executeWrite(finalDataset, () -> {
+                                    updateSpatialIndexIfDirty(finalDataset);
+                                    // });
+                                }
+                            };
+                        }
                         return r;
                     });
 
                 RDFConnection cd = RDFConnectionUtils.wrapWithUpdateTransform(cc, null, (ur, up) -> {
                     UpdateProcessor r = up;
                     if (cmd.showAlgebra) {
-                        r = new UpdateProcessorDecoratorBase<>(up) {
+                        r = new UpdateProcessorWrapperBase<>(up) {
                             @Override
                             public void beforeExec() {
                                 if (ur != null) {
@@ -536,7 +558,34 @@ public class SparqlIntegrateCmdImpls {
                             }
                         };
                     }
-                    r = UpdateProcessorDecoratorTxn.wrap(r, cb);
+
+                    r = UpdateProcessorWrapperTxn.wrap(r, cb);
+
+                    if (cmd.arqConfig.geoindex) {
+                        r = new UpdateExecWrapperBase<>(r) {
+                            protected boolean spatialUpdateNeeded = false;
+
+                            @Override
+                            public void beforeExec() {
+                                spatialUpdateNeeded = isSpatialIndexUpdateImmediatelyRequired(ur);
+                                if (spatialUpdateNeeded) {
+                                    updateSpatialIndexIfDirty(finalDataset);
+                                }
+                            }
+
+                            @Override
+                            public void afterExec() {
+                                // Always mark index dirty after update
+                                finalDataset.getContext().setFalse(SPATIAL_INDEX_IS_CLEAN);
+
+                                // Defer update
+                                if (false && spatialUpdateNeeded) {
+                                    // Note: The update runs in the same transaction as the update!
+                                    updateSpatialIndexIfDirty(finalDataset);
+                                }
+                            }
+                        };
+                    }
                     return r;
                 });
 
@@ -544,31 +593,6 @@ public class SparqlIntegrateCmdImpls {
             };
 
             RdfDataSource dataSource = dataSourceTmp2[0];
-
-
-            if (cmd.arqConfig.geoindex) {
-                if (finalDataset == null) {
-                    throw new RuntimeException("GeoIndex requested but the configured engine does not appear to be Jena-based as the dataset was null!");
-                } else {
-                    dataSource = RdfDataSources.decorateUpdate(dataSource, (UpdateExec ue) -> {
-                        return new UpdateExecDecoratorBase<>(ue) {
-                            @Override
-                            protected void afterExec() {
-                                logger.info("(Re-)computing geo index");
-                                try {
-                                    GeoSPARQLConfig.setupSpatialIndex(finalDataset);
-                                } catch (Exception e) {
-                                    if (e.getMessage().toLowerCase().contains("no srs found")) {
-                                        // ignore - assuming simply no geodata present
-                                    } else {
-                                        logger.error("Failed to udpate geo index after update", e);
-                                    }
-                                }
-                            }
-                        };
-                    });
-                }
-            }
 
             // TODO Make this configurable
             boolean clientSideConstructQuads = false;
@@ -630,7 +654,6 @@ public class SparqlIntegrateCmdImpls {
             }
 
             try (RDFConnection conn = finalDataSource.getConnection()) {
-
                 for (Entry<SparqlStmt, Provenance> stmtEntry : workloads) {
                     Provenance prov = stmtEntry.getValue();
                     String clusterId = splitFolder == null ? "" : Optional.ofNullable(prov.getSourceLocalName()).orElse("");
@@ -648,9 +671,7 @@ public class SparqlIntegrateCmdImpls {
                         }
                         exitCode = 1;
                     }
-
                 }
-
             }
 
             for (SPARQLResultExProcessor sink : clusterToSink.values()) {
@@ -696,7 +717,46 @@ public class SparqlIntegrateCmdImpls {
         return exitCode;
     }
 
+    /** Be careful not to call within a read transaction! */
+    public static void updateSpatialIndexIfDirty(Dataset dataset) {
+        Context cxt = dataset.getContext();
+        if (cxt != null && cxt.isFalseOrUndef(SPATIAL_INDEX_IS_CLEAN)) {
+            logger.info("(Re-)computing geo index");
+            try {
+                GeoSPARQLConfig.setupSpatialIndex(dataset);
+                cxt.setTrue(SPATIAL_INDEX_IS_CLEAN);
+            } catch (Exception e) {
+                if (e.getMessage().toLowerCase().contains("no srs found")) {
+                    // ignore - assuming simply no geodata present
+                } else {
+                    logger.error("Failed to udpate geo index after update", e);
+                }
+            }
+        }
+    }
 
+    /** Returns true if the update request mentions a where pattern */
+    public static boolean isSpatialIndexUpdateImmediatelyRequired(UpdateRequest updateRequest) {
+        // If the update request is only LOAD statements then
+        // do not build it immediately
+        boolean isPatternless = updateRequest == null
+                ? false // Robustness; should never be null
+                : updateRequest.getOperations().stream()
+                    .allMatch(update -> {
+                        boolean patternless = false;
+                        if (update instanceof UpdateLoad) {
+                            patternless = true;
+                        } else if (update instanceof UpdateData) {
+                            patternless = true;
+                        } else if (update instanceof UpdateLoad) {
+                            UpdateModify um = (UpdateModify)update;
+                            patternless = um.getWherePattern() == null;
+                        }
+                        return patternless;
+                    })
+                ;
+        return !isPatternless;
+    }
 //    private static RDFConnection getSpatialRdfConnection(CmdSparqlIntegrateMain cmd, Dataset dataset, RDFConnection conn, boolean compute) throws SpatialIndexException {
 //        if (cmd.arqConfig.geoindex && dataset != null && compute) {
 //            logger.info("Computing geo index");
@@ -711,7 +771,6 @@ public class SparqlIntegrateCmdImpls {
 
     // This needs to be do on the connection's context
     public static void configureOptimizer(Context cxt) {
-
         ServiceEnhancerInit.wrapOptimizer(cxt);
         // ServicePlugins.wrapOptimizer(cxt);
 
@@ -807,3 +866,39 @@ public class SparqlIntegrateCmdImpls {
         return result;
     }
 }
+
+
+
+
+//if (cmd.arqConfig.geoindex) {
+//  if (finalDataset == null) {
+//      throw new RuntimeException("GeoIndex requested but the configured engine does not appear to be Jena-based as the dataset was null!");
+//  } else {
+//      dataSource = RdfDataSources.decorateUpdate(dataSource, (UpdateExec ue) -> {
+//          return new UpdateExecWrapperBase<>(ue) {
+//              @Override
+//              protected void afterExec() {
+//                  finalDataset.getContext().setFalse(SPATIAL_INDEX_IS_CLEAN);
+//                  // Note: The update runs in the same transaction as the update!
+//                  updateSpatialIndexIfDirty(finalDataset);
+//              }
+//          };
+//      });
+//
+//      dataSource = RdfDataSources.decorateQueryBeforeTxnBegin(dataSource, () -> {
+//          Txn.executeWrite(finalDataset, () -> {
+//              updateSpatialIndexIfDirty(finalDataset);
+//          });
+//      });
+//  }
+//}
+//
+//boolean alwaysUseTxn = true;
+//if (alwaysUseTxn) {
+//  dataSource = RdfDataSources.applyLinkTransform(dataSource, link -> {
+//      RDFLink r = link;
+//      r = RDFLinkUtils.wrapWithQueryTransform(r, null, (QueryExec qe) -> QueryExecWrapperTxn.wrap(qe, link));
+//      r = RDFLinkUtils.wrapWithUpdateTransform(r, null, (ur, ue) -> UpdateExecWrapperTxn.wrap(ue, link));
+//      return r;
+//  });
+//}
