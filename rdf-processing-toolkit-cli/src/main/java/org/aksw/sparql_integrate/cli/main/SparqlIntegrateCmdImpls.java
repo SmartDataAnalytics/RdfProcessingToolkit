@@ -79,6 +79,7 @@ import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
+import org.apache.jena.geosparql.spatial.SpatialIndex;
 import org.apache.jena.irix.IRIx;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
@@ -525,12 +526,24 @@ public class SparqlIntegrateCmdImpls {
                         r = QueryExecWrapperTxn.wrap(r, cb);
 
                         if (cmd.arqConfig.geoindex) {
+
+                            // Spatial index creation must happen outside of a transaction!
                             r = new QueryExecWrapperBase<>(r) {
                                 @Override
                                 public void beforeExec() {
-                                    // Txn.executeWrite(finalDataset, () -> {
-                                    updateSpatialIndexIfDirty(finalDataset);
-                                    // });
+                                    Context finalDatasetCxt = finalDataset.getContext();
+                                    if (finalDatasetCxt != null && finalDatasetCxt.isFalseOrUndef(SPATIAL_INDEX_IS_CLEAN)) {
+                                        updateSpatialIndex(finalDataset);
+
+                                        // The the spatial index symbol is in the dataset's context
+                                        // copy it into the query exec's context.
+                                        // TODO This is hacky; can we avoid the copy?
+                                        Context execCxt = getContext();
+                                        if (execCxt != null) {
+                                            execCxt.set(SpatialIndex.SPATIAL_INDEX_SYMBOL,
+                                                    finalDataset.getContext().get(SpatialIndex.SPATIAL_INDEX_SYMBOL));
+                                        }
+                                    }
                                 }
                             };
                         }
@@ -567,9 +580,20 @@ public class SparqlIntegrateCmdImpls {
 
                             @Override
                             public void beforeExec() {
-                                spatialUpdateNeeded = isSpatialIndexUpdateImmediatelyRequired(ur);
-                                if (spatialUpdateNeeded) {
-                                    updateSpatialIndexIfDirty(finalDataset);
+                                Context finalDatasetCxt = finalDataset.getContext();
+                                if (finalDatasetCxt != null && finalDatasetCxt.isFalseOrUndef(SPATIAL_INDEX_IS_CLEAN)) {
+                                    spatialUpdateNeeded = isSpatialIndexUpdateImmediatelyRequired(ur);
+                                    if (spatialUpdateNeeded) {
+                                        updateSpatialIndex(finalDataset);
+
+                                        // The the spatial index symbol is in the dataset's context
+                                        // copy it into the query exec's context.
+                                        Context execCxt = getContext();
+                                        if (execCxt != null) {
+                                            execCxt.set(SpatialIndex.SPATIAL_INDEX_SYMBOL,
+                                                    finalDataset.getContext().getAsString(SpatialIndex.SPATIAL_INDEX_SYMBOL));
+                                        }
+                                    }
                                 }
                             }
 
@@ -581,7 +605,7 @@ public class SparqlIntegrateCmdImpls {
                                 // Defer update
                                 if (false && spatialUpdateNeeded) {
                                     // Note: The update runs in the same transaction as the update!
-                                    updateSpatialIndexIfDirty(finalDataset);
+                                    updateSpatialIndex(finalDataset);
                                 }
                             }
                         };
@@ -718,19 +742,17 @@ public class SparqlIntegrateCmdImpls {
     }
 
     /** Be careful not to call within a read transaction! */
-    public static void updateSpatialIndexIfDirty(Dataset dataset) {
+    public static void updateSpatialIndex(Dataset dataset) {
         Context cxt = dataset.getContext();
-        if (cxt != null && cxt.isFalseOrUndef(SPATIAL_INDEX_IS_CLEAN)) {
-            logger.info("(Re-)computing geo index");
-            try {
-                GeoSPARQLConfig.setupSpatialIndex(dataset);
-                cxt.setTrue(SPATIAL_INDEX_IS_CLEAN);
-            } catch (Exception e) {
-                if (e.getMessage().toLowerCase().contains("no srs found")) {
-                    // ignore - assuming simply no geodata present
-                } else {
-                    logger.error("Failed to udpate geo index after update", e);
-                }
+        logger.info("(Re-)computing geo index");
+        try {
+            GeoSPARQLConfig.setupSpatialIndex(dataset);
+            cxt.setTrue(SPATIAL_INDEX_IS_CLEAN);
+        } catch (Exception e) {
+            if (e.getMessage().toLowerCase().contains("no srs found")) {
+                // ignore - assuming simply no geodata present
+            } else {
+                logger.error("Failed to udpate geo index after update", e);
             }
         }
     }
@@ -837,8 +859,6 @@ public class SparqlIntegrateCmdImpls {
 
 
     }
-
-
 
     /**
      * Checks whether transactions with the given transactional
