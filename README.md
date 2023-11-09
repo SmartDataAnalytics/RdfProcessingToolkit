@@ -105,7 +105,11 @@ make rpm-rere            # Rebuild and reinstall rpm package
 make deb-rebuild         # Rebuild the deb package (minimal build of only required modules)
 make deb-reinstall       # Reinstall deb (requires prior build)
 make deb-rere            # Rebuild and reinstall deb package
+make docker              # Build Docker image
+make release-bundle      # Create files for Github upload
 ```
+
+A docker image is available at https://registry.hub.docker.com/r/aksw/rpt
 
 ## License
 The source code of this repo is published under the [Apache License Version 2.0](LICENSE).
