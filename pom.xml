@@ -49,6 +49,8 @@
 	<properties>
 		<slf4j.version>2.0.9</slf4j.version>
 		<log4j.version>2.21.0</log4j.version>
+		<jetty.version>12.0.3</jetty.version>
+		<jersey.version>3.1.3</jersey.version>
 
 		<jena.version>5.0.0-SNAPSHOT</jena.version>
 		<jenax.version>5.0.0-1-SNAPSHOT</jenax.version>
@@ -62,7 +64,7 @@
 		<jackson.version>2.12.0</jackson.version>
 		<commons-vfs2.version>2.9.0</commons-vfs2.version>
 		<hadoop.version>3.3.4</hadoop.version>
-		<jetty.version>9.4.40.v20210413</jetty.version>
+		<!-- <jetty.version>9.4.40.v20210413</jetty.version> -->
 		<timestamp>${maven.build.timestamp}</timestamp>
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
 		<!-- Project Settings -->
@@ -80,20 +82,26 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
-				<!--				<groupId>org.apache.hadoop</groupId>-->
-				<!--				<artifactId>hadoop-client</artifactId>-->
-				<!--				<version>${hadoop.version}</version>-->
-				<!--			</dependency>-->
-				<!--			<dependency>-->
-				<!--				<groupId>org.apache.hadoop</groupId>-->
-				<!--				<artifactId>hadoop-client-api</artifactId>-->
-				<!--				<version>${hadoop.version}</version>-->
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-bom</artifactId>
+				<version>${jetty.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>javax.ws.rs</groupId>
+				<artifactId>javax.ws.rs-api</artifactId>
+				<version>2.1.1</version>
+			</dependency>
+
+			<dependency>
 				<groupId>org.apache.hadoop</groupId>
 				<artifactId>hadoop-common</artifactId>
 				<version>${hadoop.version}</version>
 				<!-- <exclusions> <exclusion> <groupId>*</groupId>
 				<artifactId>*</artifactId> 
-                                        </exclusion> </exclusions> -->
+                </exclusion> </exclusions> -->
 				<!-- Exclude web stuff (jetty, jersey)from hadoop -->
 				<exclusions>
 					<exclusion>
@@ -158,6 +166,27 @@
 				</exclusions>
 			</dependency>
 			<dependency>
+				<groupId>org.apache.hadoop</groupId>
+				<artifactId>hadoop-mapreduce-client-core</artifactId>
+				<version>${hadoop.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>org.eclipse.jetty.websocket</groupId>
+						<artifactId>websocket-client</artifactId>
+					</exclusion>
+				</exclusions>
+			</dependency>
+
+			<!-- Also declares versions for sub groups such as org.glassfish.jersey.containers -->
+			<dependency>
+				<groupId>org.glassfish.jersey</groupId>
+				<artifactId>jersey-bom</artifactId>
+				<version>${jersey.version}</version>
+				<scope>import</scope>
+				<type>pom</type>
+			</dependency>
+
+			<dependency>
 				<groupId>org.aksw.conjure</groupId>
 				<artifactId>conjure-datasources</artifactId>
 				<version>${conjure.version}</version>
@@ -201,7 +230,6 @@
 				<scope>import</scope>
 				<type>pom</type>
 			</dependency>
-
 			<dependency>
 				<groupId>org.apache.logging.log4j</groupId>
 				<artifactId>log4j-bom</artifactId>
@@ -418,6 +446,7 @@
 			</dependency>
 			<!-- explicit jetty dependencies to pin version conflict with
 			hadoop-client -->
+			<!--
 			<dependency>
 				<groupId>org.eclipse.jetty</groupId>
 				<artifactId>jetty-client</artifactId>
@@ -493,6 +522,7 @@
 				<artifactId>apache-jsp</artifactId>
 				<version>${jetty.version}</version>
 			</dependency>
+			-->
 			<dependency>
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>

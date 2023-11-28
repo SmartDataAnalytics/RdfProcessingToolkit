@@ -21,8 +21,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jena_sparql_api.cache.advanced.RdfDataSourceWithRangeCache;
@@ -115,8 +113,9 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.hash.HashCode;
 import com.google.common.io.BaseEncoding;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
