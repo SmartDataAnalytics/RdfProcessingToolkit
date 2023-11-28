@@ -57,11 +57,19 @@ public class CmdSparqlIntegrateMain
     public boolean readOnlyMode = false;
 
 
+    /* Caching Options */
+
+    @Option(names = { "--dataset-id" }, description="An ID for the initial dataset in the configured engine (before applying any updates). Used for cache lookups (if enabled).")
+    public String datasetId = null;
+
     @Option(names = { "--cache-engine" }, description="Cache engine. Supported: 'none', 'mem', 'disk'")
     public String cacheEngine = null;
 
     @Option(names = { "--cache-loc" }, description="Cache location; if provided then engine defaults to 'disk'")
     public String cachePath = null;
+
+    @Option(names = { "--cache-rewrite-groupby" }, description="Cache GROUP BY operations individually. Ignored if no cache engine is specified.") //, defaultValue = "false", fallbackValue = "true")
+    public boolean cacheRewriteGroupBy = false;
 
 
 

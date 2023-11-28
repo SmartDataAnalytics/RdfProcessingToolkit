@@ -25,7 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
-import org.aksw.jena_sparql_api.cache.advanced.QueryExecFactoryQueryRangeCache;
+import org.aksw.jena_sparql_api.cache.advanced.RdfDataSourceWithRangeCache;
 import org.aksw.jena_sparql_api.delay.extra.Delayer;
 import org.aksw.jena_sparql_api.delay.extra.DelayerDefault;
 import org.aksw.jena_sparql_api.rx.io.resultset.OutputFormatSpec;
@@ -47,9 +47,6 @@ import org.aksw.jenax.arq.util.syntax.QueryUtils;
 import org.aksw.jenax.dataaccess.sparql.connection.common.RDFConnectionUtils;
 import org.aksw.jenax.dataaccess.sparql.dataengine.RdfDataEngine;
 import org.aksw.jenax.dataaccess.sparql.datasource.RdfDataSource;
-import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactories;
-import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactory;
-import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactoryQueryTransform;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecWrapperBase;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecWrapperTxn;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecs;
@@ -61,10 +58,9 @@ import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFactoryR
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngines;
 import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSources;
-import org.aksw.jenax.dataaccess.sparql.factory.execution.query.QueryExecutionFactories;
-import org.aksw.jenax.dataaccess.sparql.factory.execution.query.QueryExecutionFactory;
 import org.aksw.jenax.dataaccess.sparql.link.common.RDFLinkUtils;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithBnodeRewrite;
+import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalCache;
 import org.aksw.jenax.graphql.api.GraphQlExecFactory;
 import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
 import org.aksw.jenax.stmt.core.SparqlStmt;
@@ -119,6 +115,8 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.google.common.hash.HashCode;
+import com.google.common.io.BaseEncoding;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
@@ -381,20 +379,61 @@ public class SparqlIntegrateCmdImpls {
         dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, null, QueryExecs::withDetailedHttpMessages);
 
         if (cmd.cachePath != null) {
-            Path cachePath = Path.of(cmd.cachePath);
-            Path parent = cachePath.getParent();
+            Path cachePathBase = Path.of(cmd.cachePath);
+            Path parent = cachePathBase.getParent();
             if (parent != null && !Files.exists(parent)) {
-                throw new RuntimeException("Folder " + parent + " does not exist");
+                throw new RuntimeException("Cannot initialize cache because folder " + parent + " does not exist");
             }
 
-            QueryExecFactoryQueryTransform decorizer = QueryExecFactoryQueryRangeCache
-                    .createQueryExecMod(cachePath, cmd.dbMaxResultSize);
+            String datasetId = cmd.datasetId;
+            if (datasetId == null) {
+                datasetId = RdfDataSources.fetchDatasetHash(dataSourceTmp);
+                if (logger.isInfoEnabled()) {
+                    logger.info("Automatically derived datasetId using data sampling: " + datasetId);
+                    logger.info("Use '--dataset-id your-id' to configure the datasetId manually.");
+                }
+            }
 
-            QueryExecutionFactory i = QueryExecutionFactories.of(dataSourceTmp);
-            QueryExecFactory j = QueryExecFactories.adapt(i);
-            QueryExecFactory k = QueryExecFactories.adapt(decorizer.apply(j));
-            QueryExecutionFactory l = QueryExecutionFactories.adapt(k);
-            dataSourceTmp = RdfDataEngines.adapt(l);
+            if (datasetId.isEmpty()) {
+                datasetId = "unknown";
+            }
+
+            // Sanitize XXX Maybe use some better method?
+            datasetId = BaseEncoding.base64Url().encode(datasetId.getBytes());
+            Path cachePath = cachePathBase.resolve(datasetId);
+
+            if (logger.isInfoEnabled()) {
+                logger.info("DatasetId: " + datasetId);
+                logger.info("Cache folder: " + cachePath);
+            }
+
+
+//            HashCode datasetHashCode;
+//            try {
+//            	byte[] decoded = BaseEncoding.base64Url().decode(datasetId);
+//            	datasetHashCode = HashCode.fromBytes(decoded);
+//            } catch (Exception e) {
+//            	logger.info("Could not decode datasetId as a ");
+//
+//            }
+
+            dataSourceTmp = RdfDataEngines.transform(dataSourceTmp, ds -> RdfDataSourceWithRangeCache.create(ds, cachePath, cmd.dbMaxResultSize));
+
+//            RdfDataEngines.wrapWithCustomQueryExecBuilder(dataSourceTmp, ds -> new QueryExecBuilderCustomBase<QueryExecBuilder>() {
+//            });
+//
+//            QueryExecFactoryQueryTransform decorizer = QueryExecFactoryQueryRangeCache
+//                    .createQueryExecMod(cachePath, cmd.dbMaxResultSize);
+//
+//            QueryExecutionFactory i = QueryExecutionFactories.of(dataSourceTmp);
+//            QueryExecFactory j = QueryExecFactories.adapt(i);
+//            QueryExecFactory k = QueryExecFactories.adapt(decorizer.apply(j));
+//            QueryExecutionFactory l = QueryExecutionFactories.adapt(k);
+//            dataSourceTmp = RdfDataEngines.adapt(l);
+
+            if (cmd.cacheRewriteGroupBy) {
+                dataSourceTmp = RdfDataEngines.of(new RdfDataSourceWithLocalCache(dataSourceTmp), dataSourceTmp);
+            }
         }
 
         if ("sansa".equalsIgnoreCase(cmd.dbLoader)) {
@@ -559,12 +598,15 @@ public class SparqlIntegrateCmdImpls {
                                 if (ur != null) {
                                     Op op = SparqlStmtUtils.toAlgebra(new SparqlStmtUpdate(ur));
                                     if (op != null) {
-                                        Context cxt = getContext();
+                                        // Context cxt = getContext();
+                                        Context cxt = finalDataset.getContext();
                                         if (cxt != null) {
                                             op = Optimize.optimize(op, cxt);
                                         }
                                         if (op != null) {
-                                            logger.info("Algebra of " + ur + ":\n" + op);
+                                            if (logger.isInfoEnabled()) {
+                                                logger.info("Algebra of " + ur + ":\n" + op);
+                                            }
                                         }
                                     }
                                 }
@@ -588,7 +630,8 @@ public class SparqlIntegrateCmdImpls {
 
                                         // The the spatial index symbol is in the dataset's context
                                         // copy it into the query exec's context.
-                                        Context execCxt = getContext();
+                                        // Context execCxt = getContext();
+                                        Context execCxt = finalDatasetCxt;
                                         if (execCxt != null) {
                                             execCxt.set(SpatialIndex.SPATIAL_INDEX_SYMBOL,
                                                     finalDataset.getContext().getAsString(SpatialIndex.SPATIAL_INDEX_SYMBOL));
