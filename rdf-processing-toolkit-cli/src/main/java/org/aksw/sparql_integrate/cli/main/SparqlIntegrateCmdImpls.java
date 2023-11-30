@@ -46,11 +46,9 @@ import org.aksw.jenax.dataaccess.sparql.connection.common.RDFConnectionUtils;
 import org.aksw.jenax.dataaccess.sparql.dataengine.RdfDataEngine;
 import org.aksw.jenax.dataaccess.sparql.datasource.RdfDataSource;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecWrapperBase;
-import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecWrapperTxn;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecs;
 import org.aksw.jenax.dataaccess.sparql.exec.update.UpdateExecWrapperBase;
 import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorWrapperBase;
-import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorWrapperTxn;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFactory;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFactoryRegistry;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngines;
@@ -350,7 +348,7 @@ public class SparqlIntegrateCmdImpls {
             clusterToSink.put(filename, effectiveHandler);
         }
 
-        // Start the engine (wrooom)
+        // Start the engine
 
         Dataset datasetTmp = null;
         RdfDataEngine dataSourceTmp = setupRdfDataEngine(cmd);
@@ -366,6 +364,11 @@ public class SparqlIntegrateCmdImpls {
                 }
             }
         }
+
+        // Auto transactions are handled by the DataEngineFactory implementations
+//        if (datasetTmp != null) {
+//            dataSourceTmp = RdfDataEngines.wrapWithAutoTxn(dataSourceTmp, datasetTmp);
+//        }
 
         Dataset finalDataset = datasetTmp;
 
@@ -561,7 +564,7 @@ public class SparqlIntegrateCmdImpls {
                             };
                         }
 
-                        r = QueryExecWrapperTxn.wrap(r, cb);
+                        // r = QueryExecWrapperTxn.wrap(r, cb);
 
                         if (cmd.arqConfig.geoindex) {
 
@@ -613,7 +616,7 @@ public class SparqlIntegrateCmdImpls {
                         };
                     }
 
-                    r = UpdateProcessorWrapperTxn.wrap(r, cb);
+                    // r = UpdateProcessorWrapperTxn.wrap(r, cb);
 
                     if (cmd.arqConfig.geoindex) {
                         r = new UpdateExecWrapperBase<>(r) {
