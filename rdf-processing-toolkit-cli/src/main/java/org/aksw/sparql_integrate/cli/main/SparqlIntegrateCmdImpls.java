@@ -91,8 +91,11 @@ import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.optimize.Optimize;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.exec.QueryExec;
+import org.apache.jena.sparql.expr.Expr;
+import org.apache.jena.sparql.expr.ExprFunctionN;
+import org.apache.jena.sparql.expr.ExprList;
 import org.apache.jena.sparql.expr.ExprTransform;
-import org.apache.jena.sparql.function.user.ExprTransformExpand;
+import org.apache.jena.sparql.expr.ExprTransformCopy;
 import org.apache.jena.sparql.function.user.UserDefinedFunctionDefinition;
 import org.apache.jena.sparql.modify.request.UpdateData;
 import org.apache.jena.sparql.modify.request.UpdateLoad;
@@ -434,7 +437,9 @@ public class SparqlIntegrateCmdImpls {
 //            dataSourceTmp = RdfDataEngines.adapt(l);
 
             if (cmd.cacheRewriteGroupBy) {
-                dataSourceTmp = RdfDataEngines.of(new RdfDataSourceWithLocalCache(dataSourceTmp), dataSourceTmp);
+                dataSourceTmp = RdfDataEngines.wrapWithLinkTransform(dataSourceTmp, link ->
+                        RDFLinkUtils.wrapWithQueryTransform(link, RdfDataSourceWithLocalCache.TransformInjectCacheSyntax::rewriteQuery, null));
+                // dataSourceTmp = RdfDataEngines.of(new RdfDataSourceWithLocalCache(dataSourceTmp), dataSourceTmp);
             }
         }
 
@@ -483,7 +488,14 @@ public class SparqlIntegrateCmdImpls {
         if (!cmd.macroSources.isEmpty()) {
             logger.info("Loaded functions: {}", udfRegistry.keySet());
             logger.info("Loaded {} function definitions from  {} macro sources.", udfRegistry.size(), cmd.macroSources.size());
-            ExprTransform eform = new ExprTransformExpand(udfRegistry);
+            // ExprTransform eform = new ExprTransformExpand(udfRegistry);
+            ExprTransform eform = new ExprTransformCopy() {
+                @Override
+                public Expr transform(ExprFunctionN func, ExprList args) {
+                    // XXX Could avoid func.copy()
+                    return UserDefinedFunctions.expandMacro(udfRegistry, func.copy(args));
+                }
+            };
             QueryTransform qform = q -> QueryUtils.rewrite(q, op -> Transformer.transform(null, eform, op));
             dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, qform, null);
         }

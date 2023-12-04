@@ -1,0 +1,31 @@
+@prefix o: <http://ns.aksw.org/jena/udf/> .
+
+# Namespace for functions
+@prefix fn: <http://www.example.org/> .
+
+# Resoure namespace, mainly for prefixes
+@prefix r: <http://www.example.org/resource/> .
+
+
+# Reuse of shacl's prefix vocabulary
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+r:prefixMapping
+  # sh:declare [ sh:prefix "fn" ; sh:namespace fn: ] # shacl apparently does not allow for the shorthand
+  sh:declare [ sh:prefix "fn" ; sh:namespace "http://www.example.org/" ]
+  .
+
+# Convert the first character to uper case and all remaining ones to lower case
+fn:ucFirstOnly
+  a o:UserDefinedFunction ;
+  sh:prefixes r:prefixMapping ;
+  o:simpleDefinition ("concat(ucase(substr(str(?x), 1, 1)), lcase(substr(str(?x), 2)))" "x") ;
+  .
+
+# BIND(<http://www.example.org/sayHello>('bob') AS ?greeting) # should return Hello Bob!
+fn:sayHello
+  a o:UserDefinedFunction ;
+  sh:prefixes r:prefixMapping ;
+  o:simpleDefinition ("CONCAT('Hello ', fn:ucFirstOnly(?x), '!')" "x") ;
+  .
+
