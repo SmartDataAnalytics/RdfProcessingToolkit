@@ -49,8 +49,12 @@
 	<properties>
 		<slf4j.version>2.0.9</slf4j.version>
 		<log4j.version>2.21.0</log4j.version>
+
 		<jetty.version>12.0.3</jetty.version>
+		<!-- <jakarta.servlet-api.version>6.0.0</jakarta.servlet-api.version> -->
 		<jersey.version>3.1.3</jersey.version>
+
+		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
 		<jena.version>5.0.0-SNAPSHOT</jena.version>
 		<jenax.version>5.0.0-1-SNAPSHOT</jenax.version>
@@ -60,7 +64,6 @@
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
 		<picocli.version>4.6.2</picocli.version>
-		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 		<jackson.version>2.12.0</jackson.version>
 		<commons-vfs2.version>2.9.0</commons-vfs2.version>
 		<hadoop.version>3.3.4</hadoop.version>
@@ -104,6 +107,10 @@
                 </exclusion> </exclusions> -->
 				<!-- Exclude web stuff (jetty, jersey)from hadoop -->
 				<exclusions>
+					<exclusion>
+						<groupId>javax.servlet</groupId>
+						<artifactId>javax.servlet-api</artifactId>
+					</exclusion>
 					<exclusion>
 						<groupId>org.eclipse.jetty</groupId>
 						<artifactId>jetty-server</artifactId>
@@ -171,6 +178,10 @@
 				<version>${hadoop.version}</version>
 				<exclusions>
 					<exclusion>
+						<groupId>javax.servlet</groupId>
+						<artifactId>javax.servlet-api</artifactId>
+					</exclusion>
+					<exclusion>
 						<groupId>org.eclipse.jetty.websocket</groupId>
 						<artifactId>websocket-client</artifactId>
 					</exclusion>
@@ -185,6 +196,14 @@
 				<scope>import</scope>
 				<type>pom</type>
 			</dependency>
+
+			<!--
+                        <dependency>
+                                <groupId>jakarta.servlet</groupId>
+                                <artifactId>jakarta.servlet-api</artifactId>
+                                <version>${jakarta.servlet-api.version}</version>
+			</dependency>
+			-->
 
 			<dependency>
 				<groupId>org.aksw.conjure</groupId>

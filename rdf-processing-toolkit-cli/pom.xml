@@ -32,6 +32,12 @@
 					<groupId>org.apache.hadoop</groupId>
 					<artifactId>hadoop-client-runtime</artifactId>
 				</exclusion>
+
+				<!-- Spark excluded here for the shaded sansa-spark-jakarta artifact -->
+				<exclusion>
+					<groupId>org.apache.spark</groupId>
+					<artifactId>spark-sql_2.12</artifactId>
+				</exclusion>
 				<!--
 				<exclusion>
 					<groupId>org.glassfish.jersey.core</groupId>
@@ -44,6 +50,15 @@
 				-->
 			</exclusions>
 		</dependency>
+		<!-- -->
+		<dependency>
+			<groupId>net.sansa-stack</groupId>
+			<artifactId>sansa-spark-jakarta_2.12</artifactId>
+			<version>${sansa.version}</version>
+			<classifier>jakarta</classifier>
+		</dependency>
+		<!-- -->
+
 
 <!--		<dependency>-->
 <!--			<groupId>org.glassfish.jersey</groupId>-->
