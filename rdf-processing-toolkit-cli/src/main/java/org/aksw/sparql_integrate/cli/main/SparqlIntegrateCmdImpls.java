@@ -733,9 +733,8 @@ public class SparqlIntegrateCmdImpls {
                     } catch (UnsupportedOperationException e) {
                         logger.info("Note: Could not open system browser.");
                     }
-                } else {
-                    logger.info("SPARQL service with in-memory result dataset running at " + browseUri);
                 }
+                logger.info("SPARQL service running at: " + browseUri);
             }
 
             try (RDFConnection conn = finalDataSource.getConnection()) {
