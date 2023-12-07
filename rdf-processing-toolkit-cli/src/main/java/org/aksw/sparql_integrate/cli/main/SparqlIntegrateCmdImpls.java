@@ -728,7 +728,11 @@ public class SparqlIntegrateCmdImpls {
 
                 URI browseUri = new URI("http://localhost:" + port + "/sparql");
                 if (Desktop.isDesktopSupported()) {
-                    Desktop.getDesktop().browse(browseUri);
+                    try {
+                        Desktop.getDesktop().browse(browseUri);
+                    } catch (UnsupportedOperationException e) {
+                        logger.info("Note: Could not open system browser.");
+                    }
                 } else {
                     logger.info("SPARQL service with in-memory result dataset running at " + browseUri);
                 }
