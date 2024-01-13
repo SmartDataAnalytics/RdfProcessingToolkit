@@ -49,13 +49,16 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--db-loc", "--loc" }, description="Access location to the database; interpreted w.r.t. engine. May be an URL, directory or file.")
     public String dbPath = null;
 
-    @Option(names = { "--db-loader" }, description="Wrap a datasource's default loading strategy with a different one. Supported values: sansa")
+    @Option(names = { "--db-loader" }, description="Wrap a datasource's default loading strategy with a different one. Supported values: insert (materializes LOAD as INSERT DATA), sansa (parallel loader)")
     public String dbLoader = null;
 
     // TODO Should require --server
     @Option(names = { "--read-only" },  description="Disable SPARQL update on the server")
     public boolean readOnlyMode = false;
 
+
+    @Option(names = { "--env" },  description="Set property that can be accessed using the SPARQL function sys:getenv(key).")
+    public Map<String, String> env;
 
     /* Caching Options */
 
@@ -89,7 +92,7 @@ public class CmdSparqlIntegrateMain
     public String splitFolder = null;
 
     @Mixin
-    public CmdMixinArq arqConfig;
+    public CmdMixinArq arqConfig = new CmdMixinArq();
 
     @Option(names= {"--bnp", "--bnode-profile"}, description="Blank node profile, empty string ('') to disable; 'auto' to autodetect, defaults to ${DEFAULT-VALUE}", defaultValue = "")
     public String bnodeProfile = null;

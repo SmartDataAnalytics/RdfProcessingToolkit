@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -19,11 +20,15 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.aksw.commons.io.util.StdIo;
+import org.aksw.commons.util.string.FileName;
+import org.aksw.commons.util.string.FileNameParser;
 import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jena_sparql_api.cache.advanced.RdfDataSourceWithRangeCache;
+import org.aksw.jena_sparql_api.conjure.utils.ContentTypeUtils;
 import org.aksw.jena_sparql_api.delay.extra.Delayer;
 import org.aksw.jena_sparql_api.delay.extra.DelayerDefault;
 import org.aksw.jena_sparql_api.rx.io.resultset.OutputFormatSpec;
@@ -39,9 +44,13 @@ import org.aksw.jena_sparql_api.sparql.ext.url.JenaUrlUtils;
 import org.aksw.jena_sparql_api.user_defined_function.UserDefinedFunctions;
 import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.jenax.arq.util.dataset.HasDataset;
+import org.aksw.jenax.arq.util.lang.RDFLanguagesEx;
 import org.aksw.jenax.arq.util.query.QueryTransform;
 import org.aksw.jenax.arq.util.security.ArqSecurity;
 import org.aksw.jenax.arq.util.syntax.QueryUtils;
+import org.aksw.jenax.arq.util.update.UpdateRequestUtils;
+import org.aksw.jenax.arq.util.update.UpdateTransform;
+import org.aksw.jenax.arq.util.update.UpdateUtils;
 import org.aksw.jenax.dataaccess.sparql.connection.common.RDFConnectionUtils;
 import org.aksw.jenax.dataaccess.sparql.dataengine.RdfDataEngine;
 import org.aksw.jenax.dataaccess.sparql.datasource.RdfDataSource;
@@ -59,6 +68,7 @@ import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithBno
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalCache;
 import org.aksw.jenax.graphql.api.GraphQlExecFactory;
 import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
+import org.aksw.jenax.sparql.query.rx.RDFDataMgrEx;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtMgr;
 import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
@@ -70,6 +80,7 @@ import org.aksw.jenax.web.server.boot.ServletBuilderSparql;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.geosparql.spatial.SpatialIndex;
 import org.apache.jena.irix.IRIx;
@@ -178,7 +189,20 @@ public class SparqlIntegrateCmdImpls {
 
         PrefixMapping prefixMapping = CliUtils.configPrefixMapping(cmd);
 
-        SparqlScriptProcessor processor = SparqlScriptProcessor.createWithEnvSubstitution(prefixMapping);
+        Function<String, String> lookup = key -> {
+            String r = null;
+            if (cmd.env != null) {
+                r = cmd.env.get(key);
+            }
+            if (r == null) {
+                r = System.getenv(key);
+            }
+            return r;
+        };
+
+        SparqlScriptProcessor processor = SparqlScriptProcessor.createWithEnvSubstitution(prefixMapping, lookup);
+
+        // SparqlScriptProcessor processor = SparqlScriptProcessor.createWithEnvSubstitution(prefixMapping)
 
         if (cmd.unionDefaultGraph) {
             processor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,
@@ -188,9 +212,7 @@ public class SparqlIntegrateCmdImpls {
         List<String> args = cmd.nonOptionArgs;
 
 
-        String outFormat = cmd.outFormat;
-
-        // If an in/out file is given prepend it to the arguments
+        // If an in/out file is given then prepend it to the arguments
         Path outFile = null;
         String outFilename = null;
         Path tmpFile;
@@ -204,6 +226,25 @@ public class SparqlIntegrateCmdImpls {
             }
         }
 
+        // Separate encoding and content type from the format and/or filename
+
+        List<String> rawOutEncodings = new ArrayList<>();
+        List<String> outEncodings;
+
+        FileNameParser fileNameParser = FileNameParser.of(
+            x -> ContentTypeUtils.getCtExtensions().getAlternatives().containsKey(x.toLowerCase()),
+            x -> ContentTypeUtils.getCodingExtensions().getAlternatives().containsKey(x.toLowerCase()));
+
+        String outFormatRaw = cmd.outFormat;
+        String outFormat = null;
+        if (outFormatRaw != null) {
+            FileName fn = fileNameParser.parse(outFormatRaw);
+            outFormat = fn.getContentPart();
+            rawOutEncodings.addAll(fn.getEncodingParts());
+        }
+
+        CompressorStreamFactory csf = CompressorStreamFactory.getSingleton();
+
         OutputStream operationalOut;
         if (!Strings.isNullOrEmpty(outFilename)) {
             outFile = Paths.get(outFilename).toAbsolutePath();
@@ -212,7 +253,15 @@ public class SparqlIntegrateCmdImpls {
             }
 
             if (outFormat == null) {
-                Lang lang = RDFDataMgr.determineLang(outFilename, null, null);
+                FileName fileName = fileNameParser.parse(outFilename);
+                String contentPart = fileName.getContentPart();
+
+                Lang lang = RDFLanguagesEx.findLang(contentPart);
+                rawOutEncodings.addAll(fileName.getEncodingParts());
+
+                // fileName = FileNameUtils.deconstruct(outFilename);
+
+                // Lang lang = RDFDataMgr.determineLang(outFilename, null, null);
                 if (lang != null) {
                     RDFFormat fmt = RDFWriterRegistry.defaultSerialization(lang);
                     outFormat = fmt == null ? null : fmt.toString();
@@ -231,10 +280,14 @@ public class SparqlIntegrateCmdImpls {
                     StandardOpenOption.WRITE,
                     StandardOpenOption.TRUNCATE_EXISTING);
 
+            outEncodings = rawOutEncodings.stream().map(x -> ContentTypeUtils.getCodingExtensions().getAlternatives().get(x)).collect(Collectors.toList());
+            operationalOut = RDFDataMgrEx.encode(operationalOut, outEncodings, csf);
+
+            OutputStream finalOut = operationalOut;
             // Register a shutdown hook to delete the temporary file
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
-                    operationalOut.close();
+                    finalOut.close();
                     Files.deleteIfExists(tmpFile);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -243,6 +296,10 @@ public class SparqlIntegrateCmdImpls {
 
         } else {
             operationalOut = StdIo.openStdOutWithCloseShield();
+
+            outEncodings = rawOutEncodings.stream().map(x -> ContentTypeUtils.getCodingExtensions().getAlternatives().get(x)).collect(Collectors.toList());
+            operationalOut = RDFDataMgrEx.encode(operationalOut, outEncodings, csf);
+
             outFile = null;
             tmpFile = null;
         }
@@ -274,6 +331,23 @@ public class SparqlIntegrateCmdImpls {
                .collect(Collectors.toList());
         }
 
+        // If loader is "update" then materialize all LOAD statements into INSERT DATA ones
+        if ("insert".equalsIgnoreCase(cmd.dbLoader)) {
+            UpdateTransform xform = update -> update instanceof UpdateLoad
+                    ? UpdateUtils.materialize((UpdateLoad)update)
+                    : update;
+
+            workloads = workloads.stream().map(e -> {
+                SparqlStmt stmt = e.getKey();
+                if (stmt.isUpdateRequest()) {
+                    UpdateRequest before = stmt.getUpdateRequest();
+                    UpdateRequest after = UpdateRequestUtils.copyTransform(before, xform);
+                    stmt = new SparqlStmtUpdate(after);
+                }
+                return Map.entry(stmt, e.getValue());
+            })
+            .collect(Collectors.toList());
+        }
 
 
         // Workloads clustered by their split target filenames
