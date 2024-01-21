@@ -1,0 +1,13 @@
+CONSTRUCT {
+  GRAPH ?g { ?s ?p ?o }
+}
+WHERE {
+    {
+      BIND(<urn:x-arq:DefaultGraph> AS ?g)
+      ?s ?p ?o
+    }
+  UNION
+    {
+      GRAPH ?g { ?s ?p ?o }
+    }
+}
