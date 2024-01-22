@@ -204,9 +204,14 @@ public class SparqlIntegrateCmdImpls {
 
         // SparqlScriptProcessor processor = SparqlScriptProcessor.createWithEnvSubstitution(prefixMapping)
 
-        if (cmd.unionDefaultGraph) {
-            processor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,
-                    op -> Transformer.transformSkipService(new TransformUnionQuery(), op)));
+        // Union default graph transformation is now part of the connection
+        boolean unionDefaultGraphOnCliArgs = false;
+        if (unionDefaultGraphOnCliArgs && cmd.unionDefaultGraph) {
+            processor.addPostTransformer(stmt -> {
+                SparqlStmt r = SparqlStmtUtils.applyOpTransform(stmt,
+                    op -> Transformer.transformSkipService(new TransformUnionQuery(), op));
+                return r;
+            });
         }
 
         List<String> args = cmd.nonOptionArgs;
@@ -607,9 +612,14 @@ public class SparqlIntegrateCmdImpls {
                     cxt.put(RDFLinkUtils.symRdfDataSource, thisDataSource);
                 });
 
+                RDFConnection cbx = cmd.unionDefaultGraph
+                        ? RDFConnectionUtils.wrapWithStmtTransform(cb, stmt -> SparqlStmtUtils.applyOpTransform(stmt,
+                                op -> Transformer.transformSkipService(new TransformUnionQuery(), op)))
+                        : cb;
+
                 // TODO Add a util method wrapWithStmtTransform
                 RDFConnection cc = RDFConnectionUtils.wrapWithQueryTransform(
-                    cb,
+                    cbx,
                     null, queryExec -> {
                         QueryExec r = queryExec;
 
