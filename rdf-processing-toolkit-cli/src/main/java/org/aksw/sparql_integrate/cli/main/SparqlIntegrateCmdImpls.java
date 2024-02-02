@@ -66,6 +66,7 @@ import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSources;
 import org.aksw.jenax.dataaccess.sparql.link.common.RDFLinkUtils;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithBnodeRewrite;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalCache;
+import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalLateral;
 import org.aksw.jenax.graphql.api.GraphQlExecFactory;
 import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
 import org.aksw.jenax.sparql.query.rx.RDFDataMgrEx;
@@ -763,6 +764,10 @@ public class SparqlIntegrateCmdImpls {
             boolean clientSideConstructQuads = false;
             if (clientSideConstructQuads) {
                 dataSource = RdfDataSources.execQueryViaSelect(dataSource, query -> query.isConstructQuad());
+            }
+
+            if (cmd.polyfillLateral) {
+                dataSource = RdfDataSourceWithLocalLateral.wrap(dataSource);
             }
 
             RdfDataSource finalDataSource = dataSource;

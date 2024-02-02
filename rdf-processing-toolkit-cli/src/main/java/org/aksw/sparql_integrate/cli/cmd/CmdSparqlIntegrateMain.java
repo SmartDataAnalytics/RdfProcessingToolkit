@@ -14,6 +14,7 @@ import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdCommonBase;
 import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 import org.aksw.sparql_integrate.cli.main.SparqlIntegrateCmdImpls;
+
 import com.google.common.base.StandardSystemProperty;
 
 import picocli.CommandLine.ArgGroup;
@@ -197,6 +198,9 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--graphql-autoconf" }, description = "Query SPARQL endpoint for VoID and SHACL metadata on first request to map an unqualified field",
             negatable = true, defaultValue = "true", fallbackValue = "true")
     public boolean graphQlAutoConfigure;
+
+    @Option(names = { "--polyfill-lateral" }, description = "Polyfill LATERAL by evaluating it on the client (may transmit large volumes of data).")
+    public boolean polyfillLateral;
 
     /**
      * --jq may be followed by an integer - picocli seems to greedily parse any argument even if it is not an integer
