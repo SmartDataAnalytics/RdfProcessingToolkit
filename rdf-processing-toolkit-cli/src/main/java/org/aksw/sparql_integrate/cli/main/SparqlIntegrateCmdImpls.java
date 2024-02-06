@@ -64,6 +64,7 @@ import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngines;
 import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSources;
 import org.aksw.jenax.dataaccess.sparql.link.common.RDFLinkUtils;
+import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourcePolyfill;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithBnodeRewrite;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalCache;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalLateral;
@@ -530,12 +531,9 @@ public class SparqlIntegrateCmdImpls {
 
         // Attempt to detect the dbms name.
         // If one is detected then use it as an active profile name.
-        String dmbsProfile = null;
-        try (RDFConnection conn = dataSourceTmp.getConnection()) {
-            dmbsProfile = RdfDataSourceWithBnodeRewrite.detectProfile(conn);
-            if (logger.isInfoEnabled()) {
-                logger.info("Detected DBMS: " + dmbsProfile);
-            }
+        String dmbsProfile = RdfDataSources.compute(dataSourceTmp, RdfDataSourcePolyfill::detectProfile);
+        if (logger.isInfoEnabled()) {
+            logger.info("Detected DBMS: " + dmbsProfile);
         }
 
         String bnodeProfile = cmd.bnodeProfile;
