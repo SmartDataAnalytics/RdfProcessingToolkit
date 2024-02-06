@@ -119,13 +119,11 @@
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-plugins-bundle</artifactId>
 		</dependency>
-		<!-- Currently disabled because it ships with its own log4j.properties file which breaks logging-->
-		<!--
+		<!-- TODO sparql-generate ships with its own log4j.properties file which may break logging-->
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-plugins-generate</artifactId>
 		</dependency>
-		-->
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-plugins-qudtlib</artifactId>
