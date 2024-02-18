@@ -15,7 +15,7 @@
 		<module>rdf-processing-toolkit-pkg-parent</module>
 		<!-- <module>rdf-processing-toolkit-web-service</module> -->
 		<!-- <module>use-case-sportal-analysis</module> -->
-		<module>sparql-maven-plugin</module>
+		<!-- <module>sparql-maven-plugin</module> -->
 	</modules>
 	<issueManagement>
 		<url>https://github.com/SmartDataAnalytics/RdfProcessingToolkit/issues</url>
