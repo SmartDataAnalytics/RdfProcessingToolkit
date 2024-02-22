@@ -242,14 +242,14 @@ public class SparqlIntegrateCmdImpls {
             x -> ContentTypeUtils.getCtExtensions().getAlternatives().containsKey(x.toLowerCase()),
             x -> ContentTypeUtils.getCodingExtensions().getAlternatives().containsKey(x.toLowerCase()));
 
-        String outFormatRaw = cmd.outFormat;
-        String outFormat = null;
-        if (outFormatRaw == null) {
-            FileName fn = fileNameParser.parse(outFormatRaw);
-            outFormat = fn.getContentPart();
-            rawOutEncodings.addAll(fn.getEncodingParts());
-        } else {
-            outFormat = outFormatRaw;
+        String outFormat = cmd.outFormat;
+        if (outFormat == null) {
+            // Try to derive the outFormat from the filename - if given.
+            if (outFilename != null) {
+                FileName fn = fileNameParser.parse(outFilename);
+                outFormat = fn.getContentPart();
+                rawOutEncodings.addAll(fn.getEncodingParts());
+            }
         }
 
         CompressorStreamFactory csf = CompressorStreamFactory.getSingleton();
