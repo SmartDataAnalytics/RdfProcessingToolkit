@@ -9,7 +9,7 @@ name: Deploy Jekyll site to Pages
 on:
   push:
     branches:
-      - "develop"
+      - "jena-5.0.0"
     paths:
       - "docs/**"
   # Allows you to run this workflow manually from the Actions tab

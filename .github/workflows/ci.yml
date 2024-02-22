@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - "develop"
+      - "jena-5.0.0"
   pull_request:
 
 jobs:
