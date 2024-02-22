@@ -244,10 +244,12 @@ public class SparqlIntegrateCmdImpls {
 
         String outFormatRaw = cmd.outFormat;
         String outFormat = null;
-        if (outFormatRaw != null) {
+        if (outFormatRaw == null) {
             FileName fn = fileNameParser.parse(outFormatRaw);
             outFormat = fn.getContentPart();
             rawOutEncodings.addAll(fn.getEncodingParts());
+        } else {
+            outFormat = outFormatRaw;
         }
 
         CompressorStreamFactory csf = CompressorStreamFactory.getSingleton();
