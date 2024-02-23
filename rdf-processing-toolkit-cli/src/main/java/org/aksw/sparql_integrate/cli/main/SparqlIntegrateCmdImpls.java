@@ -259,7 +259,7 @@ public class SparqlIntegrateCmdImpls {
             outFile = Paths.get(outFilename).toAbsolutePath();
 
             Path outDir = outFile.getParent();
-            if (cmd.outMkDirs && outDir != null) {
+            if (cmd.outMkDirs && outDir != null && !Files.exists(outFile)) {
                 Files.createDirectories(outDir);
             }
 
