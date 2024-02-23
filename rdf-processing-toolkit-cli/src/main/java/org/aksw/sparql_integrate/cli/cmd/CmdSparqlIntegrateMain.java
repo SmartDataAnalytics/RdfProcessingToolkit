@@ -171,6 +171,9 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--out-format", "--of" }, description = "Output format")
     public String outFormat = null;
 
+    @Option(names = { "--out-mkdirs" }, description = "Create directories to the output file as needed.")
+    public boolean outMkDirs = false;
+
     // Subsume jq stuff under -w jq ?
 
     /**

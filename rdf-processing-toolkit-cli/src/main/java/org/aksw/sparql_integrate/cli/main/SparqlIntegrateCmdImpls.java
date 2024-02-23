@@ -257,6 +257,12 @@ public class SparqlIntegrateCmdImpls {
         OutputStream operationalOut;
         if (!Strings.isNullOrEmpty(outFilename)) {
             outFile = Paths.get(outFilename).toAbsolutePath();
+
+            Path outDir = outFile.getParent();
+            if (cmd.outMkDirs && outDir != null) {
+                Files.createDirectories(outDir);
+            }
+
             if(Files.exists(outFile) && !Files.isWritable(outFile)) {
                 throw new RuntimeException("Cannot write to specified output file: " + outFile.toAbsolutePath());
             }
