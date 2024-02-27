@@ -242,14 +242,17 @@ public class SparqlIntegrateCmdImpls {
             x -> ContentTypeUtils.getCtExtensions().getAlternatives().containsKey(x.toLowerCase()),
             x -> ContentTypeUtils.getCodingExtensions().getAlternatives().containsKey(x.toLowerCase()));
 
+        // If a format is given it takes precedence - otherwise try to use the filename
         String outFormat = cmd.outFormat;
-        if (outFormat == null) {
+        String formatSource = outFormat == null
+                ? outFilename
+                : outFormat;
+
+        if (formatSource != null) {
             // Try to derive the outFormat from the filename - if given.
-            if (outFilename != null) {
-                FileName fn = fileNameParser.parse(outFilename);
-                outFormat = fn.getContentPart();
-                rawOutEncodings.addAll(fn.getEncodingParts());
-            }
+            FileName fn = fileNameParser.parse(formatSource);
+            outFormat = fn.getContentPart();
+            rawOutEncodings.addAll(fn.getEncodingParts());
         }
 
         CompressorStreamFactory csf = CompressorStreamFactory.getSingleton();
@@ -267,24 +270,24 @@ public class SparqlIntegrateCmdImpls {
                 throw new RuntimeException("Cannot write to specified output file: " + outFile.toAbsolutePath());
             }
 
-            if (outFormat == null) {
-                FileName fileName = fileNameParser.parse(outFilename);
-                String contentPart = fileName.getContentPart();
-
-                Lang lang = RDFLanguagesEx.findLang(contentPart);
-                rawOutEncodings.addAll(fileName.getEncodingParts());
-
-                // fileName = FileNameUtils.deconstruct(outFilename);
-
-                // Lang lang = RDFDataMgr.determineLang(outFilename, null, null);
-                if (lang != null) {
-                    RDFFormat fmt = RDFWriterRegistry.defaultSerialization(lang);
-                    outFormat = fmt == null ? null : fmt.toString();
-                    logger.info("Inferred output format from " + outFilename + ": " + outFormat);
-                } else {
-                    throw new RuntimeException("Failed to determine output format");
-                }
-            }
+//            if (outFormat == null) {
+//                FileName fileName = fileNameParser.parse(outFilename);
+//                String contentPart = fileName.getContentPart();
+//
+//                Lang lang = RDFLanguagesEx.findLang(contentPart);
+//                rawOutEncodings.addAll(fileName.getEncodingParts());
+//
+//                // fileName = FileNameUtils.deconstruct(outFilename);
+//
+//                // Lang lang = RDFDataMgr.determineLang(outFilename, null, null);
+//                if (lang != null) {
+//                    RDFFormat fmt = RDFWriterRegistry.defaultSerialization(lang);
+//                    outFormat = fmt == null ? null : fmt.toString();
+//                    logger.info("Inferred output format from " + outFilename + ": " + outFormat);
+//                } else {
+//                    throw new RuntimeException("Failed to determine output format");
+//                }
+//            }
 
             Path parent = outFile.getParent();
             String tmpName = "." + outFile.getFileName().toString() + ".tmp";
