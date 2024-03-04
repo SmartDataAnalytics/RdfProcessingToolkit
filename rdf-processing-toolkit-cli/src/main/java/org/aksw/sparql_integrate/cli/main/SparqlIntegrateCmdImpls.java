@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.commons.util.string.FileName;
 import org.aksw.commons.util.string.FileNameParser;
-import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
 import org.aksw.jena_sparql_api.cache.advanced.RdfDataSourceWithRangeCache;
 import org.aksw.jena_sparql_api.conjure.utils.ContentTypeUtils;
 import org.aksw.jena_sparql_api.delay.extra.Delayer;
@@ -44,7 +43,6 @@ import org.aksw.jena_sparql_api.sparql.ext.url.JenaUrlUtils;
 import org.aksw.jena_sparql_api.user_defined_function.UserDefinedFunctions;
 import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.jenax.arq.util.dataset.HasDataset;
-import org.aksw.jenax.arq.util.lang.RDFLanguagesEx;
 import org.aksw.jenax.arq.util.query.QueryTransform;
 import org.aksw.jenax.arq.util.security.ArqSecurity;
 import org.aksw.jenax.arq.util.syntax.QueryUtils;
@@ -61,6 +59,7 @@ import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorWrapperB
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFactory;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFactoryRegistry;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngines;
+import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSourceDecorator;
 import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSources;
 import org.aksw.jenax.dataaccess.sparql.link.common.RDFLinkUtils;
@@ -92,10 +91,8 @@ import org.apache.jena.query.Query;
 import org.apache.jena.query.TxnType;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdfconnection.RDFConnection;
-import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
-import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
@@ -537,7 +534,11 @@ public class SparqlIntegrateCmdImpls {
 
         if ("sansa".equalsIgnoreCase(cmd.dbLoader)) {
             logger.info("Using sansa loader for loading RDF files");
-            dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, new RdfDataSourceDecoratorSansa());
+
+            // Load sansa dynamically as to not require it to be present on the classpath
+            RdfDataSourceDecorator sansaDecorator = (RdfDataSourceDecorator)Class.forName("org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa").getConstructor().newInstance();
+                // dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, new RdfDataSourceDecoratorSansa());
+            dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, sansaDecorator);
         }
 
         // Attempt to detect the dbms name.

@@ -33,7 +33,8 @@
 					<artifactId>hadoop-client-runtime</artifactId>
 				</exclusion>
 
-				<!-- Spark excluded here for the shaded sansa-spark-jakarta artifact -->
+				<!-- Spark excluded here for the shaded sansa-spark-jakarta
+				artifact -->
 				<exclusion>
 					<groupId>org.apache.spark</groupId>
 					<artifactId>spark-sql_2.12</artifactId>
@@ -60,12 +61,12 @@
 		<!-- -->
 
 
-<!--		<dependency>-->
-<!--			<groupId>org.glassfish.jersey</groupId>-->
-<!--			<artifactId>jersey-bom</artifactId>-->
-<!--			<type>pom</type>-->
-<!--			<scope>import</scope>-->
-<!--		</dependency>-->
+		<!--		<dependency>-->
+		<!--			<groupId>org.glassfish.jersey</groupId>-->
+		<!--			<artifactId>jersey-bom</artifactId>-->
+		<!--			<type>pom</type>-->
+		<!--			<scope>import</scope>-->
+		<!--		</dependency>-->
 
 		<!--		<dependency>-->
 		<!--		  <groupId>org.apache.hadoop</groupId>-->
@@ -119,7 +120,8 @@
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-plugins-bundle</artifactId>
 		</dependency>
-		<!-- TODO sparql-generate ships with its own log4j.properties file which may break logging-->
+		<!-- TODO sparql-generate ships with its own log4j.properties file which
+		may break logging-->
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-plugins-generate</artifactId>

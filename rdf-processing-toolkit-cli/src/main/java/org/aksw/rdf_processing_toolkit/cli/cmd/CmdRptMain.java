@@ -6,7 +6,6 @@ import org.aksw.rml.cli.cmd.CmdRmlTkParent;
 import org.aksw.sparql_binding_stream.cli.cmd.CmdSbsMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 
-import net.sansa_stack.spark.cli.cmd.CmdSansaParent;
 import picocli.CommandLine.Command;
 
 @Command(name="rpt", versionProvider = VersionProviderRdfProcessingToolkit.class, description = "RDF Processing Toolkit", subcommands = {
@@ -14,7 +13,6 @@ import picocli.CommandLine.Command;
         CmdSparqlIntegrateMain.class,
         CmdSbsMain.class,
         CmdRmlTkParent.class,
-        CmdSansaParent.class,
         CmdCatClasspathResource.class
 })
 public class CmdRptMain
