@@ -142,7 +142,9 @@ public class CmdBenchGenGridDataGen
 
         Stream<Quad> quads =
             IntStream.range(0, graphs).boxed().flatMap(g -> {
-                double ratio = scale ? 1 - g / (double)graphs : 1.0;
+                double ratioBase = scale ? 1 - g / (double)graphs : 1.0;
+                // Always make cells a bit smaller to avoid corner cases with touching envelopes
+                double ratio = 0.95 * ratioBase;
                 Node graph = NodeFactory.createURI(genGraphName(g));
                 return grid.stream().flatMap(cell -> {
                     Node feature = NodeFactory.createURI("https://www.example.org/feature/" + g + "/" + cell.row() + "/" + cell.col());
