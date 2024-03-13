@@ -142,9 +142,6 @@ public class CmdSparqlIntegrateMain
     @ArgGroup(exclusive = true, multiplicity = "0..1")
     public OutputSpec outputSpec;
 
-    @Option(names = { "--iriasgiven" }, arity="0", description = "Use an alternative IRI() implementation that is non-validating but fast")
-    public boolean useIriAsGiven = false;
-
     public static class OutputSpec {
         /**
          * sparql-pattern file
@@ -156,6 +153,9 @@ public class CmdSparqlIntegrateMain
         @Option(names = { "--io", },  description = "overwrites argument file on success with output; use with care")
         public String inOutFile = null;
     }
+
+    @Option(names = { "--iriasgiven" }, arity="0", description = "Use an alternative IRI() implementation that is non-validating but fast")
+    public boolean useIriAsGiven = false;
 
     @Option(names = { "-d", "--used-prefixes" }, description = "Number of records (bindings/quads) by which to defer RDF output in order to analyze used prefixes; default: ${DEFAULT-VALUE}", defaultValue = "100")
     public long usedPrefixDefer;
