@@ -38,20 +38,6 @@ public class CmdBenchGenGridDataGen
     @ArgGroup(exclusive = false)
     protected GridOffsets gridOffsets = new GridOffsets();
 
-    static class GridOffsets {
-        @Option(names = "--minX", required = true, defaultValue = "-180")
-        protected double minX;
-
-        @Option(names = "--maxX", required = true, defaultValue = "180")
-        protected double maxX;
-
-        @Option(names = "--minY", required = true, defaultValue = "-90")
-        protected double minY;
-
-        @Option(names = "--maxY", required = true, defaultValue = "90")
-        protected double maxY;
-    }
-
     @Option(names = "--rows", required = true, defaultValue = "2")
     protected int rows;
 
@@ -126,7 +112,7 @@ public class CmdBenchGenGridDataGen
 //    }
 
     public static String genGraphName(int id) {
-        return "https://www.example.org/graph/" + id;
+        return "http://www.example.org/graph/" + id;
     }
 
     @Override
@@ -134,8 +120,8 @@ public class CmdBenchGenGridDataGen
         Grid2D grid = Grid2D.newBuilder()
             .setMinX(gridOffsets.minX)
             .setMaxX(gridOffsets.maxX)
-            .setMinX(gridOffsets.minY)
-            .setMaxX(gridOffsets.maxY)
+            .setMinY(gridOffsets.minY)
+            .setMaxY(gridOffsets.maxY)
             .setRowCount(rows)
             .setColCount(cols)
             .build();
@@ -146,9 +132,9 @@ public class CmdBenchGenGridDataGen
                 // Always make cells a bit smaller to avoid corner cases with touching envelopes
                 double ratio = 0.95 * ratioBase;
                 Node graph = NodeFactory.createURI(genGraphName(g));
-                return grid.stream().flatMap(cell -> {
-                    Node feature = NodeFactory.createURI("https://www.example.org/feature/" + g + "/" + cell.row() + "/" + cell.col());
-                    Node geom = NodeFactory.createURI("https://www.example.org/geometry/" + g + "/" + cell.row() + "/" + cell.col());
+                return grid.stream(true).flatMap(cell -> {
+                    Node feature = NodeFactory.createURI("http://www.example.org/feature/" + g + "/" + cell.row() + "/" + cell.col());
+                    Node geom = NodeFactory.createURI("http://www.example.org/geometry/" + g + "/" + cell.row() + "/" + cell.col());
 
                     Geometry cellGeom = toGeometry(cell.envelope());
                     Geometry scaledCellGeom = ratio != 1.0
@@ -168,7 +154,7 @@ public class CmdBenchGenGridDataGen
         try (OutputStream out = StdIo.openStdOutWithCloseShield()) {
             StreamRDF writer = StreamRDFWriter.getWriterStream(out, RDFFormat.NQUADS);
             writer.start();
-            quads.forEach(writer::quad);
+            quads.sequential().forEach(writer::quad);
             writer.finish();
             out.flush();
         }

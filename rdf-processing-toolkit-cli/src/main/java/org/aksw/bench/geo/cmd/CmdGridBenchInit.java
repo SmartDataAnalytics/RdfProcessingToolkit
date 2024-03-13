@@ -129,7 +129,7 @@ public class CmdGridBenchInit
         Stream<Quad> quads =
             IntStream.range(0, graphs).boxed().flatMap(g -> {
                 Node graph = NodeFactory.createURI("https://www.example.org/graph/" + g);
-                return grid.stream().flatMap(cell -> {
+                return grid.stream(true).flatMap(cell -> {
                     Node feature = NodeFactory.createURI("https://www.example.org/feature/" + graph + "/" + cell.row() + "/" + cell.col());
                     Node geom = NodeFactory.createURI("https://www.example.org/geometry/" + graph + "/" + cell.row() + "/" + cell.col());
                     Node wkt = toNode(cell.envelope());

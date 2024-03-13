@@ -31,9 +31,15 @@ public class Grid2D {
         this.deltaY = (worldMaxY - worldMinY) / sizeY;
     }
 
-    public Stream<Cell2D> stream() {
-        return IntStream.range(0, sizeY).mapToObj(row -> row).flatMap(row ->
-            IntStream.range(0, sizeX).mapToObj(col -> cellOf(row, col)));
+    public static IntStream range(int startInclusive, int endExclusive, boolean isForward) {
+        return isForward
+                ? IntStream.range(startInclusive, endExclusive)
+                : IntStream.iterate(endExclusive - 1, i -> i >= startInclusive, i -> i - 1);
+    }
+
+    public Stream<Cell2D> stream(boolean isForward) {
+        return range(0, sizeY, isForward).mapToObj(row -> row).flatMap(row ->
+            range(0, sizeX, isForward).mapToObj(col -> cellOf(row, col)));
     }
 
     public Cell2D cellOf(int row, int col) {
