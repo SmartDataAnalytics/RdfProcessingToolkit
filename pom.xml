@@ -401,7 +401,7 @@
 			<dependency>
 				<groupId>org.eclipse.jgit</groupId>
 				<artifactId>org.eclipse.jgit</artifactId>
-				<version>5.6.0.201912101111-r</version>
+				<version>5.13.3.202401111512-r</version>
 			</dependency>
 			<dependency>
 				<groupId>com.jcraft</groupId>
