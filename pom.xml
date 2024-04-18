@@ -51,17 +51,17 @@
 		<slf4j.version>2.0.9</slf4j.version>
 		<log4j.version>2.21.0</log4j.version>
 
-		<jetty.version>12.0.5</jetty.version>
+		<jetty.version>12.0.8</jetty.version>
 		<!-- <jakarta.servlet-api.version>6.0.0</jakarta.servlet-api.version> -->
 		<jersey.version>3.1.3</jersey.version>
 
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
-		<jena.version>5.0.0-SNAPSHOT</jena.version>
-		<jenax.version>5.0.0-1-SNAPSHOT</jenax.version>
-		<rmltk.version>5.0.0-1-SNAPSHOT</rmltk.version>
-		<conjure.version>5.0.0-1-SNAPSHOT</conjure.version>
-		<sansa.version>0.9.5-SNAPSHOT</sansa.version>
+		<jena.version>5.0.0</jena.version>
+		<jenax.version>5.0.0-1</jenax.version>
+		<rmltk.version>5.0.0-1</rmltk.version>
+		<conjure.version>5.0.0-1</conjure.version>
+		<sansa.version>0.9.5</sansa.version>
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
 		<picocli.version>4.6.2</picocli.version>
