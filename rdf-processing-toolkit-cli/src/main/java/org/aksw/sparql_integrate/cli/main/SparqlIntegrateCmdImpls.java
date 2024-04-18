@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -19,13 +20,14 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.aksw.commons.io.util.StdIo;
-import org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa;
-import org.aksw.jena_sparql_api.cache.advanced.QueryExecFactoryQueryRangeCache;
+import org.aksw.commons.util.string.FileName;
+import org.aksw.commons.util.string.FileNameParser;
+import org.aksw.jena_sparql_api.cache.advanced.RdfDataSourceWithRangeCache;
+import org.aksw.jena_sparql_api.conjure.utils.ContentTypeUtils;
 import org.aksw.jena_sparql_api.delay.extra.Delayer;
 import org.aksw.jena_sparql_api.delay.extra.DelayerDefault;
 import org.aksw.jena_sparql_api.rx.io.resultset.OutputFormatSpec;
@@ -44,29 +46,30 @@ import org.aksw.jenax.arq.util.dataset.HasDataset;
 import org.aksw.jenax.arq.util.query.QueryTransform;
 import org.aksw.jenax.arq.util.security.ArqSecurity;
 import org.aksw.jenax.arq.util.syntax.QueryUtils;
+import org.aksw.jenax.arq.util.update.UpdateRequestUtils;
+import org.aksw.jenax.arq.util.update.UpdateTransform;
+import org.aksw.jenax.arq.util.update.UpdateUtils;
 import org.aksw.jenax.dataaccess.sparql.connection.common.RDFConnectionUtils;
 import org.aksw.jenax.dataaccess.sparql.dataengine.RdfDataEngine;
 import org.aksw.jenax.dataaccess.sparql.datasource.RdfDataSource;
-import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactories;
-import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactory;
-import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecFactoryQueryTransform;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecWrapperBase;
-import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecWrapperTxn;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecs;
 import org.aksw.jenax.dataaccess.sparql.exec.update.UpdateExecWrapperBase;
 import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorWrapperBase;
-import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorWrapperTxn;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFactory;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFactoryRegistry;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngines;
+import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSourceDecorator;
 import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSourceSpecBasicFromMap;
 import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSources;
-import org.aksw.jenax.dataaccess.sparql.factory.execution.query.QueryExecutionFactories;
-import org.aksw.jenax.dataaccess.sparql.factory.execution.query.QueryExecutionFactory;
 import org.aksw.jenax.dataaccess.sparql.link.common.RDFLinkUtils;
+import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourcePolyfill;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithBnodeRewrite;
+import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalCache;
+import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalLateral;
 import org.aksw.jenax.graphql.api.GraphQlExecFactory;
 import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
+import org.aksw.jenax.sparql.query.rx.RDFDataMgrEx;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtMgr;
 import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
@@ -78,6 +81,7 @@ import org.aksw.jenax.web.server.boot.ServletBuilderSparql;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.geosparql.spatial.SpatialIndex;
 import org.apache.jena.irix.IRIx;
@@ -87,10 +91,8 @@ import org.apache.jena.query.Query;
 import org.apache.jena.query.TxnType;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdfconnection.RDFConnection;
-import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
-import org.apache.jena.riot.RDFWriterRegistry;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
@@ -99,8 +101,11 @@ import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.optimize.Optimize;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.exec.QueryExec;
+import org.apache.jena.sparql.expr.Expr;
+import org.apache.jena.sparql.expr.ExprFunctionN;
+import org.apache.jena.sparql.expr.ExprList;
 import org.apache.jena.sparql.expr.ExprTransform;
-import org.apache.jena.sparql.function.user.ExprTransformExpand;
+import org.apache.jena.sparql.expr.ExprTransformCopy;
 import org.apache.jena.sparql.function.user.UserDefinedFunctionDefinition;
 import org.apache.jena.sparql.modify.request.UpdateData;
 import org.apache.jena.sparql.modify.request.UpdateLoad;
@@ -119,6 +124,9 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import com.google.common.io.BaseEncoding;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
@@ -180,19 +188,35 @@ public class SparqlIntegrateCmdImpls {
 
         PrefixMapping prefixMapping = CliUtils.configPrefixMapping(cmd);
 
-        SparqlScriptProcessor processor = SparqlScriptProcessor.createWithEnvSubstitution(prefixMapping);
+        Function<String, String> lookup = key -> {
+            String r = null;
+            if (cmd.env != null) {
+                r = cmd.env.get(key);
+            }
+            if (r == null) {
+                r = System.getenv(key);
+            }
+            return r;
+        };
 
-        if (cmd.unionDefaultGraph) {
-            processor.addPostTransformer(stmt -> SparqlStmtUtils.applyOpTransform(stmt,
-                    op -> Transformer.transformSkipService(new TransformUnionQuery(), op)));
+        SparqlScriptProcessor processor = SparqlScriptProcessor.createWithEnvSubstitution(prefixMapping, lookup);
+
+        // SparqlScriptProcessor processor = SparqlScriptProcessor.createWithEnvSubstitution(prefixMapping)
+
+        // Union default graph transformation is now part of the connection
+        boolean unionDefaultGraphOnCliArgs = false;
+        if (unionDefaultGraphOnCliArgs && cmd.unionDefaultGraph) {
+            processor.addPostTransformer(stmt -> {
+                SparqlStmt r = SparqlStmtUtils.applyOpTransform(stmt,
+                    op -> Transformer.transformSkipService(new TransformUnionQuery(), op));
+                return r;
+            });
         }
 
         List<String> args = cmd.nonOptionArgs;
 
 
-        String outFormat = cmd.outFormat;
-
-        // If an in/out file is given prepend it to the arguments
+        // If an in/out file is given then prepend it to the arguments
         Path outFile = null;
         String outFilename = null;
         Path tmpFile;
@@ -206,23 +230,61 @@ public class SparqlIntegrateCmdImpls {
             }
         }
 
+        // Separate encoding and content type from the format and/or filename
+
+        List<String> rawOutEncodings = new ArrayList<>();
+        List<String> outEncodings;
+
+        FileNameParser fileNameParser = FileNameParser.of(
+            x -> ContentTypeUtils.getCtExtensions().getAlternatives().containsKey(x.toLowerCase()),
+            x -> ContentTypeUtils.getCodingExtensions().getAlternatives().containsKey(x.toLowerCase()));
+
+        // If a format is given it takes precedence - otherwise try to use the filename
+        String outFormat = cmd.outFormat;
+        String formatSource = outFormat == null
+                ? outFilename
+                : outFormat;
+
+        if (formatSource != null) {
+            // Try to derive the outFormat from the filename - if given.
+            FileName fn = fileNameParser.parse(formatSource);
+            outFormat = fn.getContentPart();
+            rawOutEncodings.addAll(fn.getEncodingParts());
+        }
+
+        CompressorStreamFactory csf = CompressorStreamFactory.getSingleton();
+
         OutputStream operationalOut;
         if (!Strings.isNullOrEmpty(outFilename)) {
             outFile = Paths.get(outFilename).toAbsolutePath();
+
+            Path outDir = outFile.getParent();
+            if (cmd.outMkDirs && outDir != null && !Files.exists(outDir)) {
+                Files.createDirectories(outDir);
+            }
+
             if(Files.exists(outFile) && !Files.isWritable(outFile)) {
                 throw new RuntimeException("Cannot write to specified output file: " + outFile.toAbsolutePath());
             }
 
-            if (outFormat == null) {
-                Lang lang = RDFDataMgr.determineLang(outFilename, null, null);
-                if (lang != null) {
-                    RDFFormat fmt = RDFWriterRegistry.defaultSerialization(lang);
-                    outFormat = fmt == null ? null : fmt.toString();
-                    logger.info("Inferred output format from " + outFilename + ": " + outFormat);
-                } else {
-                    throw new RuntimeException("Failed to determine output format");
-                }
-            }
+//            if (outFormat == null) {
+//                FileName fileName = fileNameParser.parse(outFilename);
+//                String contentPart = fileName.getContentPart();
+//
+//                Lang lang = RDFLanguagesEx.findLang(contentPart);
+//                rawOutEncodings.addAll(fileName.getEncodingParts());
+//
+//                // fileName = FileNameUtils.deconstruct(outFilename);
+//
+//                // Lang lang = RDFDataMgr.determineLang(outFilename, null, null);
+//                if (lang != null) {
+//                    RDFFormat fmt = RDFWriterRegistry.defaultSerialization(lang);
+//                    outFormat = fmt == null ? null : fmt.toString();
+//                    logger.info("Inferred output format from " + outFilename + ": " + outFormat);
+//                } else {
+//                    throw new RuntimeException("Failed to determine output format");
+//                }
+//            }
 
             Path parent = outFile.getParent();
             String tmpName = "." + outFile.getFileName().toString() + ".tmp";
@@ -233,10 +295,14 @@ public class SparqlIntegrateCmdImpls {
                     StandardOpenOption.WRITE,
                     StandardOpenOption.TRUNCATE_EXISTING);
 
+            outEncodings = rawOutEncodings.stream().map(x -> ContentTypeUtils.getCodingExtensions().getAlternatives().get(x)).collect(Collectors.toList());
+            operationalOut = RDFDataMgrEx.encode(operationalOut, outEncodings, csf);
+
+            OutputStream finalOut = operationalOut;
             // Register a shutdown hook to delete the temporary file
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
-                    operationalOut.close();
+                    finalOut.close();
                     Files.deleteIfExists(tmpFile);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -245,6 +311,10 @@ public class SparqlIntegrateCmdImpls {
 
         } else {
             operationalOut = StdIo.openStdOutWithCloseShield();
+
+            outEncodings = rawOutEncodings.stream().map(x -> ContentTypeUtils.getCodingExtensions().getAlternatives().get(x)).collect(Collectors.toList());
+            operationalOut = RDFDataMgrEx.encode(operationalOut, outEncodings, csf);
+
             outFile = null;
             tmpFile = null;
         }
@@ -276,6 +346,23 @@ public class SparqlIntegrateCmdImpls {
                .collect(Collectors.toList());
         }
 
+        // If loader is "update" then materialize all LOAD statements into INSERT DATA ones
+        if ("insert".equalsIgnoreCase(cmd.dbLoader)) {
+            UpdateTransform xform = update -> update instanceof UpdateLoad
+                    ? UpdateUtils.materialize((UpdateLoad)update)
+                    : update;
+
+            workloads = workloads.stream().map(e -> {
+                SparqlStmt stmt = e.getKey();
+                if (stmt.isUpdateRequest()) {
+                    UpdateRequest before = stmt.getUpdateRequest();
+                    UpdateRequest after = UpdateRequestUtils.copyTransform(before, xform);
+                    stmt = new SparqlStmtUpdate(after);
+                }
+                return Map.entry(stmt, e.getValue());
+            })
+            .collect(Collectors.toList());
+        }
 
 
         // Workloads clustered by their split target filenames
@@ -353,7 +440,7 @@ public class SparqlIntegrateCmdImpls {
             clusterToSink.put(filename, effectiveHandler);
         }
 
-        // Start the engine (wrooom)
+        // Start the engine
 
         Dataset datasetTmp = null;
         RdfDataEngine dataSourceTmp = setupRdfDataEngine(cmd);
@@ -370,6 +457,11 @@ public class SparqlIntegrateCmdImpls {
             }
         }
 
+        // Auto transactions are handled by the DataEngineFactory implementations
+//        if (datasetTmp != null) {
+//            dataSourceTmp = RdfDataEngines.wrapWithAutoTxn(dataSourceTmp, datasetTmp);
+//        }
+
         Dataset finalDataset = datasetTmp;
 
         if (cmd.arqConfig.geoindex) {
@@ -381,35 +473,79 @@ public class SparqlIntegrateCmdImpls {
         dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, null, QueryExecs::withDetailedHttpMessages);
 
         if (cmd.cachePath != null) {
-            Path cachePath = Path.of(cmd.cachePath);
-            Path parent = cachePath.getParent();
+            Path cachePathBase = Path.of(cmd.cachePath);
+            Path parent = cachePathBase.getParent();
             if (parent != null && !Files.exists(parent)) {
-                throw new RuntimeException("Folder " + parent + " does not exist");
+                throw new RuntimeException("Cannot initialize cache because folder " + parent + " does not exist");
             }
 
-            QueryExecFactoryQueryTransform decorizer = QueryExecFactoryQueryRangeCache
-                    .createQueryExecMod(cachePath, cmd.dbMaxResultSize);
+            String datasetId = cmd.datasetId;
+            if (datasetId == null) {
+                datasetId = RdfDataSources.fetchDatasetHash(dataSourceTmp);
+                if (logger.isInfoEnabled()) {
+                    logger.info("Automatically derived datasetId using data sampling: " + datasetId);
+                    logger.info("Use '--dataset-id your-id' to configure the datasetId manually.");
+                }
+            }
 
-            QueryExecutionFactory i = QueryExecutionFactories.of(dataSourceTmp);
-            QueryExecFactory j = QueryExecFactories.adapt(i);
-            QueryExecFactory k = QueryExecFactories.adapt(decorizer.apply(j));
-            QueryExecutionFactory l = QueryExecutionFactories.adapt(k);
-            dataSourceTmp = RdfDataEngines.adapt(l);
+            if (datasetId.isEmpty()) {
+                datasetId = "unknown";
+            }
+
+            // Sanitize XXX Maybe use some better method?
+            datasetId = BaseEncoding.base64Url().encode(datasetId.getBytes());
+            Path cachePath = cachePathBase.resolve(datasetId);
+
+            if (logger.isInfoEnabled()) {
+                logger.info("DatasetId: " + datasetId);
+                logger.info("Cache folder: " + cachePath);
+            }
+
+
+//            HashCode datasetHashCode;
+//            try {
+//            	byte[] decoded = BaseEncoding.base64Url().decode(datasetId);
+//            	datasetHashCode = HashCode.fromBytes(decoded);
+//            } catch (Exception e) {
+//            	logger.info("Could not decode datasetId as a ");
+//
+//            }
+
+            dataSourceTmp = RdfDataEngines.transform(dataSourceTmp, ds -> RdfDataSourceWithRangeCache.create(ds, cachePath, cmd.dbMaxResultSize));
+
+//            RdfDataEngines.wrapWithCustomQueryExecBuilder(dataSourceTmp, ds -> new QueryExecBuilderCustomBase<QueryExecBuilder>() {
+//            });
+//
+//            QueryExecFactoryQueryTransform decorizer = QueryExecFactoryQueryRangeCache
+//                    .createQueryExecMod(cachePath, cmd.dbMaxResultSize);
+//
+//            QueryExecutionFactory i = QueryExecutionFactories.of(dataSourceTmp);
+//            QueryExecFactory j = QueryExecFactories.adapt(i);
+//            QueryExecFactory k = QueryExecFactories.adapt(decorizer.apply(j));
+//            QueryExecutionFactory l = QueryExecutionFactories.adapt(k);
+//            dataSourceTmp = RdfDataEngines.adapt(l);
+
+            if (cmd.cacheRewriteGroupBy) {
+                dataSourceTmp = RdfDataEngines.wrapWithLinkTransform(dataSourceTmp, link ->
+                        RDFLinkUtils.wrapWithQueryTransform(link, RdfDataSourceWithLocalCache.TransformInjectCacheSyntax::rewriteQuery, null));
+                // dataSourceTmp = RdfDataEngines.of(new RdfDataSourceWithLocalCache(dataSourceTmp), dataSourceTmp);
+            }
         }
 
         if ("sansa".equalsIgnoreCase(cmd.dbLoader)) {
             logger.info("Using sansa loader for loading RDF files");
-            dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, new RdfDataSourceDecoratorSansa());
+
+            // Load sansa dynamically as to not require it to be present on the classpath
+            RdfDataSourceDecorator sansaDecorator = (RdfDataSourceDecorator)Class.forName("org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa").getConstructor().newInstance();
+                // dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, new RdfDataSourceDecoratorSansa());
+            dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, sansaDecorator);
         }
 
         // Attempt to detect the dbms name.
         // If one is detected then use it as an active profile name.
-        String dmbsProfile = null;
-        try (RDFConnection conn = dataSourceTmp.getConnection()) {
-            dmbsProfile = RdfDataSourceWithBnodeRewrite.detectProfile(conn);
-            if (logger.isInfoEnabled()) {
-                logger.info("Detected DBMS: " + dmbsProfile);
-            }
+        String dmbsProfile = RdfDataSources.compute(dataSourceTmp, RdfDataSourcePolyfill::detectProfile);
+        if (logger.isInfoEnabled()) {
+            logger.info("Detected DBMS: " + dmbsProfile);
         }
 
         String bnodeProfile = cmd.bnodeProfile;
@@ -442,7 +578,14 @@ public class SparqlIntegrateCmdImpls {
         if (!cmd.macroSources.isEmpty()) {
             logger.info("Loaded functions: {}", udfRegistry.keySet());
             logger.info("Loaded {} function definitions from  {} macro sources.", udfRegistry.size(), cmd.macroSources.size());
-            ExprTransform eform = new ExprTransformExpand(udfRegistry);
+            // ExprTransform eform = new ExprTransformExpand(udfRegistry);
+            ExprTransform eform = new ExprTransformCopy() {
+                @Override
+                public Expr transform(ExprFunctionN func, ExprList args) {
+                    // XXX Could avoid func.copy()
+                    return UserDefinedFunctions.expandMacro(udfRegistry, func.copy(args));
+                }
+            };
             QueryTransform qform = q -> QueryUtils.rewrite(q, op -> Transformer.transform(null, eform, op));
             dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, qform, null);
         }
@@ -480,9 +623,14 @@ public class SparqlIntegrateCmdImpls {
                     cxt.put(RDFLinkUtils.symRdfDataSource, thisDataSource);
                 });
 
+                RDFConnection cbx = cmd.unionDefaultGraph
+                        ? RDFConnectionUtils.wrapWithStmtTransform(cb, stmt -> SparqlStmtUtils.applyOpTransform(stmt,
+                                op -> Transformer.transformSkipService(new TransformUnionQuery(), op)))
+                        : cb;
+
                 // TODO Add a util method wrapWithStmtTransform
                 RDFConnection cc = RDFConnectionUtils.wrapWithQueryTransform(
-                    cb,
+                    cbx,
                     null, queryExec -> {
                         QueryExec r = queryExec;
 
@@ -523,7 +671,7 @@ public class SparqlIntegrateCmdImpls {
                             };
                         }
 
-                        r = QueryExecWrapperTxn.wrap(r, cb);
+                        // r = QueryExecWrapperTxn.wrap(r, cb);
 
                         if (cmd.arqConfig.geoindex) {
 
@@ -559,12 +707,15 @@ public class SparqlIntegrateCmdImpls {
                                 if (ur != null) {
                                     Op op = SparqlStmtUtils.toAlgebra(new SparqlStmtUpdate(ur));
                                     if (op != null) {
-                                        Context cxt = getContext();
+                                        // Context cxt = getContext();
+                                        Context cxt = finalDataset.getContext();
                                         if (cxt != null) {
                                             op = Optimize.optimize(op, cxt);
                                         }
                                         if (op != null) {
-                                            logger.info("Algebra of " + ur + ":\n" + op);
+                                            if (logger.isInfoEnabled()) {
+                                                logger.info("Algebra of " + ur + ":\n" + op);
+                                            }
                                         }
                                     }
                                 }
@@ -572,7 +723,7 @@ public class SparqlIntegrateCmdImpls {
                         };
                     }
 
-                    r = UpdateProcessorWrapperTxn.wrap(r, cb);
+                    // r = UpdateProcessorWrapperTxn.wrap(r, cb);
 
                     if (cmd.arqConfig.geoindex) {
                         r = new UpdateExecWrapperBase<>(r) {
@@ -588,7 +739,8 @@ public class SparqlIntegrateCmdImpls {
 
                                         // The the spatial index symbol is in the dataset's context
                                         // copy it into the query exec's context.
-                                        Context execCxt = getContext();
+                                        // Context execCxt = getContext();
+                                        Context execCxt = finalDatasetCxt;
                                         if (execCxt != null) {
                                             execCxt.set(SpatialIndex.SPATIAL_INDEX_SYMBOL,
                                                     finalDataset.getContext().getAsString(SpatialIndex.SPATIAL_INDEX_SYMBOL));
@@ -622,6 +774,10 @@ public class SparqlIntegrateCmdImpls {
             boolean clientSideConstructQuads = false;
             if (clientSideConstructQuads) {
                 dataSource = RdfDataSources.execQueryViaSelect(dataSource, query -> query.isConstructQuad());
+            }
+
+            if (cmd.polyfillLateral) {
+                dataSource = RdfDataSourceWithLocalLateral.wrap(dataSource);
             }
 
             RdfDataSource finalDataSource = dataSource;
@@ -671,10 +827,13 @@ public class SparqlIntegrateCmdImpls {
 
                 URI browseUri = new URI("http://localhost:" + port + "/sparql");
                 if (Desktop.isDesktopSupported()) {
-                    Desktop.getDesktop().browse(browseUri);
-                } else {
-                    logger.info("SPARQL service with in-memory result dataset running at " + browseUri);
+                    try {
+                        Desktop.getDesktop().browse(browseUri);
+                    } catch (UnsupportedOperationException e) {
+                        logger.info("Note: Could not open system browser.");
+                    }
                 }
+                logger.info("SPARQL service running at: " + browseUri);
             }
 
             try (RDFConnection conn = finalDataSource.getConnection()) {

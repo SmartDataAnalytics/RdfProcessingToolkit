@@ -45,7 +45,7 @@
 						</tags>
 					</to>
 					<from>
-						<image>eclipse-temurin:11-jre</image>
+						<image>eclipse-temurin:17-jre</image>
 					</from>
 					<container>
 						<mainClass>org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit</mainClass>

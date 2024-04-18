@@ -14,6 +14,7 @@ import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdCommonBase;
 import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 import org.aksw.sparql_integrate.cli.main.SparqlIntegrateCmdImpls;
+
 import com.google.common.base.StandardSystemProperty;
 
 import picocli.CommandLine.ArgGroup;
@@ -49,7 +50,7 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--db-loc", "--loc" }, description="Access location to the database; interpreted w.r.t. engine. May be an URL, directory or file.")
     public String dbPath = null;
 
-    @Option(names = { "--db-loader" }, description="Wrap a datasource's default loading strategy with a different one. Supported values: sansa")
+    @Option(names = { "--db-loader" }, description="Wrap a datasource's default loading strategy with a different one. Supported values: insert (materializes LOAD as INSERT DATA), sansa (parallel loader)")
     public String dbLoader = null;
 
     // TODO Should require --server
@@ -57,11 +58,22 @@ public class CmdSparqlIntegrateMain
     public boolean readOnlyMode = false;
 
 
+    @Option(names = { "--env" },  description="Set property that can be accessed using the SPARQL function sys:getenv(key).")
+    public Map<String, String> env;
+
+    /* Caching Options */
+
+    @Option(names = { "--dataset-id" }, description="An ID for the initial dataset in the configured engine (before applying any updates). Used for cache lookups (if enabled).")
+    public String datasetId = null;
+
     @Option(names = { "--cache-engine" }, description="Cache engine. Supported: 'none', 'mem', 'disk'")
     public String cacheEngine = null;
 
     @Option(names = { "--cache-loc" }, description="Cache location; if provided then engine defaults to 'disk'")
     public String cachePath = null;
+
+    @Option(names = { "--cache-rewrite-groupby" }, description="Cache GROUP BY operations individually. Ignored if no cache engine is specified.") //, defaultValue = "false", fallbackValue = "true")
+    public boolean cacheRewriteGroupBy = false;
 
 
 
@@ -81,7 +93,7 @@ public class CmdSparqlIntegrateMain
     public String splitFolder = null;
 
     @Mixin
-    public CmdMixinArq arqConfig;
+    public CmdMixinArq arqConfig = new CmdMixinArq();
 
     @Option(names= {"--bnp", "--bnode-profile"}, description="Blank node profile, empty string ('') to disable; 'auto' to autodetect, defaults to ${DEFAULT-VALUE}", defaultValue = "")
     public String bnodeProfile = null;
@@ -130,9 +142,6 @@ public class CmdSparqlIntegrateMain
     @ArgGroup(exclusive = true, multiplicity = "0..1")
     public OutputSpec outputSpec;
 
-    @Option(names = { "--iriasgiven" }, arity="0", description = "Use an alternative IRI() implementation that is non-validating but fast")
-    public boolean useIriAsGiven = false;
-
     public static class OutputSpec {
         /**
          * sparql-pattern file
@@ -144,6 +153,9 @@ public class CmdSparqlIntegrateMain
         @Option(names = { "--io", },  description = "overwrites argument file on success with output; use with care")
         public String inOutFile = null;
     }
+
+    @Option(names = { "--iriasgiven" }, arity="0", description = "Use an alternative IRI() implementation that is non-validating but fast")
+    public boolean useIriAsGiven = false;
 
     @Option(names = { "-d", "--used-prefixes" }, description = "Number of records (bindings/quads) by which to defer RDF output in order to analyze used prefixes; default: ${DEFAULT-VALUE}", defaultValue = "100")
     public long usedPrefixDefer;
@@ -158,6 +170,9 @@ public class CmdSparqlIntegrateMain
      */
     @Option(names = { "--out-format", "--of" }, description = "Output format")
     public String outFormat = null;
+
+    @Option(names = { "--out-mkdirs" }, description = "Create directories to the output file as needed.")
+    public boolean outMkDirs = false;
 
     // Subsume jq stuff under -w jq ?
 
@@ -186,6 +201,9 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--graphql-autoconf" }, description = "Query SPARQL endpoint for VoID and SHACL metadata on first request to map an unqualified field",
             negatable = true, defaultValue = "true", fallbackValue = "true")
     public boolean graphQlAutoConfigure;
+
+    @Option(names = { "--polyfill-lateral" }, description = "Polyfill LATERAL by evaluating it on the client (may transmit large volumes of data).")
+    public boolean polyfillLateral;
 
     /**
      * --jq may be followed by an integer - picocli seems to greedily parse any argument even if it is not an integer

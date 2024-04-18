@@ -2,10 +2,10 @@ package org.aksw.sparql_integrate.ngs.cli.main;
 
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdUtils;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestSparqlBindingStreamOperators {
+
 
     @Test
     public void test1() {

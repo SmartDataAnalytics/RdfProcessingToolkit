@@ -10,6 +10,12 @@
 	</parent>
 	<artifactId>rdf-processing-toolkit-cli</artifactId>
 	<dependencies>
+
+		<dependency>
+			<groupId>javax.ws.rs</groupId>
+			<artifactId>javax.ws.rs-api</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.aksw.rmltk</groupId>
 			<artifactId>rmltk-picocli-cmds</artifactId>
@@ -26,19 +32,53 @@
 					<groupId>org.apache.hadoop</groupId>
 					<artifactId>hadoop-client-runtime</artifactId>
 				</exclusion>
+
+				<!-- Spark excluded here for the shaded sansa-spark-jakarta
+				artifact -->
+				<exclusion>
+					<groupId>org.apache.spark</groupId>
+					<artifactId>spark-sql_2.12</artifactId>
+				</exclusion>
+				<!--
+				<exclusion>
+					<groupId>org.glassfish.jersey.core</groupId>
+					<artifactId>jersey-server</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.glassfish.jersey.containers</groupId>
+					<artifactId>jersey-container-servlet</artifactId>
+				</exclusion>
+				-->
 			</exclusions>
 		</dependency>
-<!--		<dependency>-->
-<!--		  <groupId>org.apache.hadoop</groupId>-->
-<!--		  <artifactId>hadoop-client</artifactId>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--		  <groupId>org.apache.hadoop</groupId>-->
-<!--		  <artifactId>hadoop-client-api</artifactId>-->
-<!--		</dependency>-->
+		<!-- -->
 		<dependency>
-		  <groupId>org.apache.hadoop</groupId>
-		  <artifactId>hadoop-common</artifactId>
+			<groupId>net.sansa-stack</groupId>
+			<artifactId>sansa-spark-jakarta_2.12</artifactId>
+			<version>${sansa.version}</version>
+			<classifier>jakarta</classifier>
+		</dependency>
+		<!-- -->
+
+
+		<!--		<dependency>-->
+		<!--			<groupId>org.glassfish.jersey</groupId>-->
+		<!--			<artifactId>jersey-bom</artifactId>-->
+		<!--			<type>pom</type>-->
+		<!--			<scope>import</scope>-->
+		<!--		</dependency>-->
+
+		<!--		<dependency>-->
+		<!--		  <groupId>org.apache.hadoop</groupId>-->
+		<!--		  <artifactId>hadoop-client</artifactId>-->
+		<!--		</dependency>-->
+		<!--		<dependency>-->
+		<!--		  <groupId>org.apache.hadoop</groupId>-->
+		<!--		  <artifactId>hadoop-client-api</artifactId>-->
+		<!--		</dependency>-->
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.aksw.conjure</groupId>
@@ -55,6 +95,10 @@
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-picocli</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-conjure-core</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
@@ -76,6 +120,8 @@
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-plugins-bundle</artifactId>
 		</dependency>
+		<!-- TODO sparql-generate ships with its own log4j.properties file which
+		may break logging-->
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-plugins-generate</artifactId>
@@ -139,75 +185,81 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	
-	<!-- net.sansa_stack.spark.cli.cmd.VersionProviderFromClasspathProperties.getVersion(VersionProviderFromClasspathProperties.java:32) -->
-	<build><plugins>
-	    <plugin>
-      <groupId>org.codehaus.mojo</groupId>
-      <artifactId>exec-maven-plugin</artifactId>
-      <version>3.0.0</version>
-      <executions>
-        <execution>
-          <id>generateManPages</id>
-          <phase>process-classes</phase>
-          <goals>
-            <goal>java</goal>
-          </goals>
-        </execution>
-      </executions>
-      <configuration>
-        <includeProjectDependencies>true</includeProjectDependencies>
-        <includePluginDependencies>true</includePluginDependencies>
-        <mainClass>picocli.codegen.docgen.manpage.ManPageGenerator</mainClass>
-        <arguments>
-          <argument>--outdir=${project.build.directory}/generated-picocli-docs</argument>
-          <argument>org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain</argument>
-        </arguments>
-      </configuration>
-      <dependencies>
-        <dependency>
-          <groupId>info.picocli</groupId>
-          <artifactId>picocli-codegen</artifactId>
-          <version>4.7.4</version>
-          <type>jar</type>
-        </dependency>
-      </dependencies>
-    </plugin>
 
-    <plugin>
-      <groupId>org.asciidoctor</groupId>
-      <artifactId>asciidoctor-maven-plugin</artifactId>
-      <version>2.1.0</version>
-      <executions>
-        <execution>
-          <id>output-html</id>
-          <phase>process-classes</phase>
-          <goals>
-            <goal>process-asciidoc</goal>
-          </goals>
-          <configuration>
-            <sourceHighlighter>coderay</sourceHighlighter>
-            <backend>html5</backend>
-          </configuration>
-        </execution>
-        <execution>
-          <id>output-manpage</id>
-          <phase>process-classes</phase>
-          <goals>
-            <goal>process-asciidoc</goal>
-          </goals>
-          <configuration>
-            <sourceHighlighter>coderay</sourceHighlighter>
-            <backend>manpage</backend>
-          </configuration>
-        </execution>
-      </executions>
-      <configuration>
-        <sourceDirectory>${project.build.directory}/generated-picocli-docs</sourceDirectory>
-      </configuration>
-    </plugin>			
-	</plugins></build>
-	
+	<!--
+	net.sansa_stack.spark.cli.cmd.VersionProviderFromClasspathProperties.getVersion(VersionProviderFromClasspathProperties.java:32) -->
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<id>generateManPages</id>
+						<phase>process-classes</phase>
+						<goals>
+							<goal>java</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<includeProjectDependencies>true</includeProjectDependencies>
+					<includePluginDependencies>true</includePluginDependencies>
+					<mainClass>picocli.codegen.docgen.manpage.ManPageGenerator</mainClass>
+					<arguments>
+						<argument>
+							--outdir=${project.build.directory}/generated-picocli-docs</argument>
+						<argument>
+							org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain</argument>
+					</arguments>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>info.picocli</groupId>
+						<artifactId>picocli-codegen</artifactId>
+						<version>4.7.4</version>
+						<type>jar</type>
+					</dependency>
+				</dependencies>
+			</plugin>
+
+			<plugin>
+				<groupId>org.asciidoctor</groupId>
+				<artifactId>asciidoctor-maven-plugin</artifactId>
+				<version>2.1.0</version>
+				<executions>
+					<execution>
+						<id>output-html</id>
+						<phase>process-classes</phase>
+						<goals>
+							<goal>process-asciidoc</goal>
+						</goals>
+						<configuration>
+							<sourceHighlighter>coderay</sourceHighlighter>
+							<backend>html5</backend>
+						</configuration>
+					</execution>
+					<execution>
+						<id>output-manpage</id>
+						<phase>process-classes</phase>
+						<goals>
+							<goal>process-asciidoc</goal>
+						</goals>
+						<configuration>
+							<sourceHighlighter>coderay</sourceHighlighter>
+							<backend>manpage</backend>
+						</configuration>
+					</execution>
+				</executions>
+				<configuration>
+					<sourceDirectory>
+						${project.build.directory}/generated-picocli-docs</sourceDirectory>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
 	<profiles>
 		<profile>
 			<id>dist</id>
@@ -225,7 +277,8 @@
 								<fileSet>
 									<directory>${project.build.directory}</directory>
 									<includes>
-										<!-- <include>${project.artifactId}*-jar-with-dependencies.jar</include> -->
+										<!--
+										<include>${project.artifactId}*-jar-with-dependencies.jar</include> -->
 										<include>*dependencies.jar</include>
 									</includes>
 								</fileSet>
@@ -243,7 +296,8 @@
 											implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
 										<transformer
 											implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-											<mainClass>org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit</mainClass>
+											<mainClass>
+												org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit</mainClass>
 											<manifestEntries>
 												<Multi-Release>true</Multi-Release>
 											</manifestEntries>
@@ -260,7 +314,8 @@
 							<skip>true</skip>
 						</configuration>
 					</plugin>
-					<!-- <plugin> <groupId>org.sonatype.plugins</groupId> <artifactId>nexus-staging-maven-plugin</artifactId> 
+					<!-- <plugin> <groupId>org.sonatype.plugins</groupId>
+					<artifactId>nexus-staging-maven-plugin</artifactId> 
 						<configuration> <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo> 
 						</configuration> </plugin> -->
 				</plugins>

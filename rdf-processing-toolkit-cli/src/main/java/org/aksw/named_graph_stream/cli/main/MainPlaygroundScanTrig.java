@@ -34,7 +34,7 @@ import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RiotParseException;
 
-import com.github.jsonldjava.shaded.com.google.common.primitives.Ints;
+import com.google.common.primitives.Ints;
 
 import io.reactivex.rxjava3.exceptions.Exceptions;
 
