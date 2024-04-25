@@ -58,8 +58,8 @@
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
 		<jena.version>5.0.0</jena.version>
-		<jenax.version>5.0.0-1</jenax.version>
-		<rmltk.version>5.0.0-1</rmltk.version>
+		<jenax.version>5.0.0-2-SNAPSHOT</jenax.version>
+		<rmltk.version>5.0.0-2-SNAPSHOT</rmltk.version>
 		<conjure.version>5.0.0-1</conjure.version>
 		<sansa.version>0.9.5</sansa.version>
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
