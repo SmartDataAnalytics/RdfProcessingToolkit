@@ -49,6 +49,10 @@
 					<artifactId>jersey-container-servlet</artifactId>
 				</exclusion>
 				-->
+				<exclusion>
+				  <groupId>org.apache.spark</groupId>
+				  <artifactId>spark-core_2.12</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- -->
