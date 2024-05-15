@@ -27,6 +27,10 @@ public class CmdUtils {
         System.exit(exitCode);
     }
 
+    public static void execCmd(CommandLine cl, String[] args) {
+        int exitCode = callCmd(cl, args);
+        System.exit(exitCode);
+    }
 
     /**
      *

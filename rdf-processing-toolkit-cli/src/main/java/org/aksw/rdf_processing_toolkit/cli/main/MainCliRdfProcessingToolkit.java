@@ -13,6 +13,6 @@ public class MainCliRdfProcessingToolkit {
         // Register sansa dynamically
         CmdUtils.registerIfAvailable(commandLine, "net.sansa_stack.spark.cli.cmd.CmdSansaParent");
 
-        CmdUtils.callCmd(commandLine, args);
+        CmdUtils.execCmd(commandLine, args);
     }
 }
