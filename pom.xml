@@ -57,11 +57,11 @@
 
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
-		<jena.version>5.0.0</jena.version>
-		<jenax.version>5.0.0-2-SNAPSHOT</jenax.version>
-		<rmltk.version>5.0.0-2-SNAPSHOT</rmltk.version>
-		<conjure.version>5.0.0-1</conjure.version>
-		<sansa.version>0.9.5</sansa.version>
+		<jena.version>5.1.0-SNAPSHOT</jena.version>
+		<jenax.version>5.1.0-1-SNAPSHOT</jenax.version>
+		<rmltk.version>5.1.0-1-SNAPSHOT</rmltk.version>
+		<conjure.version>5.1.0-1-SNAPSHOT</conjure.version>
+		<sansa.version>0.9.5-SNAPSHOT</sansa.version>
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
 		<picocli.version>4.6.2</picocli.version>
@@ -191,7 +191,8 @@
 				</exclusions>
 			</dependency>
 
-			<!-- Also declares versions for sub groups such as org.glassfish.jersey.containers -->
+			<!-- Also declares versions for sub groups such as
+			org.glassfish.jersey.containers -->
 			<dependency>
 				<groupId>org.glassfish.jersey</groupId>
 				<artifactId>jersey-bom</artifactId>
@@ -213,14 +214,14 @@
 				<artifactId>conjure-datasources</artifactId>
 				<version>${conjure.version}</version>
 				<exclusions>
-				  <exclusion>
-				    <groupId>org.apache.spark</groupId>
-				    <artifactId>spark-sql_2.12</artifactId>
-				  </exclusion>
-				  <exclusion>
-				    <groupId>org.apache.spark</groupId>
-				    <artifactId>spark-core_2.12</artifactId>
-				  </exclusion>
+					<exclusion>
+						<groupId>org.apache.spark</groupId>
+						<artifactId>spark-sql_2.12</artifactId>
+					</exclusion>
+					<exclusion>
+						<groupId>org.apache.spark</groupId>
+						<artifactId>spark-core_2.12</artifactId>
+					</exclusion>
 				</exclusions>
 			</dependency>
 			<dependency>
@@ -332,6 +333,8 @@
 				<artifactId>jts-io-common</artifactId>
 				<version>1.18.1</version>
 			</dependency>
+
+
 			<!-- <dependency> <groupId>org.aksw.sparql-integrate</groupId>
 			<artifactId>sparql-integrate-ckan-core</artifactId> 
 				<version>${project.version}</version> </dependency> <dependency>
