@@ -1,7 +1,6 @@
 package org.aksw.rml.v2.cli.main;
 
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
+import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +59,7 @@ public class CmdRml2Exec
 
 
         RmlToSparqlRewriteBuilder builder = new RmlToSparqlRewriteBuilder()
+                .setValidationRml2Enabled(true)
                 .setRegistry(rfRegistry)
                 // .setCache(cache)
                 // .addFnmlFiles(fnmlFiles)
@@ -74,7 +74,7 @@ public class CmdRml2Exec
 
         Dataset dataset = RmlTestCase.execute(labeledQueries, mappingDirectory, null);
 
-        try (PrintStream out = new PrintStream(FileUtils.newOutputStream(rdfOutputConfig), false, StandardCharsets.UTF_8)) {
+        try (OutputStream out = FileUtils.newOutputStream(rdfOutputConfig)) {
             StreamRDF writer = StreamRDFWriter.getWriterStream(out, RDFFormat.NQUADS);
             writer.start();
             StreamRDFOps.sendDatasetToStream(dataset.asDatasetGraph(), writer);

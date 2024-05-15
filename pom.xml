@@ -61,7 +61,7 @@
 		<jenax.version>5.1.0-1-SNAPSHOT</jenax.version>
 		<rmltk.version>5.1.0-1-SNAPSHOT</rmltk.version>
 		<conjure.version>5.1.0-1-SNAPSHOT</conjure.version>
-		<sansa.version>0.9.6-SNAPSHOT</sansa.version>
+		<sansa.version>0.9.5</sansa.version>
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
 		<!-- <slf4j.version>1.8.0-beta4</slf4j.version> -->
 		<picocli.version>4.6.2</picocli.version>
