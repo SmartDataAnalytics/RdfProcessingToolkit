@@ -13,7 +13,7 @@ import org.aksw.jenax.stmt.resultset.SPARQLResultSink;
 import org.aksw.jenax.stmt.resultset.SPARQLResultSinkQuads;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMain;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
-import org.aksw.rdf_processing_toolkit.cli.cmd.CmdUtils;
+import org.aksw.rdf_processing_toolkit.cli.cmd.RptCmdUtils;
 import com.google.common.collect.Streams;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
@@ -61,7 +61,7 @@ public class MainCliNamedGraphStream {
     static final Logger logger = LoggerFactory.getLogger(MainCliNamedGraphStream.class);
 
     public static void main(String[] args) {
-        CmdUtils.execCmd(CmdNgsMain.class, args);
+        RptCmdUtils.execCmd(CmdNgsMain.class, args);
     }
 
     public static Predicate<Dataset> createPredicate(Query query) {

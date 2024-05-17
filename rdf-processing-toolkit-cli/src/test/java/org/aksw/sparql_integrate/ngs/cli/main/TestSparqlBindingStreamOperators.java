@@ -1,11 +1,12 @@
 package org.aksw.sparql_integrate.ngs.cli.main;
 
+import org.aksw.commons.picocli.CmdUtils;
+import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
-import org.aksw.rdf_processing_toolkit.cli.cmd.CmdUtils;
 import org.junit.Test;
 
 public class TestSparqlBindingStreamOperators {
-
+    static { CliUtils.configureGlobalSettings(); }
 
     @Test
     public void test1() {
