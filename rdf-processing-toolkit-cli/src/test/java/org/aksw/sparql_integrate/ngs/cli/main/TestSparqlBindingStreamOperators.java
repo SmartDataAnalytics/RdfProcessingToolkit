@@ -26,5 +26,4 @@ public class TestSparqlBindingStreamOperators {
 //      MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "query", "-o", "txt", "-q", "SELECT COUNT(*) {}"});
 
     }
-
 }

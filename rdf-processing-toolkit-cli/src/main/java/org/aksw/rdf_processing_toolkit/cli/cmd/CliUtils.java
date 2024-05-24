@@ -9,7 +9,6 @@ import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
@@ -23,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Stopwatch;
 
 public class CliUtils {
-
     private static final Logger logger = LoggerFactory.getLogger(CliUtils.class);
 
     public static void benchmark(String name, Consumer<String> msgReceiver, Runnable runnable) {
@@ -84,7 +82,6 @@ public class CliUtils {
 //        });
     }
 
-
     public static PrefixMapping configPrefixMapping(CmdSparqlIntegrateMain cmd) {
         PrefixMapping result = new PrefixMappingImpl();
         result.setNsPrefixes(DefaultPrefixes.get());
@@ -94,5 +91,4 @@ public class CliUtils {
 
         return result;
     }
-
 }
