@@ -1,8 +1,8 @@
 package org.aksw.rdf_processing_toolkit.cli.main;
 
-import org.aksw.commons.picocli.CmdUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
+import org.aksw.sparql_integrate.cli.CmdUtilsBackport;
 
 import picocli.CommandLine;
 
@@ -14,8 +14,8 @@ public class MainCliRdfProcessingToolkit {
         CommandLine commandLine = new CommandLine(new CmdRptMain());
 
         // Register sansa dynamically
-        CmdUtils.registerIfAvailable(commandLine, "net.sansa_stack.spark.cli.cmd.CmdSansaParent");
+        CmdUtilsBackport.registerIfAvailable(commandLine, "net.sansa_stack.spark.cli.cmd.CmdSansaParent");
 
-        CmdUtils.execCmd(commandLine, args);
+        CmdUtilsBackport.execCmd(commandLine, args);
     }
 }

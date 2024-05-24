@@ -188,10 +188,12 @@
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
+<!--
 		<dependency>
 			<groupId>org.aksw.rmltk</groupId>
 			<artifactId>rml-testsuite-processor-core</artifactId>
 		</dependency>
+-->
 	</dependencies>
 
 	<!--
