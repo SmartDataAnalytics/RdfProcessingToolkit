@@ -1,0 +1,12 @@
+# This query is similar to tree.rq with the difference that it operates on every named graph.
+
+PREFIX norse: <https://w3id.org/aksw/norse#>
+
+CONSTRUCT {
+  GRAPH ?g { ?s ?p ?o }
+}
+WHERE {
+  GRAPH ?g { ?sub ?p ?obj }
+  BIND(IF(EXISTS { GRAPH ?g { [] ?p1 ?sub . ?sub ?p2 [] } }, norse:bnode.asGiven(?sub), ?sub) AS ?s)
+  BIND(IF(EXISTS { GRAPH ?g { [] ?p1 ?obj . ?obj ?p2 [] } }, norse:bnode.asGiven(?obj), ?obj) AS ?o)
+}

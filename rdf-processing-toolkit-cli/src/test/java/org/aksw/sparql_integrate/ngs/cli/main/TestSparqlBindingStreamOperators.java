@@ -1,14 +1,14 @@
 package org.aksw.sparql_integrate.ngs.cli.main;
 
+import org.aksw.commons.picocli.CmdUtils;
+import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdRptMain;
-import org.aksw.rdf_processing_toolkit.cli.cmd.CmdUtils;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestSparqlBindingStreamOperators {
+    static { CliUtils.configureGlobalSettings(); }
 
     @Test
-    @Ignore
     public void test1() {
         // TODO Make the output stream of the mainCore functions configurable so that we can intercept the results
 
@@ -26,5 +26,4 @@ public class TestSparqlBindingStreamOperators {
 //      MainCliRdfProcessingToolkit.mainCore(new String[] {"sbs", "query", "-o", "txt", "-q", "SELECT COUNT(*) {}"});
 
     }
-
 }

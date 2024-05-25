@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.aksw.commons.rx.op.FlowableOperatorSequentialGroupBy;
+import org.aksw.commons.rx.op.FlowableOperatorCollapseRuns;
+import org.aksw.commons.util.stream.CollapseRunsSpec;
 import org.aksw.commons.util.string.StringUtils;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
@@ -41,10 +42,10 @@ public class NamedGraphStreamOps {
 
         return upstream ->
             upstream
-                .lift(FlowableOperatorSequentialGroupBy.<Triple, Node, List<Triple>>create(
+                .lift(FlowableOperatorCollapseRuns.<Triple, Node, List<Triple>>create(CollapseRunsSpec.create(
                         grouper::apply,
                         groupKey -> new ArrayList<>(),
-                        (l, t) -> l.add(t)))
+                        (l, t) -> l.add(t))))
                 .map(e -> {
                     Node g = e.getKey();
                     List<Triple> l = e.getValue();

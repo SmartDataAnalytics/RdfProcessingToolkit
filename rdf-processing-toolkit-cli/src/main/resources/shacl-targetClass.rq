@@ -1,0 +1,40 @@
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+
+PREFIX ns: <http://www.example.org/>
+
+CONSTRUCT  {
+   ?shape
+     a sh:NodeShape ;
+     rdfs:label ?label ;
+     sh:targetClass ?class
+     .
+
+   ?shape sh:property ?shp .
+   ?shp sh:path ?p .
+}
+{
+  SELECT * {
+    { SELECT DISTINCT ?class {
+      [] a ?class
+    } }
+    LATERAL {
+      SELECT DISTINCT ?p {
+        [] a ?class ; ?p []
+      }
+    }
+
+    BIND(STR(ns:) AS ?nsStr)
+    BIND(STR(?class) AS ?classStr)
+    BIND(ENCODE_FOR_URI(?classStr) AS ?classStrEnc)
+
+    BIND(STR(?p) AS ?pStr)
+    BIND(ENCODE_FOR_URI(?pStr) AS ?pStrEnc)
+
+    BIND(CONCAT(?nsStr, 'shape/', ?classStrEnc) AS ?shapeStr)
+    BIND(IRI(?shapeStr) AS ?shape)
+    BIND(CONCAT("Shape for ", ?classStr) AS ?label)
+    # BIND(IRI(CONCAT(?shapeStr, '/', ENCODE_FOR_URI(STR(?p)))) AS ?shp)
+    BIND(BNODE() AS ?shp)
+  }
+}
+

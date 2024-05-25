@@ -405,6 +405,37 @@ John,Doe""" csv:parse (?rowJson "excel -h")
 ```
 SELECT * { <example-data/people.csv> csv:parse (?rowJson "excel -h") }
 ```
+## Lambdas in SPARQL
+
+The function pair `norse:fn.of` and `norse:fn.call` is used to define and invoke a lambda. The definition of a lambda allows
+is based on conventional SPARQL expressions which however are evaluated lazily.
+
+* The function `norse:fn.of(var1, ... varN, expr)` first accepts a list of input sparql variables followed by a single sparql expression.
+  Any non-input variable mentioned in `expr` is substituted with the current binding's value.
+  The result of the function is an RDF literal of type `norse:lambda` which holds the lambda. The syntax of lambda literals is `?v1 v2 -> expr`.
+* The function `norse:fn.call(lambdaLiteral, value1, ... valueN)` is used to invoke a lambda. The declared input variables are thereby substituted with the corresponding
+  values. The thereby obtained effective SPARQL expression is then evaluated as usual and the result is returned.
+
+> Note: The implementation takes advantage of a feature of Jena's function extension system that allows for accessing SPARQL expressions prior to their evaluation.
+
+
+```sparql
+PREFIX norse: <https://w3id.org/aksw/norse#>
+SELECT ?resultA ?resultB {
+  BIND('Dear' AS ?salutation)
+  BIND(norse:fn.of(?honorific, ?name, CONCAT(?salutation, ' ', ?honorific, ' ', ?name)) AS ?greetingsFn)
+  BIND(norse:fn.call(?greetingsFn, "Mrs.", "Miller") AS ?resultA)
+  BIND(norse:fn.call(?greetingsFn, "Ms.", "Smith") AS ?resultB)
+}
+```
+
+```
+-----------------------------------------
+| resultA            | resultB          |
+=========================================
+| "Dear Mrs. Miller" | "Dear Ms. Smith" |
+-----------------------------------------
+```
 
 ```
 ---------------------------------------------------------------------------------
@@ -415,8 +446,6 @@ SELECT * { <example-data/people.csv> csv:parse (?rowJson "excel -h") }
 ---------------------------------------------------------------------------------
 
 ```
-
-
 
 ## Processing XML
 The XML processing functionality is based on the `xsd:xml` datatype.
@@ -477,6 +506,72 @@ SELECT * {
 =======================================================================================================================
 | "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><li>item</li>"^^<http://www.w3.org/2001/XMLSchema#xml> |
 -----------------------------------------------------------------------------------------------------------------------
+```
+
+
+
+## Lambdas in SPARQL
+
+The function pair `norse:fn.of` and `norse:fn.call` is used to define and invoke a lambda. The definition of a lambda allows
+is based on conventional SPARQL expressions which however are evaluated lazily.
+
+* The function `norse:fn.of(var1, ... varN, expr)` first accepts a list of input sparql variables followed by a single sparql expression.
+  Any non-input variable mentioned in `expr` is substituted with the current binding's value.
+  The result of the function is an RDF literal of type `norse:lambda` which holds the lambda. The syntax of lambda literals is `?v1 v2 -> expr`.
+* The function `norse:fn.call(lambdaLiteral, value1, ... valueN)` is used to invoke a lambda. The declared input variables are thereby substituted with the corresponding
+  values. The thereby obtained effective SPARQL expression is then evaluated as usual and the result is returned.
+
+> Note: The implementation takes advantage of a feature of Jena's function extension system that allows for accessing SPARQL expressions prior to their evaluation.
+
+
+```
+PREFIX norse: <https://w3id.org/aksw/norse#>
+SELECT ?resultA ?resultB {
+  BIND('Dear' AS ?salutation)
+  BIND(norse:fn.of(?honorific, ?name, CONCAT(?salutation, ' ', ?honorific, ' ', ?name)) AS ?greetingsFn)
+  BIND(norse:fn.call(?greetingsFn, "Mrs.", "Miller") AS ?resultA)
+  BIND(norse:fn.call(?greetingsFn, "Ms.", "Smith") AS ?resultB)
+}
+```
+
+```
+-----------------------------------------
+| resultA            | resultB          |
+=========================================
+| "Dear Mrs. Miller" | "Dear Ms. Smith" |
+-----------------------------------------
+```
+
+
+### Execution-Local Maps in SPARQL
+
+One use case of lambdas is for use with `norse:map.computeIfAbsent(mapId, key, lambda)`.
+The argument for `mapId` is an arbitrary RDF term that is used to refer to a map in the query's execution context. Empty maps are registered in the execution context whenever a new `mapId` is seen. All maps cease to exist once query execution completes. Two concurrently running queries cannot see each other's execution contexts.
+Maps are in-memory objects so they are limited by the available RAM.
+
+```sparql
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX eg: <http://www.example.org/>
+PREFIX norse: <https://w3id.org/aksw/norse#>
+SELECT ?rdfTerm ?value {
+  VALUES ?rdfTerm { eg:a eg:b eg:a eg:b }
+  # Set up a lambda that computes a random value for any argument
+  BIND(norse:fn.of(?x, xsd:int(RAND() * 100)) AS ?fn)
+  # Add map entries for each so-far unseen value of ?rdfTerm
+  BIND(norse:map.computeIfAbsent('myMapIdInTheExecCxt', ?rdfTerm, ?fn) AS ?value)
+}
+```
+
+As can be seen from the output, a and b are mapped only to a single random value each:
+```
+-----------------------------------------------------------------------------
+| rdfTerm                    | value                                        |
+=============================================================================
+| <http://www.example.org/a> | "32"^^<http://www.w3.org/2001/XMLSchema#int> |
+| <http://www.example.org/b> | "86"^^<http://www.w3.org/2001/XMLSchema#int> |
+| <http://www.example.org/a> | "32"^^<http://www.w3.org/2001/XMLSchema#int> |
+| <http://www.example.org/b> | "86"^^<http://www.w3.org/2001/XMLSchema#int> |
+-----------------------------------------------------------------------------
 ```
 
 
@@ -608,5 +703,42 @@ SELECT * {
 -----------------------------------------------------------------------
 ```
 
+## Using RML Sources
 
+https://rml.io/docs/rml/data-retrieval/
+
+### RDB
+The following example shows how to connect to a relational database from within SPARQL using the `norse:rml.source` service.
+The example combines [RML](https://rml.io/docs/rml/data-retrieval/) with [R2RML](https://www.w3.org/TR/r2rml/) and [d2rq-language](http://d2rq.org/d2rq-language).
+
+```sparql
+PREFIX norse: <https://w3id.org/aksw/norse#>
+PREFIX rr:    <http://www.w3.org/ns/r2rml#>
+PREFIX d2rq:  <http://www.wiwiss.fu-berlin.de/suhl/bizer/D2RQ/0.1#>
+PREFIX ql:    <http://semweb.mmlab.be/ns/ql#>
+PREFIX rml:   <http://semweb.mmlab.be/ns/rml#>
+
+SELECT ?name ?url {
+  SERVICE norse:rml.source {
+    norse:rml.source
+      rml:source <#DB_source> ;
+      rml:referenceFormulation ql:RDB ;
+      rr:tableName "agency" ;
+      norse:rml.output ?x ;
+      # rr:sqlVersion rr:SQL2008 ;
+    .
+
+    <#DB_source>
+      a d2rq:Database;
+      d2rq:jdbcDSN "jdbc:mysql://localhost/dbname";
+      d2rq:jdbcDriver "com.mysql.jdbc.Driver";
+      d2rq:username "user";
+      d2rq:password "pass" ;
+    .
+  }
+
+  BIND(norse:binding.get(?x, 'agency_name') AS ?name)
+  BIND(norse:binding.get(?x, 'agency_url') AS ?url)
+}
+```
 

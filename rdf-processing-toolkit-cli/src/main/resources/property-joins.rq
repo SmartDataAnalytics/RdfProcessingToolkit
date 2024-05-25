@@ -1,0 +1,11 @@
+# Create a graph where for each property all joining one's are listed.
+# Non-joining properties are not reported
+PREFIX ns: <http://www.example.org/>
+CONSTRUCT {
+  ?p1 ns:joinsWith ?p2
+}
+{
+  SELECT DISTINCT ?p1 ?p2 {
+    [] ?p1 [ ?p2 [] ]
+  }
+}
