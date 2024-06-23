@@ -15,6 +15,9 @@
 		<!-- <deb.jarFile>${project.artifactId}-${project.version}.jar</deb.jarFile> -->
 		<!-- <deb.jarFile>${project.artifactId}-${project.version}-jar-with-dependencies.jar</deb.jarFile> -->
 		<deb.jarFile>${project.artifactId}-${project.version}.jar</deb.jarFile>
+		
+		<docker.tag.prefix></docker.tag.prefix>
+		<docker.tag>${docker.tag.prefix}${project.version}</docker.tag>
 	</properties>
 	<build>
 		<plugins>
@@ -40,8 +43,8 @@
 						<!-- <image>docker.io/aklakan/rdf-processing-toolkit</image> -->
 						<image>docker.io/aksw/rpt</image>
 						<tags>
-							<tag>${project.version}</tag>
-							<tag>latest</tag>
+							<tag>${docker.tag}</tag>
+							<!-- <tag>latest</tag> -->
 						</tags>
 					</to>
 					<from>

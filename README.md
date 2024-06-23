@@ -111,6 +111,17 @@ make release-bundle      # Create files for Github upload
 
 A docker image is available at https://registry.hub.docker.com/r/aksw/rpt
 
+The docker image can be built with a custom tag by setting the property `docker.tag`.
+The default for `docker.tag` is `${docker.tag.prefix}${project.version}`, where `docker.tag.prefix` defaults to the empty string.
+When only setting `docker.tag.prefix` to e.g. `myfork-` then the tag will have the form `myfork-1.2.3-SNAPSHOT`.
+
+```bash
+make docker
+
+# Example for providing a custom docker tag via make:
+make docker ARGS='-D"docker.tag.prefix=experimental-"'
+```
+
 ## License
 The source code of this repo is published under the [Apache License Version 2.0](LICENSE).
 Dependencies may be licensed under different terms. When in doubt please refer to the licenses of the dependencies declared in the `pom.xml` files.
