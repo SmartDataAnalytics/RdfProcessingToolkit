@@ -41,9 +41,9 @@
 				<configuration>
 					<to>
 						<!-- <image>docker.io/aklakan/rdf-processing-toolkit</image> -->
-						<image>docker.io/aksw/rpt</image>
+						<image>docker.io/aksw/rpt:${docker.tag}</image>
 						<tags>
-							<tag>${docker.tag}</tag>
+							<!-- <tag>${docker.tag}</tag> -->
 							<!-- <tag>latest</tag> -->
 						</tags>
 					</to>
