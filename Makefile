@@ -45,6 +45,11 @@ docker: ## Build Docker image
 	$(MCIS) $(POM) -am -pl :rdf-processing-toolkit-pkg-docker-cli $(ARGS)
 	cd rdf-processing-toolkit-pkg-parent/rdf-processing-toolkit-pkg-docker-cli && $(MS) $(ARGS) jib:dockerBuild && cd ../..
 
+docker-deploy: ## Build and deploy the docker image
+	$(MCIS) $(POM) -am -pl :rdf-processing-toolkit-pkg-docker-cli $(ARGS)
+	cd rdf-processing-toolkit-pkg-parent/rdf-processing-toolkit-pkg-docker-cli && $(MS) $(ARGS) jib:build && cd ../..
+
+release-bundle: SHELL:=/bin/bash
 release-bundle: ## Create files for Github upload
 	@set -eu
 	ver=$(VER)
@@ -62,3 +67,4 @@ release-bundle: ## Create files for Github upload
 	$(call loud,gh release create v$$ver "rpt-$${ver/-/\~}.deb" "rpt-$$ver.rpm" "rpt-$$ver.jar")
 	$(call loud,docker push aksw/rpt:$$ver)
 	$(call loud,docker push aksw/rpt)
+
