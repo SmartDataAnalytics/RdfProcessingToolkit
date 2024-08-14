@@ -67,8 +67,9 @@ import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourcePolyfil
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithBnodeRewrite;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalCache;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalLateral;
-import org.aksw.jenax.graphql.api.GraphQlExecFactory;
+import org.aksw.jenax.graphql.rdf.api.RdfGraphQlExecFactory;
 import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
+import org.aksw.jenax.graphql.sparql.v2.api.high.GraphQlExecFactory;
 import org.aksw.jenax.sparql.query.rx.RDFDataMgrEx;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtMgr;
@@ -77,6 +78,7 @@ import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
 import org.aksw.jenax.web.server.boot.ServerBuilder;
 import org.aksw.jenax.web.server.boot.ServletBuilderGraphQl;
+import org.aksw.jenax.web.server.boot.ServletBuilderGraphQlV2;
 import org.aksw.jenax.web.server.boot.ServletBuilderSparql;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
@@ -101,6 +103,7 @@ import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.optimize.Optimize;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.exec.QueryExec;
+import org.apache.jena.sparql.exec.QueryExecBuilderAdapter;
 import org.apache.jena.sparql.expr.Expr;
 import org.apache.jena.sparql.expr.ExprFunctionN;
 import org.apache.jena.sparql.expr.ExprList;
@@ -804,9 +807,11 @@ public class SparqlIntegrateCmdImpls {
                     return r;
                 };
 
-                GraphQlExecFactory graphQlExecFactory = cmd.graphQlAutoConfigure
+                RdfGraphQlExecFactory graphQlExecFactory = cmd.graphQlAutoConfigure
                     ? GraphQlExecFactoryOverSparql.autoConfLazy(serverDataSource)
                     : GraphQlExecFactoryOverSparql.of(serverDataSource);
+
+                GraphQlExecFactory graphQlExecFactoryV2 = GraphQlExecFactory.of(() -> QueryExecBuilderAdapter.adapt(serverDataSource.getConnection().newQuery()));
 
                 int port = cmd.serverPort;
                 server = ServerBuilder.newBuilder()
@@ -821,6 +826,9 @@ public class SparqlIntegrateCmdImpls {
                         .addServletBuilder(ServletBuilderGraphQl.newBuilder()
                             .setGraphQlExecFactory(graphQlExecFactory)
                         )
+                        .addServletBuilder(ServletBuilderGraphQlV2.newBuilder()
+                                .setGraphQlExecFactory(graphQlExecFactoryV2)
+                            )
                         .setPort(port).create();
 
                 server.start();
