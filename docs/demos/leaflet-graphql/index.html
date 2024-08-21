@@ -64,6 +64,28 @@ parent: Demos
         button:hover {
             background: #0056b3;
         }
+
+        #endpointLink {
+            text-decoration: none;
+            font-weight: bold;
+            color: #007bff;
+            background-color: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #007bff;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        #endpointLink:hover {
+            background-color: #007bff;
+            color: white;
+            border-color: #0056b3;
+        }
+
+        #endpointLink:active {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
     </style>
 </head>
 
@@ -71,9 +93,12 @@ parent: Demos
     <div id="sidebar">
         <h3>Edit GraphQL Query</h3>
         <textarea id="graphqlQuery"></textarea>
-        <button id="updateMap">Update Map</button>
-	<button id="loadSimpleExample">Load Simple Example</button>
-	<button id="loadComplexExample">Load Complex Example</button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button id="updateMap">Update Map</button>
+            <button id="loadSimpleExample">Load Simple Example</button>
+            <button id="loadComplexExample">Load Complex Example</button>
+            <a id="endpointLink" href="" target="_blank">View JSON on Endpoint</a>
+        </div>
     </div>
     <div id="map"></div>
     
@@ -236,7 +261,12 @@ async function addDataToMap() {
     });
 }
 
-document.getElementById('graphqlQuery').value = initialQuery;
+function setQuery(newContent) {
+    const textarea = document.getElementById('graphqlQuery');
+    textarea.value = newContent;
+
+    textarea.dispatchEvent(new Event('input'));
+}
 
 // Event listener for the "Update Map" button
 document.getElementById('updateMap').addEventListener('click', () => {
@@ -245,16 +275,25 @@ document.getElementById('updateMap').addEventListener('click', () => {
 
 
 document.getElementById('loadSimpleExample').addEventListener('click', () => {
-    document.getElementById('graphqlQuery').value = simpleQuery;
+    setQuery(simpleQuery);
     addDataToMap();
 });
 
 document.getElementById('loadComplexExample').addEventListener('click', () => {
-    document.getElementById('graphqlQuery').value = complexQuery;
+    setQuery(complexQuery);
     addDataToMap();
 });
 
+document.getElementById('graphqlQuery').addEventListener('input', function () {
+    const editorContent = document.getElementById('graphqlQuery').value;
+    const params = new URLSearchParams({ qtxt: editorContent });
+    const fullUrl = `${GRAPHQL_URL}?${params.toString()}`;
+    document.getElementById('endpointLink').href = fullUrl;
+});
 
+document.getElementById('endpointLink').href = GRAPHQL_URL;
+
+setQuery(initialQuery);
 
 // Load the map data
 addDataToMap(initialQuery);
