@@ -18,16 +18,63 @@ parent: Demos
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
+        body {
+            display: flex;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        #sidebar {
+            /* width: 500px; */
+            width: 40%;
+            padding: 15px;
+            background: #f8f8f8;
+            border-right: 1px solid #ddd;
+            overflow: auto;
+            resize: horizontal;
+        }
+
         #map {
-            height: 90vh;
+            flex: 1;
+            height: 100vh;
+        }
+
+        textarea {
             width: 100%;
+            height: 500px;
+            margin-bottom: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
         }
     </style>
 </head>
 
 <body>
-    <h1>GraphQL Map Display</h1>
+    <div id="sidebar">
+        <h3>Edit GraphQL Query</h3>
+        <textarea id="graphqlQuery"></textarea>
+        <button id="updateMap">Update Map</button>
+    </div>
     <div id="map"></div>
+    
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <!-- Your custom script -->
@@ -39,7 +86,7 @@ const GRAPHQL_URL = 'https://rpt.demo.aksw.org/graphql';
 
 // GraphQL query
 
-const querySimple = `
+const simpleQuery = `
 {
   locations(limit: 10)
       @pattern(of: "?s a coy:Country", from: "s", to: "s")
@@ -60,9 +107,9 @@ const querySimple = `
 }
 `;
 
-const queryComplex = `
+const complexQuery = `
 {
-  locations
+  locations(limit: 1000)
       @pattern(of: "?s a coy:Country", from: "s", to: "s")
       @prefix(name: "", iri: "https://schema.coypu.org/global#")
       @prefix(name: "rdfs", iri: "http://www.w3.org/2000/01/rdf-schema#")
@@ -72,35 +119,55 @@ const queryComplex = `
       @prefix(name: "afn", iri: "http://jena.apache.org/ARQ/function#")
       @prefix(name: "coy", iri: "https://schema.coypu.org/global#")
     {
-      feature @pattern(of: """
-          SELECT * {
-            {
-              ?s ?p ?o .
-              # FILTER(?p NOT IN (rdfs:label))
+      label @one
+          @pattern(of: """
+            SELECT ?s ?o {
+              ?s rdfs:label ?o .
+              FILTER(langMatches(lang(?o), 'en'))
             }
-            # Auto-derive property cardinalities based on the dataset
-            { SERVICE <cache:> {
-                { SELECT ?p (MAX(?c) AS ?pc) {
-                  SELECT ?x ?p (COUNT(*) AS ?c) {
-                   ?x ?p ?z
-                  } GROUP BY ?x ?p
-                } GROUP BY ?p }
+            """, from: "s", to: "o")
+
+      features
+          @pattern(of: """
+            SELECT * {
+              {
+                ?s ?p ?o .
+                FILTER(?p NOT IN (rdfs:label))
+              }
+              # Auto-derive property cardinalities from all data
+              { SERVICE <cache:> {
+                  { SELECT ?p (MAX(?c) AS ?pc) {
+                    SELECT ?x ?p (COUNT(*) AS ?c) {
+                     ?x ?p ?z
+                    } GROUP BY ?x ?p
+                  } GROUP BY ?p }
+                }
               }
             }
-          }
-          """, from: "s", to: "o") @index(by: "afn:localname(?p)", oneIf: "?pc = 1")
-      #label @pattern(of: "?s rdfs:label ?o", from: "s", to: "o") @one {
-      #  labelByLang @pattern(of: "BIND(?x AS ?y)", from: "x", to: "y") # @index(by: "lang(?y)", oneIf: "true") @one
-      #}
-      geometry @one @pattern(of: """
-          ?s geo:hasGeometry/geo:asWKT ?x .
-          BIND(STRDT(STR(geof:asGeoJSON(geof:simplifyDp(?x, 0.2))), norse:json) AS ?o)
-          """, from: "s", to: "o")
+            """, from: "s", to: "o")
+          @index(by: "afn:localname(?p)", oneIf: "?pc = 1")
+
+      geometry @one
+          @pattern(of: """
+            ?s geo:hasGeometry/geo:asWKT ?x .
+            BIND(STRDT(STR(geof:asGeoJSON(
+              geof:simplifyDp(?x, 0.2)
+            )), norse:json) AS ?o)
+            """, from: "s", to: "o")
     }
 }
 `;
 
-const query = queryComplex;
+/**
+There is currently a bug with variable analysis which breaks indexing labels by language...
+      #label @pattern(of: "?s rdfs:label ?o", from: "s", to: "o") @one {
+      #  labelByLang @pattern(of: "BIND(?x AS ?y)", from: "x", to: "y") # @index(by: "lang(?y)", oneIf: "true") @one
+      #}
+*/
+
+const initialQuery = complexQuery;
+
+
 
 // Initialize the Leaflet map
 const map = L.map('map').setView([0, 0], 2);
@@ -111,7 +178,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // Fetch data from the GraphQL API
-async function fetchData() {
+async function fetchData(query) {
     const response = await fetch(GRAPHQL_URL, {
         method: 'POST',
         headers: {
@@ -137,8 +204,15 @@ function createPopupContent(location) {
 }
 
 // Add data to the map
-async function addDataToMap() {
-    const locations = await fetchData();
+async function addDataToMap(query) {
+    const locations = await fetchData(query);
+
+    // Clear existing map layers
+    map.eachLayer((layer) => {
+        if (layer instanceof L.GeoJSON) {
+            map.removeLayer(layer);
+        }
+    });
 
     locations.forEach(location => {
         L.geoJSON(location.geometry, {
@@ -150,8 +224,16 @@ async function addDataToMap() {
     });
 }
 
+document.getElementById('graphqlQuery').value = complexQuery;
+
+// Event listener for the "Update Map" button
+document.getElementById('updateMap').addEventListener('click', () => {
+    const query = document.getElementById('graphqlQuery').value;
+    addDataToMap(query);
+});
+
 // Load the map data
-addDataToMap();
+addDataToMap(initialQuery);
 
     </script>
 </body>
