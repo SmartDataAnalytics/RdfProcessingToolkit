@@ -1,3 +1,11 @@
+---
+layout: default
+title: GraphQL/Leaflet
+nav_order: 10
+parent: Demos
+---
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -24,7 +32,8 @@
 <!--     <script src="script.js"></script> -->
     <script>
 // GraphQL endpoint URL
-const GRAPHQL_URL = 'http://localhost:8642/graphql';
+// const GRAPHQL_URL = 'http://localhost:8642/graphql';
+const GRAPHQL_URL = 'http://rpt.demo.aksw.org/graphql';
 
 // GraphQL query
 
