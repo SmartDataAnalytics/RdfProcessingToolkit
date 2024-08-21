@@ -72,6 +72,8 @@ parent: Demos
         <h3>Edit GraphQL Query</h3>
         <textarea id="graphqlQuery"></textarea>
         <button id="updateMap">Update Map</button>
+	<button id="loadSimpleExample">Load Simple Example</button>
+	<button id="loadComplexExample">Load Complex Example</button>
     </div>
     <div id="map"></div>
     
@@ -90,19 +92,25 @@ const simpleQuery = `
 {
   locations(limit: 10)
       @pattern(of: "?s a coy:Country", from: "s", to: "s")
-      @prefix(name: "", iri: "https://schema.coypu.org/global#")
       @prefix(name: "rdfs", iri: "http://www.w3.org/2000/01/rdf-schema#")
       @prefix(name: "geo", iri: "http://www.opengis.net/ont/geosparql#")
       @prefix(name: "geof", iri: "http://www.opengis.net/def/function/geosparql/")
       @prefix(name: "norse", iri: "https://w3id.org/aksw/norse#")
-      @prefix(name: "afn", iri: "http://jena.apache.org/ARQ/function#")
       @prefix(name: "coy", iri: "https://schema.coypu.org/global#")
     {
-      label @one @pattern(of: "SELECT ?s ?o { ?s rdfs:label ?o . FILTER(langMatches(lang(?o), 'en')) }", from: "s", to: "o")
-      geometry @one @pattern(of: """
-          ?s geo:hasGeometry/geo:asWKT ?x .
-          BIND(STRDT(STR(geof:asGeoJSON(?x)), norse:json) AS ?o)
-          """, from: "s", to: "o")
+      label @one
+          @pattern(of: """
+            SELECT ?s ?o {
+              ?s rdfs:label ?o .
+              FILTER(langMatches(lang(?o), 'en'))
+            }
+            """, from: "s", to: "o")
+
+      geometry @one
+          @pattern(of: """
+            ?s geo:hasGeometry/geo:asWKT ?x .
+            BIND(STRDT(STR(geof:asGeoJSON(?x)), norse:json) AS ?o)
+            """, from: "s", to: "o")
     }
 }
 `;
@@ -165,8 +173,7 @@ There is currently a bug with variable analysis which breaks indexing labels by 
       #}
 */
 
-const initialQuery = complexQuery;
-
+const initialQuery = simpleQuery;
 
 
 // Initialize the Leaflet map
@@ -204,7 +211,8 @@ function createPopupContent(location) {
 }
 
 // Add data to the map
-async function addDataToMap(query) {
+async function addDataToMap() {
+    const query = document.getElementById('graphqlQuery').value;
     const locations = await fetchData(query);
 
     // Clear existing map layers
@@ -224,13 +232,25 @@ async function addDataToMap(query) {
     });
 }
 
-document.getElementById('graphqlQuery').value = complexQuery;
+document.getElementById('graphqlQuery').value = initialQuery;
 
 // Event listener for the "Update Map" button
 document.getElementById('updateMap').addEventListener('click', () => {
-    const query = document.getElementById('graphqlQuery').value;
-    addDataToMap(query);
+    addDataToMap();
 });
+
+
+document.getElementById('loadSimpleExample').addEventListener('click', () => {
+    document.getElementById('graphqlQuery').value = simpleQuery;
+    addDataToMap();
+});
+
+document.getElementById('loadComplexExample').addEventListener('click', () => {
+    document.getElementById('graphqlQuery').value = complexQuery;
+    addDataToMap();
+});
+
+
 
 // Load the map data
 addDataToMap(initialQuery);
