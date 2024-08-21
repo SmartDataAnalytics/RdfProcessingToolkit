@@ -1,0 +1,23 @@
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX coy: <https://schema.coypu.org/global#>
+
+CONSTRUCT {
+  ?x ?y ?z
+}
+{
+  GRAPH <https://data.coypu.org/countries/> {
+    ?s a coy:Country .
+  }
+  LATERAL {
+      { GRAPH <https://data.coypu.org/countries/> {
+        ?s (!geo:hasGeometry)* ?x .
+        ?x ?y ?z
+      } }
+    UNION
+      { GRAPH <https://data.coypu.org/administrative-regions/> {
+        ?s (<p>|!<p>)* ?x .
+        ?x ?y ?z
+      } }
+  }
+}
+

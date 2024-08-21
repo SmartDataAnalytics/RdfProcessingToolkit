@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphQL Map Display</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 90vh;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>GraphQL Map Display</h1>
+    <div id="map"></div>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- Your custom script -->
+<!--     <script src="script.js"></script> -->
+    <script>
+// GraphQL endpoint URL
+const GRAPHQL_URL = 'http://localhost:8642/graphql';
+
+// GraphQL query
+
+const querySimple = `
+{
+  locations(limit: 10)
+      @pattern(of: "?s a coy:Country", from: "s", to: "s")
+      @prefix(name: "", iri: "https://schema.coypu.org/global#")
+      @prefix(name: "rdfs", iri: "http://www.w3.org/2000/01/rdf-schema#")
+      @prefix(name: "geo", iri: "http://www.opengis.net/ont/geosparql#")
+      @prefix(name: "geof", iri: "http://www.opengis.net/def/function/geosparql/")
+      @prefix(name: "norse", iri: "https://w3id.org/aksw/norse#")
+      @prefix(name: "afn", iri: "http://jena.apache.org/ARQ/function#")
+      @prefix(name: "coy", iri: "https://schema.coypu.org/global#")
+    {
+      label @one @pattern(of: "SELECT ?s ?o { ?s rdfs:label ?o . FILTER(langMatches(lang(?o), 'en')) }", from: "s", to: "o")
+      geometry @one @pattern(of: """
+          ?s geo:hasGeometry/geo:asWKT ?x .
+          BIND(STRDT(STR(geof:asGeoJSON(?x)), norse:json) AS ?o)
+          """, from: "s", to: "o")
+    }
+}
+`;
+
+const queryComplex = `
+{
+  locations(limit: 10)
+      @pattern(of: "?s a coy:Country", from: "s", to: "s")
+      @prefix(name: "", iri: "https://schema.coypu.org/global#")
+      @prefix(name: "rdfs", iri: "http://www.w3.org/2000/01/rdf-schema#")
+      @prefix(name: "geo", iri: "http://www.opengis.net/ont/geosparql#")
+      @prefix(name: "geof", iri: "http://www.opengis.net/def/function/geosparql/")
+      @prefix(name: "norse", iri: "https://w3id.org/aksw/norse#")
+      @prefix(name: "afn", iri: "http://jena.apache.org/ARQ/function#")
+      @prefix(name: "coy", iri: "https://schema.coypu.org/global#")
+    {
+      feature @pattern(of: """
+          SELECT * {
+            {
+              ?s ?p ?o .
+              # FILTER(?p NOT IN (rdfs:label))
+            }
+            # Auto-derive property cardinalities based on the dataset
+            { SERVICE <cache:> {
+                { SELECT ?p (MAX(?c) AS ?pc) {
+                  SELECT ?x ?p (COUNT(*) AS ?c) {
+                   ?x ?p ?z
+                  } GROUP BY ?x ?p
+                } GROUP BY ?p }
+              }
+            }
+          }
+          """, from: "s", to: "o") @index(by: "afn:localname(?p)", oneIf: "?pc = 1")
+      #label @pattern(of: "?s rdfs:label ?o", from: "s", to: "o") @one {
+      #  labelByLang @pattern(of: "BIND(?x AS ?y)", from: "x", to: "y") # @index(by: "lang(?y)", oneIf: "true") @one
+      #}
+      geometry @one @pattern(of: """
+          ?s geo:hasGeometry/geo:asWKT ?x .
+          BIND(STRDT(STR(geof:asGeoJSON(?x)), norse:json) AS ?o)
+          """, from: "s", to: "o")
+    }
+}
+`;
+
+const query = queryComplex;
+
+// Initialize the Leaflet map
+const map = L.map('map').setView([0, 0], 2);
+
+// Add a base layer (OpenStreetMap)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+// Fetch data from the GraphQL API
+async function fetchData() {
+    const response = await fetch(GRAPHQL_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query })
+    });
+
+    const json = await response.json();
+    const locations = json.data.locations;
+    return locations;
+}
+
+// Function to create HTML for the popup with all JSON keys and values
+function createPopupContent(location) {
+    let content = '<b>Location Details:</b><br>';
+    for (const key in location) {
+        if (location.hasOwnProperty(key) && key !== 'geometry') { // Exclude geometry from popup
+            content += `<b>${key}:</b> ${location[key]}<br>`;
+        }
+    }
+    return content;
+}
+
+// Add data to the map
+async function addDataToMap() {
+    const locations = await fetchData();
+
+    locations.forEach(location => {
+        L.geoJSON(location.geometry, {
+            onEachFeature: (feature, layer) => {
+                const popupContent = createPopupContent(location);
+                layer.bindPopup(popupContent);
+            }
+        }).addTo(map);
+    });
+}
+
+// Load the map data
+addDataToMap();
+
+    </script>
+</body>
+
+</html>
+
