@@ -106,10 +106,14 @@ const simpleQuery = `
             }
             """, from: "s", to: "o")
 
+      # Note: simplifyDp simplifies polygons on query time
+      # Reduces amount of data and thus loading time
       geometry @one
           @pattern(of: """
             ?s geo:hasGeometry/geo:asWKT ?x .
-            BIND(STRDT(STR(geof:asGeoJSON(?x)), norse:json) AS ?o)
+            BIND(STRDT(STR(geof:asGeoJSON(
+              geof:simplifyDp(?x, 0.2)
+            )), norse:json) AS ?o)
             """, from: "s", to: "o")
     }
 }
