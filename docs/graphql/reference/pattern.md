@@ -1,5 +1,5 @@
 ---
-title: @pattern
+title: pattern
 parent: GraphQL
 nav_order: 20
 layout: default

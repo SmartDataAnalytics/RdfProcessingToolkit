@@ -1,5 +1,5 @@
 ---
-title: @join
+title: join
 parent: Reference
 nav_order: 40
 layout: default

@@ -1,5 +1,5 @@
 ---
-title: @join
+title: index
 parent: GraphQL
 nav_order: 50
 layout: default

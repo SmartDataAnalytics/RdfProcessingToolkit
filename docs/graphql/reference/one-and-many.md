@@ -1,5 +1,5 @@
 ---
-title: @one and @many
+title: one and many
 parent: GraphQL
 nav_order: 30
 layout: default
