@@ -113,7 +113,123 @@ const GRAPHQL_URL = 'https://rpt.demo.aksw.org/graphql';
 
 // GraphQL query
 
+
 const simpleQuery = `
+{
+  locations(limit: 10)
+      @pattern(of: "?s a coy:Country", from: "s", to: "s")
+      @prefix(name: "rdfs", iri: "http://www.w3.org/2000/01/rdf-schema#")
+      @prefix(name: "geo", iri: "http://www.opengis.net/ont/geosparql#")
+      @prefix(name: "geof", iri: "http://www.opengis.net/def/function/geosparql/")
+      @prefix(name: "norse", iri: "https://w3id.org/aksw/norse#")
+      @prefix(name: "coy", iri: "https://schema.coypu.org/global#")
+    {
+      type @one @pattern(of: "BIND(?x AS ?xx) BIND('Feature' AS ?y)", from: "x", to: "y")
+
+      # Properties container
+      properties @one @pattern(of: "BIND(?x AS ?y)", from: "x", to: "y") {
+
+        # Style
+        style @one @pattern(of: """
+          BIND(?x as ?y)
+          BIND(norse:json.object("fillColor", "red") AS ?json)
+        """, from: "x", to: "json")
+
+        label @one
+            @pattern(of: """
+              SELECT ?s ?o {
+                ?s rdfs:label ?o .
+                FILTER(langMatches(lang(?o), 'en'))
+              }
+              """, from: "s", to: "o")
+      }
+
+      # Geometry container
+      #   Note: simplifyDp simplifies polygons on query time
+      #   Reduces amount of data and thus loading time
+      geometry @one
+          @pattern(of: """
+            ?s geo:hasGeometry/geo:asWKT ?x .
+            BIND(STRDT(STR(geof:asGeoJSON(
+              geof:simplifyDp(?x, 0.2)
+            )), norse:json) AS ?o)
+            """, from: "s", to: "o")
+    }
+}
+`;
+
+const complexQuery = `
+{
+  locations(limit: 1000)
+      @pattern(of: "?s a coy:Country", from: "s", to: "s")
+      @prefix(name: "", iri: "https://schema.coypu.org/global#")
+      @prefix(name: "rdfs", iri: "http://www.w3.org/2000/01/rdf-schema#")
+      @prefix(name: "geo", iri: "http://www.opengis.net/ont/geosparql#")
+      @prefix(name: "geof", iri: "http://www.opengis.net/def/function/geosparql/")
+      @prefix(name: "norse", iri: "https://w3id.org/aksw/norse#")
+      @prefix(name: "afn", iri: "http://jena.apache.org/ARQ/function#")
+      @prefix(name: "coy", iri: "https://schema.coypu.org/global#")
+    {
+      type @one @pattern(of: "BIND(?x AS ?xx) BIND('Feature' AS ?y)", from: "x", to: "y")
+
+      # Properties container
+      properties @one @pattern(of: "BIND(?x AS ?y)", from: "x", to: "y") {
+
+        # Style
+        style @one @pattern(of: """
+          BIND(?x as ?y)
+          BIND(CONCAT('#', SUBSTR(MD5(STR(?x)), 1, 6)) AS ?color)
+          BIND(norse:json.object("fillColor", ?color) AS ?json)
+        """, from: "x", to: "json")
+
+
+        label @one
+            @pattern(of: """
+              SELECT ?s ?o {
+                ?s rdfs:label ?o .
+                FILTER(langMatches(lang(?o), 'en'))
+              }
+              """, from: "s", to: "o")
+
+        features
+            @pattern(of: """
+              SELECT * {
+                {
+                  ?s ?p ?o .
+                  FILTER(?p NOT IN (rdfs:label))
+                }
+                # Auto-derive property cardinalities from all data
+                { SERVICE <cache:> {
+                    { SELECT ?p (MAX(?c) AS ?pc) {
+                      SELECT ?x ?p (COUNT(*) AS ?c) {
+                       ?x ?p ?z
+                      } GROUP BY ?x ?p
+                    } GROUP BY ?p }
+                  }
+                }
+              }
+              """, from: "s", to: "o")
+            @index(by: "afn:localname(?p)", oneIf: "?pc = 1")
+      }
+
+      # Geometry Section
+      geometry @one
+          @pattern(of: """
+            ?s geo:hasGeometry/geo:asWKT ?x .
+            BIND(STRDT(STR(geof:asGeoJSON(
+              geof:simplifyDp(?x, 0.2)
+            )), norse:json) AS ?o)
+            """, from: "s", to: "o")
+    }
+}
+`;
+
+
+
+
+
+
+const simpleQueryOld = `
 {
   locations(limit: 10)
       @pattern(of: "?s a coy:Country", from: "s", to: "s")
@@ -144,7 +260,7 @@ const simpleQuery = `
 }
 `;
 
-const complexQuery = `
+const complexQueryOld = `
 {
   locations(limit: 1000)
       @pattern(of: "?s a coy:Country", from: "s", to: "s")
@@ -242,7 +358,7 @@ function createPopupContent(location) {
 // Add data to the map
 async function addDataToMap() {
     const query = document.getElementById('graphqlQuery').value;
-    const locations = await fetchData(query);
+    var locations = await fetchData(query);
 
     // Clear existing map layers
     map.eachLayer((layer) => {
@@ -252,10 +368,13 @@ async function addDataToMap() {
     });
 
     locations.forEach(location => {
-        L.geoJSON(location.geometry, {
+        L.geoJSON(location, {
             onEachFeature: (feature, layer) => {
-                const popupContent = createPopupContent(location);
+                const popupContent = createPopupContent(feature.properties);
                 layer.bindPopup(popupContent);
+            },
+            style: (feature) => {
+              return feature.properties && feature.properties.style;
             }
         }).addTo(map);
     });
