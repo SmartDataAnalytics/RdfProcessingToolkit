@@ -26,24 +26,30 @@ The `@prefix` directive accepts two possible configurations:
 
 1. **Single Prefix Definition**
 
-   Define a single prefix using the `name` and `iri` arguments:
+    Define a single prefix using the `name` and `iri` arguments:
 
-   ```graphql
-   @prefix(name: "rdf", iri: "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
-   ```
+    ```graphql
+    {
+      field
+        @prefix(name: "rdf", iri: "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+    }
+    ```
 
 2. **Multiple Prefix Mapping**
 
-   Define multiple prefixes using the `map` argument:
+    Define multiple prefixes using the `map` argument:
 
-   ```graphql
-   @prefix(
-     map: {
-       rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-       rdfs: "http://www.w3.org/2000/01/rdf-schema#"
-     }
-   )
-   ```
+    ```graphql
+    {
+      field
+        @prefix(
+          map: {
+            rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+            rdfs: "http://www.w3.org/2000/01/rdf-schema#"
+          }
+        )
+    }
+    ```
 
 #### Notes
 
