@@ -31,11 +31,11 @@ The `@index` directive converts a field’s output into a JSON object, where:
 Consider the following GraphQL schema:
 
 ```graphql
-type Triples @pattern(
-  of: "?s ?p ?o", 
-  from: "s", 
-  to: "o"
-) @index(by: "?p", oneIf: "false")
+{
+  triples
+    @pattern(of: "?s ?p ?o",  from: "s",  to: "o")
+    @index(by: "?p", oneIf: "false")
+}
 ```
 
 Given the RDF triples:
