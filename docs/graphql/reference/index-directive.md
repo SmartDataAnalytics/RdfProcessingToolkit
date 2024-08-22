@@ -28,7 +28,7 @@ The `@index` directive converts a field’s output into a JSON object, where:
 
 #### Example
 
-Consider the following GraphQL schema:
+Consider the following GraphQL query:
 
 ```graphql
 {

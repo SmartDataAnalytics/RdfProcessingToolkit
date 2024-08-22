@@ -37,10 +37,12 @@ These directives can be applied to fields to control their cardinality and the c
 Consider the following example:
 
 ```graphql
-type Parent @one(self: false, cascade: true) { 
-  # The Parent field is still effectively @many, but the cardinality cascades to its children
-  Child1 # Child1 inherits @one cardinality from Parent
-  Child2 # Child2 also inherits @one cardinality from Parent
+{
+  parent @one(self: false, cascade: true) { 
+    # The Parent field is still effectively @many, but the cardinality cascades to its children
+    child1 # child1 inherits @one cardinality from Parent
+    child2 # child2 also inherits @one cardinality from Parent
+  }
 }
 ```
 
@@ -50,7 +52,7 @@ type Parent @one(self: false, cascade: true) {
    - `self: false`: The `@one` directive does **not** apply to the `Parent` field itself. The field remains multi-valued (`@many`).
    - `cascade: true`: The `@one` behavior cascades to the child fields (`Child1` and `Child2`), making them single-valued.
 
-2. **Child Fields**: Both `Child1` and `Child2` automatically inherit the `@one` cardinality from the `Parent` due to the cascading effect. They are treated as single-valued fields.
+2. **Child Fields**: Both `child1` and `child2` automatically inherit the `@one` cardinality from the `Parent` due to the cascading effect. They are treated as single-valued fields.
 
 #### Understanding Cardinality Control
 

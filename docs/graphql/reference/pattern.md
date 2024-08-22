@@ -29,22 +29,24 @@ The `@pattern` directive supports the following arguments:
 
 #### Example
 
-Here is an example demonstrating how to define a `MusicalArtist` type using the `@pattern` directive:
+Here is an example demonstrating how to define a `MusicalArtists` field using the `@pattern` directive:
 
 ```graphql
-type MusicalArtist @pattern(of: "?s a dbo:MusicalArtist", from: "s", to: "s") {
-  label @pattern(of: "?s rdfs:label ?o", from: "s", to: "o")
+{
+  MusicalArtists @pattern(of: "?s a dbo:MusicalArtist", from: "s", to: "s") {
+    label @pattern(of: "?s rdfs:label ?o", from: "s", to: "o")
+  }
 }
 ```
 
 #### Explanation
 
-1. **MusicalArtist Field**: The `MusicalArtist` type is associated with the graph pattern `?s a dbo:MusicalArtist`, where the `s` variable acts as both the source and target.
+1. **MusicalArtists Field**: The `MusicalArtists` type is associated with the graph pattern `?s a dbo:MusicalArtist`, where the `s` variable acts as both the source and target.
 2. **Label Field**: The `label` field is defined with a nested pattern `?s rdfs:label ?o`, where `s` is the source and `o` is the target.
 
 #### Rule for Implicit Joins
 
-By default, a field’s source variables (defined by `from`) are automatically joined with its parent’s target variables (defined by `to`). This allows seamless chaining of patterns without redundant variable specification.
+By default, a field’s source variables (defined by `from`) are automatically joined with its parent’s target variables (defined by `to`). This allows seamless chaining of patterns without redundant variable specification. The precise join type is a [LATERAL join](https://github.com/w3c/sparql-dev/issues/100).
 
 #### Notes
 
