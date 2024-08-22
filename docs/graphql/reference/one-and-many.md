@@ -1,6 +1,6 @@
 ---
 title: @one and @many
-parent: Reference
+parent: GraphQL
 nav_order: 30
 layout: default
 ---

@@ -1,3 +1,9 @@
+---
+title: @join
+parent: GraphQL
+nav_order: 50
+layout: default
+---
 
 ## GraphQL Directive: `@index`
 

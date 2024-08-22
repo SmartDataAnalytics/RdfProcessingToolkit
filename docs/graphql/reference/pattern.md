@@ -1,6 +1,6 @@
 ---
 title: @pattern
-parent: Reference
+parent: GraphQL
 nav_order: 20
 layout: default
 ---

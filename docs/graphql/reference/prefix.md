@@ -1,6 +1,6 @@
 ---
-title: prefix
-parent: GraphQL Reference
+title: @prefix
+parent: GraphQL
 nav_order: 10
 layout: default
 ---
