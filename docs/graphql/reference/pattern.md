@@ -1,7 +1,7 @@
 ---
 title: pattern
 parent: GraphQL
-nav_order: 20
+nav_order: 120
 layout: default
 ---
 

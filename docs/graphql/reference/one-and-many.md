@@ -1,7 +1,7 @@
 ---
 title: one and many
 parent: GraphQL
-nav_order: 30
+nav_order: 130
 layout: default
 ---
 

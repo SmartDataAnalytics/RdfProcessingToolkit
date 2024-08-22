@@ -1,7 +1,7 @@
 ---
 title: index
 parent: GraphQL
-nav_order: 50
+nav_order: 150
 layout: default
 ---
 
