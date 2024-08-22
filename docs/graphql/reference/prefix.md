@@ -1,5 +1,5 @@
 ---
-title: @prefix
+title: prefix
 parent: Reference
 nav_order: 10
 layout: default
