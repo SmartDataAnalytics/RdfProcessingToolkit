@@ -127,9 +127,9 @@ query countries
     type @bind(of: "'Feature'")
     properties {
       style {
-        color @bind(of: "'blue'")
+        color     @bind(of: "'blue'")
         fillColor @bind(of: "'green'")
-        opacity @bind(of: "0.65")
+        opacity   @bind(of: "0.65")
       }
       label @one @pattern(of: "?s rdfs:label ?o . FILTER(langMatches(lang(?o), 'en'))", from: "s", to: "o")
     }
@@ -157,9 +157,10 @@ query countries
       type @bind(of: "'Feature'")
       properties {
         style {
-          color     @bind(of: "'blue'")
-          fillColor @bind(of: "'green'")
-          opacity   @bind(of: "0.65")
+          color       @bind(of: "'blue'")
+          opacity     @bind(of: "0.5")
+          fillColor   @bind(of: "CONCAT('#', SUBSTR(MD5(STR(?s)), 1, 6))")
+          fillOpacity @bind(of: "0.7")
         }
 
         id          @bind(of: "?s")
