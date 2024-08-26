@@ -123,7 +123,7 @@ query countries
     norse: "https://w3id.org/aksw/norse#",
     coy: "https://schema.coypu.org/global#"})
 {
-  locations(limit: 1000) @pattern(of: "?s a coy:Country", from: "s", to: "s") {
+  locations(limit: 10) @pattern(of: "?s a coy:Country", from: "s", to: "s") {
     type @bind(of: "'Feature'")
     properties {
       style {
