@@ -154,45 +154,44 @@ query countries
       afn: "http://jena.apache.org/ARQ/function#"})
 {
   locations(limit: 1000) @pattern(of: "?s a coy:Country", from: "s", to: "s") {
-      type @bind(of: "'Feature'")
-      properties {
-        style {
-          color       @bind(of: "'blue'")
-          opacity     @bind(of: "0.5")
-          fillColor   @bind(of: "CONCAT('#', SUBSTR(MD5(STR(?s)), 1, 6))")
-          fillOpacity @bind(of: "0.7")
-        }
-
-        id          @bind(of: "?s")
-        label @one @pattern(of: "?s rdfs:label ?o . FILTER(langMatches(lang(?o), 'en'))", from: "s", to: "o")
-
-        features
-            @index(by: "afn:localname(?p)", oneIf: "?pc = 1")
-            @pattern(of: """
-              SELECT * {
-                {
-                  ?s ?p ?o .
-                  FILTER(?p NOT IN (rdfs:label))
-                }
-                # Auto-derive property cardinalities from all data
-                { SERVICE <cache:> {
-                    { SELECT ?p (MAX(?c) AS ?pc) {
-                      SELECT ?x ?p (COUNT(*) AS ?c) {
-                       ?x ?p ?z
-                      } GROUP BY ?x ?p
-                    } GROUP BY ?p }
-                  }
-                }
-              }
-              """, from: "s", to: "o")
+    type @bind(of: "'Feature'")
+    properties {
+      style {
+        color       @bind(of: "'blue'")
+        opacity     @bind(of: "0.5")
+        fillColor   @bind(of: "CONCAT('#', SUBSTR(MD5(STR(?s)), 1, 6))")
+        fillOpacity @bind(of: "0.7")
       }
 
-      # Geometry Section
-      geometry @one @pattern(of: """
-        ?s geo:hasGeometry/geo:asWKT ?x .
-        BIND(STRDT(STR(geof:asGeoJSON(geof:simplifyDp(?x, 0.2))), norse:json) AS ?o)
-      """, from: "s", to: "o")
+      id          @bind(of: "?s")
+      label @one @pattern(of: "?s rdfs:label ?o . FILTER(langMatches(lang(?o), 'en'))", from: "s", to: "o")
+
+      features
+        @index(by: "afn:localname(?p)", oneIf: "?pc = 1")
+        @pattern(of: """
+          SELECT * {
+            {
+              ?s ?p ?o .
+              FILTER(?p NOT IN (rdfs:label))
+            }
+            # Auto-derive property cardinalities from all data
+            { SERVICE <cache:> {
+                { SELECT ?p (MAX(?c) AS ?pc) {
+                  SELECT ?x ?p (COUNT(*) AS ?c) {
+                   ?x ?p ?z
+                  } GROUP BY ?x ?p
+                } GROUP BY ?p }
+              }
+            }
+          }
+          """, from: "s", to: "o")
     }
+
+    geometry @one @pattern(of: """
+      ?s geo:hasGeometry/geo:asWKT ?x .
+      BIND(STRDT(STR(geof:asGeoJSON(geof:simplifyDp(?x, 0.2))), norse:json) AS ?o)
+    """, from: "s", to: "o")
+  }
 }
 `;
 
