@@ -108,57 +108,94 @@ parent: Demos
 <!--     <script src="script.js"></script> -->
     <script>
 // GraphQL endpoint URL
-// const GRAPHQL_URL = 'http://localhost:8642/graphql';
-const GRAPHQL_URL = 'https://rpt.demo.aksw.org/graphql';
+const GRAPHQL_URL = 'http://localhost:8642/graphql';
+// const GRAPHQL_URL = 'https://rpt.demo.aksw.org/graphql';
 
 // GraphQL query
 
 
 const simpleQuery = `
+query countries
+  @prefix(map: {
+    rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+    geo: "http://www.opengis.net/ont/geosparql#",
+    geof: "http://www.opengis.net/def/function/geosparql/",
+    norse: "https://w3id.org/aksw/norse#",
+    coy: "https://schema.coypu.org/global#"})
 {
-  locations(limit: 10)
-      @pattern(of: "?s a coy:Country", from: "s", to: "s")
-      @prefix(name: "rdfs", iri: "http://www.w3.org/2000/01/rdf-schema#")
-      @prefix(name: "geo", iri: "http://www.opengis.net/ont/geosparql#")
-      @prefix(name: "geof", iri: "http://www.opengis.net/def/function/geosparql/")
-      @prefix(name: "norse", iri: "https://w3id.org/aksw/norse#")
-      @prefix(name: "coy", iri: "https://schema.coypu.org/global#")
-    {
-      type @one @pattern(of: "BIND(?x AS ?xx) BIND('Feature' AS ?y)", from: "x", to: "y")
+  locations(limit: 1000) @pattern(of: "?s a coy:Country", from: "s", to: "s") {
+    type @bind(of: "'Feature'")
+    properties {
+      style {
+        color @bind(of: "'blue'")
+        fillColor @bind(of: "'green'")
+        opacity @bind(of: "0.65")
+      }
+      label @one @pattern(of: "?s rdfs:label ?o . FILTER(langMatches(lang(?o), 'en'))", from: "s", to: "o")
+    }
+    geometry @one
+      @pattern(of: """
+        ?s geo:hasGeometry/geo:asWKT ?x .
+        BIND(STRDT(STR(geof:asGeoJSON(geof:simplifyDp(?x, 0.2))), norse:json) AS ?o)
+        """, from: "s", to: "o")
+  }
+}
+`;
 
-      # Properties container
-      properties @one @pattern(of: "BIND(?x AS ?y)", from: "x", to: "y") {
 
-        # Style
-        style @one @pattern(of: """
-          BIND(?x as ?y)
-          BIND(norse:json.object("fillColor", "red") AS ?json)
-        """, from: "x", to: "json")
+const complexQuery = `
+query countries
+    @prefix(map: {
+      rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+      geo: "http://www.opengis.net/ont/geosparql#",
+      geof: "http://www.opengis.net/def/function/geosparql/",
+      norse: "https://w3id.org/aksw/norse#",
+      coy: "https://schema.coypu.org/global#",
+      afn: "http://jena.apache.org/ARQ/function#"})
+{
+  locations(limit: 1000) @pattern(of: "?s a coy:Country", from: "s", to: "s") {
+      type @bind(of: "'Feature'")
+      properties {
+        style {
+          color     @bind(of: "'blue'")
+          fillColor @bind(of: "'green'")
+          opacity   @bind(of: "0.65")
+        }
 
-        label @one
+        id          @bind(of: "?s")
+        label @one @pattern(of: "?s rdfs:label ?o . FILTER(langMatches(lang(?o), 'en'))", from: "s", to: "o")
+
+        features
+            @index(by: "afn:localname(?p)", oneIf: "?pc = 1")
             @pattern(of: """
-              SELECT ?s ?o {
-                ?s rdfs:label ?o .
-                FILTER(langMatches(lang(?o), 'en'))
+              SELECT * {
+                {
+                  ?s ?p ?o .
+                  FILTER(?p NOT IN (rdfs:label))
+                }
+                # Auto-derive property cardinalities from all data
+                { SERVICE <cache:> {
+                    { SELECT ?p (MAX(?c) AS ?pc) {
+                      SELECT ?x ?p (COUNT(*) AS ?c) {
+                       ?x ?p ?z
+                      } GROUP BY ?x ?p
+                    } GROUP BY ?p }
+                  }
+                }
               }
               """, from: "s", to: "o")
       }
 
-      # Geometry container
-      #   Note: simplifyDp simplifies polygons on query time
-      #   Reduces amount of data and thus loading time
-      geometry @one
-          @pattern(of: """
-            ?s geo:hasGeometry/geo:asWKT ?x .
-            BIND(STRDT(STR(geof:asGeoJSON(
-              geof:simplifyDp(?x, 0.2)
-            )), norse:json) AS ?o)
-            """, from: "s", to: "o")
+      # Geometry Section
+      geometry @one @pattern(of: """
+        ?s geo:hasGeometry/geo:asWKT ?x .
+        BIND(STRDT(STR(geof:asGeoJSON(geof:simplifyDp(?x, 0.2))), norse:json) AS ?o)
+      """, from: "s", to: "o")
     }
 }
 `;
 
-const complexQuery = `
+const complexQueryOld2 = `
 {
   locations(limit: 1000)
       @pattern(of: "?s a coy:Country", from: "s", to: "s")
