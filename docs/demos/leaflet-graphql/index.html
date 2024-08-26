@@ -123,7 +123,7 @@ query countries
     norse: "https://w3id.org/aksw/norse#",
     coy: "https://schema.coypu.org/global#"})
 {
-  locations(limit: 10) @pattern(of: "?s a coy:Country", from: "s", to: "s") {
+  locations(limit: 10) @pattern(of: "?s a coy:Country") {
     type @bind(of: "'Feature'")
     properties {
       style {
@@ -131,7 +131,7 @@ query countries
         fillColor @bind(of: "'green'")
         opacity   @bind(of: "0.65")
       }
-      label @one @pattern(of: "?s rdfs:label ?o . FILTER(langMatches(lang(?o), 'en'))", from: "s", to: "o")
+      label @one @pattern(of: "?s rdfs:label ?o . FILTER(langMatches(lang(?o), 'en'))")
     }
     geometry @one
       @pattern(of: """
@@ -153,7 +153,7 @@ query countries
       coy: "https://schema.coypu.org/global#",
       afn: "http://jena.apache.org/ARQ/function#"})
 {
-  locations(limit: 1000) @pattern(of: "?s a coy:Country", from: "s", to: "s") {
+  locations(limit: 1000) @pattern(of: "?s a coy:Country") {
     type @bind(of: "'Feature'")
     properties {
       style {
@@ -164,7 +164,7 @@ query countries
       }
 
       id          @bind(of: "?s")
-      label @one @pattern(of: "?s rdfs:label ?o . FILTER(langMatches(lang(?o), 'en'))", from: "s", to: "o")
+      label @one @pattern(of: "?s rdfs:label ?o . FILTER(langMatches(lang(?o), 'en'))")
 
       features
         @index(by: "afn:localname(?p)", oneIf: "?pc = 1")
