@@ -5,5 +5,5 @@ nav_order: 90
 layout: default
 ---
 
-[https://smartdataanalytics.github.io/RdfProcessingToolkit/demos/leaflet-graphql/](Click here to visit the online Demo.)
+[Click here to visit the online Demo.](https://smartdataanalytics.github.io/RdfProcessingToolkit/demos/leaflet-graphql/)
 
