@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Browser</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+
+        .movie-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .movie-card {
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            width: 300px;
+            box-shadow: 2px 2px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .movie-card img {
+            max-width: 100%;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .movie-card h3 {
+            margin: 0 0 10px;
+            font-size: 1.5em;
+        }
+
+        .movie-card p {
+            margin: 0 0 10px;
+            color: #666;
+        }
+
+        .movie-card a {
+            display: inline-block;
+            margin-top: 10px;
+            text-decoration: none;
+            color: #007bff;
+            border: 1px solid #007bff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .movie-card a:hover {
+            background-color: #007bff;
+            color: #ffffff;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Movie Browser</h1>
+    <div class="movie-container" id="movieContainer">
+        <!-- Movies will be dynamically loaded here -->
+    </div>
+
+    <script>
+        const movieData = {
+            "data": {
+                "Movies": [
+                    {
+                        "label": "Pancho Villa",
+                        "description": "1972 film directed by Eugenio Martín",
+                        "depiction": null,
+                        "releaseYear": "1972",
+                        "netflix": "https://www.netflix.com/title/840332",
+                        "minAge": null,
+                        "genres": [
+                            "Western film",
+                            "Spaghetti Western",
+                            "adventure film",
+                            "Adventure film"
+                        ]
+                    },
+                    {
+                        "label": "Places in the Heart",
+                        "description": "1984 British film by Robert Benton",
+                        "depiction": null,
+                        "releaseYear": "1985",
+                        "netflix": "https://www.netflix.com/title/60010787",
+                        "minAge": 0,
+                        "genres": [
+                            "drama film"
+                        ]
+                    },
+                    {
+                        "label": "Godzilla",
+                        "description": "1998 film directed by Roland Emmerich",
+                        "depiction": "http://commons.wikimedia.org/wiki/Special:FilePath/%D0%97%D1%96%D0%BB%D0%BB%D0%B0.jpg",
+                        "releaseYear": "1998",
+                        "netflix": "https://www.netflix.com/title/11819467",
+                        "minAge": 0,
+                        "genres": [
+                            "action film",
+                            "horror film",
+                            "Horror film",
+                            "science fiction film",
+                            "monster film",
+                            "thriller film"
+                        ]
+                    }
+                ]
+            }
+        };
+
+        function renderMovies() {
+            const container = document.getElementById('movieContainer');
+            container.innerHTML = '';
+
+            movieData.data.Movies.forEach(movie => {
+                const movieCard = document.createElement('div');
+                movieCard.className = 'movie-card';
+
+                const movieTitle = document.createElement('h3');
+                movieTitle.textContent = `${movie.label} (${movie.releaseYear})`;
+
+                const movieDescription = document.createElement('p');
+                movieDescription.textContent = movie.description;
+
+                const movieGenres = document.createElement('p');
+                movieGenres.textContent = `Genres: ${movie.genres.join(', ')}`;
+
+                const movieLink = document.createElement('a');
+                movieLink.href = movie.netflix;
+                movieLink.target = '_blank';
+                movieLink.textContent = 'Watch on Netflix';
+
+                if (movie.depiction) {
+                    const movieImage = document.createElement('img');
+                    movieImage.src = movie.depiction;
+                    movieCard.appendChild(movieImage);
+                }
+
+                movieCard.appendChild(movieTitle);
+                movieCard.appendChild(movieDescription);
+                movieCard.appendChild(movieGenres);
+                movieCard.appendChild(movieLink);
+
+                container.appendChild(movieCard);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', renderMovies);
+    </script>
+</body>
+
+</html>
+

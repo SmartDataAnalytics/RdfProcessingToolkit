@@ -1,0 +1,19 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+
+CONSTRUCT {
+  ?s ?p ?o
+}
+{
+    {
+      ?s wdt:P31 wd:Q11424 .
+      ?s ?p ?o .
+    }
+  UNION
+    {
+      ?x wdt:P31 wd:Q11424 .
+      ?x ?y ?s .
+      ?s ?p ?o .
+    }  
+}
+

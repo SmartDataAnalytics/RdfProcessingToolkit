@@ -1,0 +1,24 @@
+query movies
+  @prefix(map: {
+    rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+    xsd: "http://www.w3.org/2001/XMLSchema#",
+    schema: "http://schema.org/",
+    wd: "http://www.wikidata.org/entity/"
+    wdt: "http://www.wikidata.org/prop/direct/"
+  })
+{
+#  Movies(limit: 10) @pattern(of: "?s wdt:P31 wd:Q11424 . ?s wdt:P2899 [] .", to: "s") {
+  Movies(limit: 100) @pattern(of: "SELECT ?s { ?s wdt:P31 wd:Q11424 }") {
+    label       @one @pattern(of: "?s rdfs:label ?l. FILTER(LANG(?l) = 'en')")
+    description @one @pattern(of: "?s schema:description ?l. FILTER(LANG(?l) = 'en')")
+    depiction   @one @pattern(of: "SELECT ?s ?o { ?s wdt:P18 ?o } ORDER BY ?o LIMIT 1")
+    releaseYear @one @pattern(of: "SELECT ?s (xsd:gYear(MAX(?o)) AS ?date) { ?s wdt:P577 ?o } GROUP BY ?s")
+    netflix     @one @pattern(of: "SELECT ?s ?id { ?s wdt:P1874 ?o . BIND(IRI(CONCAT('https://www.netflix.com/title/', STR(?o))) AS ?id) }")
+
+    # Pick the minimum advised viewing age across based on "wdt:P2899" across any rating scheme
+    minAge      @one @pattern(of: "SELECT ?s (MIN(?o) AS ?age) { ?s (!<p>)/wdt:P2899 ?o } GROUP BY ?s")
+    
+    genres           @pattern(of: "SELECT DISTINCT ?s (STR(?l) AS ?x) { ?s wdt:P136/rdfs:label ?l . FILTER(langMatches(lang(?l), 'en')) }")
+  }
+}
+
