@@ -182,11 +182,6 @@ let loadingIndicator = document.getElementById('loadingIndicator');
                 const movieGenres = document.createElement('p');
                 movieGenres.textContent = `Genres: ${movie.genres.join(', ')}`;
 
-                const movieLink = document.createElement('a');
-                movieLink.href = movie.netflix;
-                movieLink.target = '_blank';
-                movieLink.textContent = 'Watch on Netflix';
-
                 if (movie.depiction) {
                     const movieImage = document.createElement('img');
                     movieImage.src = movie.depiction;
@@ -196,7 +191,14 @@ let loadingIndicator = document.getElementById('loadingIndicator');
                 movieCard.appendChild(movieTitle);
                 movieCard.appendChild(movieDescription);
                 movieCard.appendChild(movieGenres);
-                movieCard.appendChild(movieLink);
+
+                if (movie.netflix) {
+                    const movieLink = document.createElement('a');
+                    movieLink.href = movie.netflix;
+                    movieLink.target = '_blank';
+                    movieLink.textContent = 'Watch on Netflix';
+                    movieCard.appendChild(movieLink);
+                }
 
                 container.appendChild(movieCard);
             });
