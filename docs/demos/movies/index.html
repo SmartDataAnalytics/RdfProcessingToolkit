@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Movie Browser</title>
+    <title>Wikidata Movie Browser</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -58,67 +58,116 @@
             background-color: #007bff;
             color: #ffffff;
         }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+                /* Loading Indicator Styles */
+        .loading-indicator {
+            display: none;
+            font-size: 18px;
+            color: #007bff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 
 <body>
     <h1>Movie Browser</h1>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Search movies by title...">
+    </div>
+    <div class="loading-indicator" id="loadingIndicator">Loading...</div>
     <div class="movie-container" id="movieContainer">
         <!-- Movies will be dynamically loaded here -->
     </div>
 
     <script>
-        const movieData = {
-            "data": {
-                "Movies": [
-                    {
-                        "label": "Pancho Villa",
-                        "description": "1972 film directed by Eugenio Martín",
-                        "depiction": null,
-                        "releaseYear": "1972",
-                        "netflix": "https://www.netflix.com/title/840332",
-                        "minAge": null,
-                        "genres": [
-                            "Western film",
-                            "Spaghetti Western",
-                            "adventure film",
-                            "Adventure film"
-                        ]
-                    },
-                    {
-                        "label": "Places in the Heart",
-                        "description": "1984 British film by Robert Benton",
-                        "depiction": null,
-                        "releaseYear": "1985",
-                        "netflix": "https://www.netflix.com/title/60010787",
-                        "minAge": 0,
-                        "genres": [
-                            "drama film"
-                        ]
-                    },
-                    {
-                        "label": "Godzilla",
-                        "description": "1998 film directed by Roland Emmerich",
-                        "depiction": "http://commons.wikimedia.org/wiki/Special:FilePath/%D0%97%D1%96%D0%BB%D0%BB%D0%B0.jpg",
-                        "releaseYear": "1998",
-                        "netflix": "https://www.netflix.com/title/11819467",
-                        "minAge": 0,
-                        "genres": [
-                            "action film",
-                            "horror film",
-                            "Horror film",
-                            "science fiction film",
-                            "monster film",
-                            "thriller film"
-                        ]
-                    }
-                ]
-            }
-        };
+        const GRAPHQL_URL = 'https://rpt.demo.aksw.org/graphql';
+        // const GRAPHQL_URL = 'http://localhost:8642/graphql';
 
-        function renderMovies() {
+
+        queryTemplate = `
+query movies
+  @prefix(map: {
+    rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+    xsd: "http://www.w3.org/2001/XMLSchema#",
+    schema: "http://schema.org/",
+    wd: "http://www.wikidata.org/entity/"
+    wdt: "http://www.wikidata.org/prop/direct/"
+  })
+{
+#  Movies(limit: 10) @pattern(of: "?s wdt:P31 wd:Q11424 . ?s wdt:P2899 [] .", to: "s") {
+  Movies(limit: 100) @pattern(of: "SELECT ?s { ?s wdt:P31 wd:Q11424 . FILTER (exists { ?s rdfs:label ?l . FILTER(langMatches(lang(?l), 'en')) FILTER(CONTAINS(LCASE(STR(?l)), LCASE('SEARCH_TERM'))) }) }") {
+    label       @one @pattern(of: "?s rdfs:label ?l. FILTER(LANG(?l) = 'en')")
+    description @one @pattern(of: "?s schema:description ?l. FILTER(LANG(?l) = 'en')")
+    depiction   @one @pattern(of: "SELECT ?s ?o { ?s wdt:P18 ?o } ORDER BY ?o LIMIT 1")
+    releaseYear @one @pattern(of: "SELECT ?s (xsd:gYear(MAX(?o)) AS ?date) { ?s wdt:P577 ?o } GROUP BY ?s")
+    netflix     @one @pattern(of: "SELECT ?s ?id { ?s wdt:P1874 ?o . BIND(IRI(CONCAT('https://www.netflix.com/title/', STR(?o))) AS ?id) }")
+
+    # Pick the minimum advised viewing age across based on "wdt:P2899" across any rating scheme
+    minAge      @one @pattern(of: "SELECT ?s (MIN(?o) AS ?age) { ?s (!<p>)/wdt:P2899 ?o } GROUP BY ?s")
+    
+    genres           @pattern(of: "SELECT DISTINCT ?s (STR(?l) AS ?x) { ?s wdt:P136/rdfs:label ?l . FILTER(langMatches(lang(?l), 'en')) }")
+  }
+}        
+`;
+
+let debounceTimeout;
+let loadingIndicator = document.getElementById('loadingIndicator');
+
+        async function fetchData(searchTerm) {
+            const sanitized = searchTerm.replace("'", "\\'");
+            const query = queryTemplate.replace("SEARCH_TERM", sanitized);
+            console.log(query);
+
+
+   return new Promise((resolve, reject) => {
+        // Clear the previous timeout if it's still pending
+        clearTimeout(debounceTimeout);
+
+ loadingIndicator.style.display = 'block';
+ 
+        // Set a new timeout with the desired delay (e.g., 500ms)
+        debounceTimeout = setTimeout(async () => {
+            try {
+                const response = await fetch(GRAPHQL_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const result = await response.json();
+                loadingIndicator.style.display = 'none';
+                resolve(result); // Resolve the promise with the fetched data
+            } catch (error) {
+                loadingIndicator.style.display = 'none';
+                reject(error); // Reject the promise if an error occurs
+            }
+        }, 500); // Set delay (in milliseconds) before sending the request
+    });
+
+            
+        }
+
+
+        async function renderMovies(filter = '') {
             const container = document.getElementById('movieContainer');
             container.innerHTML = '';
+
+            var movieData = await fetchData(filter);
+            console.log(movieData);
 
             movieData.data.Movies.forEach(movie => {
                 const movieCard = document.createElement('div');
@@ -153,9 +202,13 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', renderMovies);
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const filter = this.value;
+            renderMovies(filter);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => renderMovies());
     </script>
 </body>
 
 </html>
-
