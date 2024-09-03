@@ -143,7 +143,7 @@ query movies
     releaseYear @one @pattern(of: "SELECT ?s (xsd:gYear(MAX(?o)) AS ?date) { ?s wdt:P577 ?o } GROUP BY ?s")
     netflix     @one @pattern(of: "SELECT ?s ?id { ?s wdt:P1874 ?o . BIND(IRI(CONCAT('https://www.netflix.com/title/', STR(?o))) AS ?id) }")
 
-    # Pick the minimum advised viewing age across based on "wdt:P2899" across any rating scheme
+    # Pick the minimum advised viewing age based on "wdt:P2899" across any rating scheme
     minAge      @one @pattern(of: "SELECT ?s (MIN(?o) AS ?age) { ?s (!<p>)/wdt:P2899 ?o } GROUP BY ?s")
 
     genres           @pattern(of: "SELECT DISTINCT ?s (STR(?l) AS ?x) { ?s wdt:P136/rdfs:label ?l . FILTER(langMatches(lang(?l), 'en')) }")
