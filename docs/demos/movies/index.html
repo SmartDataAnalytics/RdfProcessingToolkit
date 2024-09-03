@@ -60,7 +60,7 @@
         }
 
         .search-container {
-            margin-bottom: 20px;
+            margin: 20px 0px;
         }
 
         .search-container input {
@@ -78,11 +78,42 @@
             margin-bottom: 20px;
             text-align: center;
         }
+
+        #endpointLink {
+            text-decoration: none;
+            font-weight: bold;
+            color: #007bff;
+            background-color: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #007bff;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        #endpointLink:hover {
+            background-color: #007bff;
+            color: white;
+            border-color: #0056b3;
+        }
+
+        #endpointLink:active {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+
+        .header {
+            display: block;
+            align-items: center;
+        }
+
     </style>
 </head>
 
 <body>
-    <h1>Movie Browser</h1>
+    <div class="header">
+        <h1 style="display: inline; margin-right: 20px;">Movie Browser</h1>
+        <a id="endpointLink" href="" target="_blank">View JSON on Endpoint</a>
+    </div>
     <div class="search-container">
         <input type="text" id="searchInput" placeholder="Search movies by title...">
     </div>
@@ -95,7 +126,6 @@
         const GRAPHQL_URL = 'https://rpt.demo.aksw.org/graphql';
         // const GRAPHQL_URL = 'http://localhost:8642/graphql';
 
-
         queryTemplate = `
 query movies
   @prefix(map: {
@@ -106,7 +136,6 @@ query movies
     wdt: "http://www.wikidata.org/prop/direct/"
   })
 {
-#  Movies(limit: 10) @pattern(of: "?s wdt:P31 wd:Q11424 . ?s wdt:P2899 [] .", to: "s") {
   Movies(limit: 100) @pattern(of: "SELECT ?s { ?s wdt:P31 wd:Q11424 . FILTER (exists { ?s rdfs:label ?l . FILTER(langMatches(lang(?l), 'en')) FILTER(CONTAINS(LCASE(STR(?l)), LCASE('SEARCH_TERM'))) }) }") {
     label       @one @pattern(of: "?s rdfs:label ?l. FILTER(LANG(?l) = 'en')")
     description @one @pattern(of: "?s schema:description ?l. FILTER(LANG(?l) = 'en')")
@@ -116,49 +145,50 @@ query movies
 
     # Pick the minimum advised viewing age across based on "wdt:P2899" across any rating scheme
     minAge      @one @pattern(of: "SELECT ?s (MIN(?o) AS ?age) { ?s (!<p>)/wdt:P2899 ?o } GROUP BY ?s")
-    
+
     genres           @pattern(of: "SELECT DISTINCT ?s (STR(?l) AS ?x) { ?s wdt:P136/rdfs:label ?l . FILTER(langMatches(lang(?l), 'en')) }")
   }
-}        
+}
 `;
 
-let debounceTimeout;
-let loadingIndicator = document.getElementById('loadingIndicator');
+        let debounceTimeout;
+        let loadingIndicator = document.getElementById('loadingIndicator');
 
         async function fetchData(searchTerm) {
             const sanitized = searchTerm.replace("'", "\\'");
             const query = queryTemplate.replace("SEARCH_TERM", sanitized);
             console.log(query);
 
+            const params = new URLSearchParams({ qtxt: query });
+            const fullUrl = `${GRAPHQL_URL}?${params.toString()}`;
+            document.getElementById('endpointLink').href = fullUrl;
 
-   return new Promise((resolve, reject) => {
-        // Clear the previous timeout if it's still pending
-        clearTimeout(debounceTimeout);
+            return new Promise((resolve, reject) => {
+                // Clear the previous timeout if it's still pending
+                clearTimeout(debounceTimeout);
 
- loadingIndicator.style.display = 'block';
- 
-        // Set a new timeout with the desired delay (e.g., 500ms)
-        debounceTimeout = setTimeout(async () => {
-            try {
-                const response = await fetch(GRAPHQL_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ query })
-                });
+                loadingIndicator.style.display = 'block';
 
-                const result = await response.json();
-                loadingIndicator.style.display = 'none';
-                resolve(result); // Resolve the promise with the fetched data
-            } catch (error) {
-                loadingIndicator.style.display = 'none';
-                reject(error); // Reject the promise if an error occurs
-            }
-        }, 500); // Set delay (in milliseconds) before sending the request
-    });
+                // Set a new timeout with the desired delay (e.g., 500ms)
+                debounceTimeout = setTimeout(async () => {
+                    try {
+                        const response = await fetch(GRAPHQL_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ query })
+                        });
 
-            
+                        const result = await response.json();
+                        loadingIndicator.style.display = 'none';
+                        resolve(result);
+                    } catch (error) {
+                        loadingIndicator.style.display = 'none';
+                        reject(error);
+                    }
+                }, 500); // Set delay (in milliseconds) before sending the request
+            });
         }
 
 
