@@ -92,6 +92,7 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--split" }, description="Create corresponding output files for each file argument with SPARQL queries")
     public String splitFolder = null;
 
+    /** ARQ Mixin provides options related to ARQ such as --set and --explain */
     @Mixin
     public CmdMixinArq arqConfig = new CmdMixinArq();
 
