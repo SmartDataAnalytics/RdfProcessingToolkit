@@ -244,14 +244,23 @@ public class SparqlIntegrateCmdImpls {
 
         // If a format is given it takes precedence - otherwise try to use the filename
         String outFormat = cmd.outFormat;
+
+        // Format source can be either a filename "foo.nt", a file extension "ttl" or a format string "turtle/pretty"
         String formatSource = outFormat == null
                 ? outFilename
                 : outFormat;
 
-        if (outFormat == null && formatSource != null) {
+        // Try to parse the format source as a file name or file extension
+        if (formatSource != null) {
             // Try to derive the outFormat from the filename - if given.
             FileName fn = fileNameParser.parse(formatSource);
-            outFormat = fn.getContentPart();
+            String tmpOutFormat = fn.getContentPart();
+
+            // Replace the outFormat with the result of the successful parse
+            if (tmpOutFormat != null) {
+                outFormat = tmpOutFormat;
+            }
+
             rawOutEncodings.addAll(fn.getEncodingParts());
         }
 
