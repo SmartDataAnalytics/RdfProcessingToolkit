@@ -248,7 +248,7 @@ public class SparqlIntegrateCmdImpls {
                 ? outFilename
                 : outFormat;
 
-        if (formatSource != null) {
+        if (outFormat == null && formatSource != null) {
             // Try to derive the outFormat from the filename - if given.
             FileName fn = fileNameParser.parse(formatSource);
             outFormat = fn.getContentPart();
