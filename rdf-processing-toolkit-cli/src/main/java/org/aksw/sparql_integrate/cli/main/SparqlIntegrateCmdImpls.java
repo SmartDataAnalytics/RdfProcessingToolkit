@@ -838,6 +838,8 @@ public class SparqlIntegrateCmdImpls {
                         .addServletBuilder(ServletBuilderGraphQlV2.newBuilder()
                                 .setGraphQlExecFactory(graphQlExecFactoryV2)
                             )
+                        .addServletBuilder(ServletLdvConfigJs.newBuilder()
+                                .setDbEngine(cmd.engine))
                         .setPort(port).create();
 
                 server.start();
