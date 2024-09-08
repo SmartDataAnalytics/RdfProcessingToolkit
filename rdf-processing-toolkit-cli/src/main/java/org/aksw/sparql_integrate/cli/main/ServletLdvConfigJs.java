@@ -26,7 +26,7 @@ public class ServletLdvConfigJs extends HttpServlet implements ServletBuilder {
             ServletRegistration.Dynamic servlet = servletContext.addServlet("dbEngineSetting", this);
             servlet.addMapping("/dbEngineSetting");
             servlet.addMapping("/dbEngineSetting/");
-            servlet.addMapping("/yasgui/_/js2/config.js");
+            servlet.addMapping("/view/_/js2/config.js");
             servlet.setLoadOnStartup(1);
         };
     }
@@ -34,7 +34,7 @@ public class ServletLdvConfigJs extends HttpServlet implements ServletBuilder {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         PrintWriter writer = resp.getWriter();
-        if ("/yasgui/_/js2/config.js".equals(req.getServletPath())) {
+        if ("/view/_/js2/config.js".equals(req.getServletPath())) {
             resp.setContentType("text/javascript;charset=utf-8");
             writer.println("""
 (() => {
@@ -53,6 +53,7 @@ public class ServletLdvConfigJs extends HttpServlet implements ServletBuilder {
     labelLangChoice: ['en', 'de', 'nl', 'fr'],
     infer: false,
     fileOnly: 'yes',
+    generated: 'yes'
   }
 
   window.ldvConfig = ldvConfig
