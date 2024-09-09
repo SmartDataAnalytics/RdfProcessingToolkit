@@ -70,7 +70,14 @@
             border: 1px solid #ccc;
             border-radius: 5px;
         }
-                /* Loading Indicator Styles */
+
+        .thumbnail {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            max-height: 300px;
+        } 
+
         .loading-indicator {
             display: none;
             font-size: 18px;
@@ -215,6 +222,7 @@ query movies
                 if (movie.depiction) {
                     const movieImage = document.createElement('img');
                     movieImage.src = movie.depiction;
+                    movieImage.class = "thumbnail";
                     movieCard.appendChild(movieImage);
                 }
 
