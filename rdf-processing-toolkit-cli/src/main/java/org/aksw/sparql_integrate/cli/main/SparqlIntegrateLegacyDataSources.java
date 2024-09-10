@@ -13,8 +13,8 @@ import java.util.Map.Entry;
 
 import org.aksw.commons.io.util.symlink.SymbolicLinkStrategies;
 import org.aksw.difs.builder.DifsFactory;
-import org.aksw.jena_sparql_api.arq.service.vfs.ServiceExecutorFactoryRegistratorVfs;
 import org.aksw.jenax.arq.engine.quad.RDFConnectionFactoryQuadForm;
+import org.aksw.jenax.arq.service.vfs.ServiceExecutorFactoryRegistratorVfs;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFromDataset;
 import org.aksw.jenax.dataaccess.sparql.factory.dataset.connection.DatasetRDFConnectionFactory;
 import org.aksw.jenax.dataaccess.sparql.factory.dataset.connection.DatasetRDFConnectionFactoryBuilder;
