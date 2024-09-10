@@ -111,9 +111,6 @@ parent: Demos
 // const GRAPHQL_URL = 'http://localhost:8642/graphql';
 const GRAPHQL_URL = 'https://rpt.demo.aksw.org/graphql';
 
-// GraphQL query
-
-
 const simpleQuery = `
 query countries
   @prefix(map: {
@@ -142,7 +139,6 @@ query countries
 }
 `;
 
-
 const complexQuery = `
 query countries
     @prefix(map: {
@@ -153,7 +149,7 @@ query countries
       coy: "https://schema.coypu.org/global#",
       afn: "http://jena.apache.org/ARQ/function#"})
 {
-  locations(limit: 1000) @pattern(of: "?s a coy:Country") {
+  locations(limit: 100) @pattern(of: "?s a coy:Country") {
     type @bind(of: "'Feature'")
     properties {
       style {
@@ -175,6 +171,8 @@ query countries
               FILTER(?p NOT IN (rdfs:label))
             }
             # Auto-derive property cardinalities from all data
+            # Use the 'service enhancer' cache extension to cache
+            # the cardinalities
             { SERVICE <cache:> {
                 { SELECT ?p (MAX(?c) AS ?pc) {
                   SELECT ?x ?p (COUNT(*) AS ?c) {
@@ -195,168 +193,7 @@ query countries
 }
 `;
 
-const complexQueryOld2 = `
-{
-  locations(limit: 1000)
-      @pattern(of: "?s a coy:Country", from: "s", to: "s")
-      @prefix(name: "", iri: "https://schema.coypu.org/global#")
-      @prefix(name: "rdfs", iri: "http://www.w3.org/2000/01/rdf-schema#")
-      @prefix(name: "geo", iri: "http://www.opengis.net/ont/geosparql#")
-      @prefix(name: "geof", iri: "http://www.opengis.net/def/function/geosparql/")
-      @prefix(name: "norse", iri: "https://w3id.org/aksw/norse#")
-      @prefix(name: "afn", iri: "http://jena.apache.org/ARQ/function#")
-      @prefix(name: "coy", iri: "https://schema.coypu.org/global#")
-    {
-      type @one @pattern(of: "BIND(?x AS ?xx) BIND('Feature' AS ?y)", from: "x", to: "y")
-
-      # Properties container
-      properties @one @pattern(of: "BIND(?x AS ?y)", from: "x", to: "y") {
-
-        # Style
-        style @one @pattern(of: """
-          BIND(?x as ?y)
-          BIND(CONCAT('#', SUBSTR(MD5(STR(?x)), 1, 6)) AS ?color)
-          BIND(norse:json.object("fillColor", ?color) AS ?json)
-        """, from: "x", to: "json")
-
-
-        label @one
-            @pattern(of: """
-              SELECT ?s ?o {
-                ?s rdfs:label ?o .
-                FILTER(langMatches(lang(?o), 'en'))
-              }
-              """, from: "s", to: "o")
-
-        features
-            @pattern(of: """
-              SELECT * {
-                {
-                  ?s ?p ?o .
-                  FILTER(?p NOT IN (rdfs:label))
-                }
-                # Auto-derive property cardinalities from all data
-                { SERVICE <cache:> {
-                    { SELECT ?p (MAX(?c) AS ?pc) {
-                      SELECT ?x ?p (COUNT(*) AS ?c) {
-                       ?x ?p ?z
-                      } GROUP BY ?x ?p
-                    } GROUP BY ?p }
-                  }
-                }
-              }
-              """, from: "s", to: "o")
-            @index(by: "afn:localname(?p)", oneIf: "?pc = 1")
-      }
-
-      # Geometry Section
-      geometry @one
-          @pattern(of: """
-            ?s geo:hasGeometry/geo:asWKT ?x .
-            BIND(STRDT(STR(geof:asGeoJSON(
-              geof:simplifyDp(?x, 0.2)
-            )), norse:json) AS ?o)
-            """, from: "s", to: "o")
-    }
-}
-`;
-
-
-
-
-
-
-const simpleQueryOld = `
-{
-  locations(limit: 10)
-      @pattern(of: "?s a coy:Country", from: "s", to: "s")
-      @prefix(name: "rdfs", iri: "http://www.w3.org/2000/01/rdf-schema#")
-      @prefix(name: "geo", iri: "http://www.opengis.net/ont/geosparql#")
-      @prefix(name: "geof", iri: "http://www.opengis.net/def/function/geosparql/")
-      @prefix(name: "norse", iri: "https://w3id.org/aksw/norse#")
-      @prefix(name: "coy", iri: "https://schema.coypu.org/global#")
-    {
-      label @one
-          @pattern(of: """
-            SELECT ?s ?o {
-              ?s rdfs:label ?o .
-              FILTER(langMatches(lang(?o), 'en'))
-            }
-            """, from: "s", to: "o")
-
-      # Note: simplifyDp simplifies polygons on query time
-      # Reduces amount of data and thus loading time
-      geometry @one
-          @pattern(of: """
-            ?s geo:hasGeometry/geo:asWKT ?x .
-            BIND(STRDT(STR(geof:asGeoJSON(
-              geof:simplifyDp(?x, 0.2)
-            )), norse:json) AS ?o)
-            """, from: "s", to: "o")
-    }
-}
-`;
-
-const complexQueryOld = `
-{
-  locations(limit: 1000)
-      @pattern(of: "?s a coy:Country", from: "s", to: "s")
-      @prefix(name: "", iri: "https://schema.coypu.org/global#")
-      @prefix(name: "rdfs", iri: "http://www.w3.org/2000/01/rdf-schema#")
-      @prefix(name: "geo", iri: "http://www.opengis.net/ont/geosparql#")
-      @prefix(name: "geof", iri: "http://www.opengis.net/def/function/geosparql/")
-      @prefix(name: "norse", iri: "https://w3id.org/aksw/norse#")
-      @prefix(name: "afn", iri: "http://jena.apache.org/ARQ/function#")
-      @prefix(name: "coy", iri: "https://schema.coypu.org/global#")
-    {
-      label @one
-          @pattern(of: """
-            SELECT ?s ?o {
-              ?s rdfs:label ?o .
-              FILTER(langMatches(lang(?o), 'en'))
-            }
-            """, from: "s", to: "o")
-
-      features
-          @pattern(of: """
-            SELECT * {
-              {
-                ?s ?p ?o .
-                FILTER(?p NOT IN (rdfs:label))
-              }
-              # Auto-derive property cardinalities from all data
-              { SERVICE <cache:> {
-                  { SELECT ?p (MAX(?c) AS ?pc) {
-                    SELECT ?x ?p (COUNT(*) AS ?c) {
-                     ?x ?p ?z
-                    } GROUP BY ?x ?p
-                  } GROUP BY ?p }
-                }
-              }
-            }
-            """, from: "s", to: "o")
-          @index(by: "afn:localname(?p)", oneIf: "?pc = 1")
-
-      geometry @one
-          @pattern(of: """
-            ?s geo:hasGeometry/geo:asWKT ?x .
-            BIND(STRDT(STR(geof:asGeoJSON(
-              geof:simplifyDp(?x, 0.2)
-            )), norse:json) AS ?o)
-            """, from: "s", to: "o")
-    }
-}
-`;
-
-/**
-There is currently a bug with variable analysis which breaks indexing labels by language...
-      #label @pattern(of: "?s rdfs:label ?o", from: "s", to: "o") @one {
-      #  labelByLang @pattern(of: "BIND(?x AS ?y)", from: "x", to: "y") # @index(by: "lang(?y)", oneIf: "true") @one
-      #}
-*/
-
 const initialQuery = simpleQuery;
-
 
 // Initialize the Leaflet map
 const map = L.map('map').setView([0, 0], 2);
