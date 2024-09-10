@@ -143,7 +143,7 @@ query movies
     wdt: "http://www.wikidata.org/prop/direct/"
   })
 {
-  Movies(limit: 100) @pattern(of: "SELECT ?s { ?s wdt:P31 wd:Q11424 . FILTER (exists { ?s rdfs:label ?l . FILTER(langMatches(lang(?l), 'en')) FILTER(CONTAINS(LCASE(STR(?l)), LCASE('SEARCH_TERM'))) }) }") {
+  Movies(limit: 1000) @pattern(of: "SELECT ?s { ?s wdt:P31 wd:Q11424 . FILTER (exists { ?s rdfs:label ?l . FILTER(langMatches(lang(?l), 'en')) FILTER(CONTAINS(LCASE(STR(?l)), LCASE('SEARCH_TERM'))) }) }") {
     label       @one @pattern(of: "?s rdfs:label ?l. FILTER(LANG(?l) = 'en')")
     description @one @pattern(of: "?s schema:description ?l. FILTER(LANG(?l) = 'en')")
     depiction   @one @pattern(of: "SELECT ?s ?o { ?s wdt:P18 ?o } ORDER BY ?o LIMIT 1")
