@@ -43,7 +43,18 @@
             color: #666;
         }
 
-        .movie-card a {
+        a.link {
+            text-decoration: none;
+            color: #007bff;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        a.link:hover {
+            background-color: #007bff;
+            color: #ffffff;
+        }
+
+        a.button {
             display: inline-block;
             margin-top: 10px;
             text-decoration: none;
@@ -54,7 +65,7 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        .movie-card a:hover {
+        a.button:hover {
             background-color: #007bff;
             color: #ffffff;
         }
@@ -118,7 +129,7 @@
 
 <body>
     <div class="header">
-        <h1 style="display: inline; margin-right: 20px;">Movie Browser</h1>
+        <h1 style="display: inline; margin-right: 20px;">Wikidata Movie Browser</h1>
         <a id="endpointLink" href="" target="_blank">View JSON on Endpoint</a>
     </div>
     <div class="search-container">
@@ -144,6 +155,7 @@ query movies
   })
 {
   Movies(limit: 1000) @pattern(of: "SELECT ?s { ?s wdt:P31 wd:Q11424 . FILTER (exists { ?s rdfs:label ?l . FILTER(langMatches(lang(?l), 'en')) FILTER(CONTAINS(LCASE(STR(?l)), LCASE('SEARCH_TERM'))) }) }") {
+    id          @bind(of: "?s")
     label       @one @pattern(of: "?s rdfs:label ?l. FILTER(LANG(?l) = 'en')")
     description @one @pattern(of: "?s schema:description ?l. FILTER(LANG(?l) = 'en')")
     depiction   @one @pattern(of: "SELECT ?s ?o { ?s wdt:P18 ?o } ORDER BY ?o LIMIT 1")
@@ -210,8 +222,14 @@ query movies
                 const movieCard = document.createElement('div');
                 movieCard.className = 'movie-card';
 
+                const wikidataLink = document.createElement('a');
+                wikidataLink.href = movie.id;
+                wikidataLink.target = '_blank';
+                wikidataLink.className = "link";
+                wikidataLink.textContent = `${movie.label} (${movie.releaseYear})`;
+
                 const movieTitle = document.createElement('h3');
-                movieTitle.textContent = `${movie.label} (${movie.releaseYear})`;
+                movieTitle.appendChild(wikidataLink);
 
                 const movieDescription = document.createElement('p');
                 movieDescription.textContent = movie.description;
@@ -231,11 +249,12 @@ query movies
                 movieCard.appendChild(movieGenres);
 
                 if (movie.netflix) {
-                    const movieLink = document.createElement('a');
-                    movieLink.href = movie.netflix;
-                    movieLink.target = '_blank';
-                    movieLink.textContent = 'Watch on Netflix';
-                    movieCard.appendChild(movieLink);
+                    const netflixLink = document.createElement('a');
+                    netflixLink.href = movie.netflix;
+                    netflixLink.className = "button";
+                    netflixLink.target = '_blank';
+                    netflixLink.textContent = 'Watch on Netflix';
+                    movieCard.appendChild(netflixLink);
                 }
 
                 container.appendChild(movieCard);
