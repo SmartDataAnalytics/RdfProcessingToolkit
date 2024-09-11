@@ -3,6 +3,8 @@ package org.aksw.sparql_integrate.cli.main;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -844,15 +846,20 @@ public class SparqlIntegrateCmdImpls {
 
                 server.start();
 
-                URI browseUri = new URI("http://localhost:" + port + "/sparql");
+                String hostAddress;
+                try(final DatagramSocket socket = new DatagramSocket()){
+                    socket.connect(InetAddress.getByName("1.1.1.1"), 53);
+                    hostAddress = socket.getLocalAddress().getHostAddress();
+                }
+                URI browseUri = new URI("http://"+hostAddress+":" + port + "/");
                 if (Desktop.isDesktopSupported()) {
                     try {
-                        Desktop.getDesktop().browse(browseUri);
+                        Desktop.getDesktop().browse(new URI("http://localhost:"+port));
                     } catch (UnsupportedOperationException e) {
                         logger.info("Note: Could not open system browser.");
                     }
                 }
-                logger.info("SPARQL service running at: " + browseUri);
+                logger.info("SPARQL service running at: " + browseUri + "sparql");
             }
 
             try (RDFConnection conn = finalDataSource.getConnection()) {
