@@ -3,10 +3,10 @@ package org.aksw.rdf_processing_toolkit.cli.cmd;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import org.aksw.jena_sparql_api.arq.service.vfs.ServiceExecutorFactoryRegistratorVfs;
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
+import org.aksw.jenax.arq.service.vfs.ServiceExecutorFactoryRegistratorVfs;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.query.ARQ;
