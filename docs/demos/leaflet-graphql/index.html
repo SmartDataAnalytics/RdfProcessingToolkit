@@ -112,7 +112,7 @@ parent: Demos
 const GRAPHQL_URL = 'https://rpt.demo.aksw.org/graphql';
 
 const simpleQuery = `
-query countries
+query countries @debug
   @prefix(map: {
     rdfs: "http://www.w3.org/2000/01/rdf-schema#",
     geo: "http://www.opengis.net/ont/geosparql#",
@@ -140,7 +140,7 @@ query countries
 `;
 
 const complexQuery = `
-query countries
+query countries @debug
     @prefix(map: {
       rdfs: "http://www.w3.org/2000/01/rdf-schema#",
       geo: "http://www.opengis.net/ont/geosparql#",
