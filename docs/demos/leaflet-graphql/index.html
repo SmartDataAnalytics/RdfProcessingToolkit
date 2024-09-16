@@ -99,6 +99,7 @@ parent: Demos
             <button id="loadComplexExample">Load Complex Example</button>
             <a id="endpointLink" href="" target="_blank">View JSON on Endpoint</a>
         </div>
+        <textarea id="output" readonly placeholder="Messages appear here"></textarea>
     </div>
     <div id="map"></div>
     
@@ -195,6 +196,8 @@ query countries @debug
 
 const initialQuery = simpleQuery;
 
+const output = document.getElementById('output');
+
 // Initialize the Leaflet map
 const map = L.map('map').setView([0, 0], 2);
 
@@ -205,17 +208,29 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 // Fetch data from the GraphQL API
 async function fetchData(query) {
-    const response = await fetch(GRAPHQL_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query })
-    });
+    output.value = '[LOADING...]';
+    try {
+        const response = await fetch(GRAPHQL_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query })
+        });
 
-    const json = await response.json();
-    const locations = json.data.locations;
-    return locations;
+        if (!response.ok) {
+            const msg = await response.text();
+            throw new Error(`[ERROR] Server message: ${msg}`);
+        }
+
+        const json = await response.json();
+        output.value = '[SUCCESS]';
+        const locations = json.data.locations;
+        return locations;
+    } catch (error) {
+        output.value = error.message;
+        throw new Error(error);
+    }
 }
 
 // Function to create HTML for the popup with all JSON keys and values
