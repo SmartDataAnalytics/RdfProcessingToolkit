@@ -11,9 +11,9 @@ layout: default
 
 ### Downloads
 
-You can download RPT as a JAR-bundle,  Debian package, or RPM package from [RPT's GitHub release page](https://github.com/SmartDataAnalytics/RdfProcessingToolkit/releases).
+You can download RPT as self-contained  Debian or RPM packages from [RPT's GitHub release page](https://github.com/SmartDataAnalytics/RdfProcessingToolkit/releases).
 
-
+Note, that for running the JAR bundle with the `java` command yourself you need to add the appropriate `--add-opens` declarations. This is documented on the [Building from Source](getting-started/build.html) page.
 
 ### Docker
 
@@ -24,8 +24,7 @@ The quickest way to start an RPT instance is via docker. The container name is `
 `docker pull aksw/rpt:latest-dev`
 
 
-
-A typical invocation of the container is as follows:
+For example, a typical invocation of the `integrate` command is as follows:
 
 `docker run -i -p'8642:8642' -v "$(pwd):/data" -w /data aksw/rpt integrate --server YOUR_DATA.ttl`
 
