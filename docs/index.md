@@ -20,7 +20,7 @@ RPT is Java tool which comes with debian and rpm packaging. It is invoked using 
 * [ngs](named-graph-streams): Processor for named graph streams (ngs) which enables processing for collections of named graphs in streaming fashion. Process huge datasets without running into memory issues.
 * [sbs](sparql-binding-streams): Processor for SPARQL binding streams (sbs) which enables processing of SPARQL result sets in streaming fashion. Most prominently for use in aggregating the output of a `ngs map` operation.
 * [rmltk](https://github.com/Scaseco/r2rml-api-jena/tree/jena-5.0.0#usage-of-the-cli-tool): These are the (sub-)commands of our (R2)RML toolkit. The full documentation is available [here](https://github.com/SmartDataAnalytics/r2rml-api-jena).
-* sansa: These are the (sub-)commands of our Semantic Analysis Stack (Stack) - a Big Data RDF Processing Framework. Features parallel execution of RML/SPARQL and TARQL (if the involved sources support it).
+* [sansa]: These are the (sub-)commands of our Semantic Analysis Stack (Stack) - a Big Data RDF Processing Framework. Features parallel execution of RML/SPARQL and TARQL (if the involved sources support it).
 
 
 **Check this [documentation](doc) for the supported SPARQL extensions with many examples**

@@ -13,7 +13,7 @@ layout: default
 
 You can download RPT as self-contained  Debian or RPM packages from [RPT's GitHub release page](https://github.com/SmartDataAnalytics/RdfProcessingToolkit/releases).
 
-Note, that for running the JAR bundle with the `java` command yourself you need to add the appropriate `--add-opens` declarations. This is documented on the [Building from Source](getting-started/build.html) page.
+Note, that for running the JAR bundle with the `java` command yourself you need to add the appropriate `--add-opens` [JVM Options](build.html#jvm-options) page.
 
 ### Docker
 
