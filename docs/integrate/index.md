@@ -81,7 +81,7 @@ Note, that this is **unsafe** and should be avoided in production, but it can be
 Embedded SPARQL engines are built into RPT and thus readily available. The following engines are currently available:
 
 <table>
-    <tr><th>Engine</th><th>Description</tr>
+    <tr><th>Engine</th><th>Description</th></tr>
     <tr><td><b>mem</b></td><td>The default in-memory engine based on Apache Jena. Data is discarded once the RPT process terminates.</td></tr>
     <tr><td><b>tdb2</b></td><td>Apache Jena's TDB2 persisent engine. Use <i>--loc</i> to specfify the database folder.</td></tr>
     <tr><td><b>binsearch</b></td><td>Binary search engine that operates directly on sorted N-Triples files. Use <i>--loc</i> to specify the file path or HTTP(s) URL to the N-Triples file. For URLs, HTTP range requests must be supported!</td></tr>
@@ -94,11 +94,8 @@ Embedded SPARQL engines are built into RPT and thus readily available. The follo
 
 The engines `mem`, `tdb2` and `binsearch` build an Jena's query engine `ARQ` and thus respect its configuration.
 
-
-
 `rpt integrate  --set 'arq:queryTimeout=60000' myQuery.rq`
 
-### 
 
 
 
