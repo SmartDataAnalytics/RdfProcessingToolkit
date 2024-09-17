@@ -1,11 +1,9 @@
 ---
-title: Integrate
+title: RDF/SPARQL Processing
 has_children: true
 nav_order: 30
 layout: default
 ---
-
-
 
 # Command: `integrate`
 
