@@ -22,5 +22,6 @@ RPT is Java tool which comes with debian and rpm packaging. It is invoked using 
 * [rmltk](https://github.com/Scaseco/r2rml-api-jena/tree/jena-5.0.0#usage-of-the-cli-tool): These are the (sub-)commands of our (R2)RML toolkit. The full documentation is available [here](https://github.com/SmartDataAnalytics/r2rml-api-jena).
 * [sansa]: These are the (sub-)commands of our Semantic Analysis Stack (Stack) - a Big Data RDF Processing Framework. Features parallel execution of RML/SPARQL and TARQL (if the involved sources support it).
 
-**Check this [Examples page](examples/README.md) for the supported SPARQL extensions with many examples**
+
+**Check the [Examples page](examples/README.html) for the supported SPARQL extensions with many examples**
 
