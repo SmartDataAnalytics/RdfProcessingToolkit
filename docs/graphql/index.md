@@ -14,7 +14,7 @@ From each GraphQL query a corresponding SPARQL query and result set post process
 
 ## Examples
 
-Check out the [demonstrators](../demos) for examples.
+Check out the [online demonstrators](demo) for examples.
 
 ## Directives
 
