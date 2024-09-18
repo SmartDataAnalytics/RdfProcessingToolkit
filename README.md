@@ -1,36 +1,12 @@
-# RDF Processing Toolkit
+# RDF Processing Toolkit (RPT)
+
+RPT makes RDF/SPARQL workflows on the command line easy. The RDF Processing Toolkit (RPT) integrates several of our tools into a single CLI frontend: It features commands for running SPARQL-statements on triple and quad based data both streaming and static. SPARQL extensions for working with CSV, JSON and XML are included. So is an RML toolkit that allows one to convert RML to SPARQL (or TARQL). RPT embeds several SPARQL engines, including Jena’s ARQ and TDB, as well as one of our own for SPARQL-based batch processing using Apache Spark.
 
 ## News
 
-* 2023-05-19 New quality of life features: `cpcat` command and the canned queries `tree.rq` and `gtree.rq`.
-* 2023-04-04 Release v1.9.5! RPT now ships with `sansa` (Apache Spark based tooling) and `rmltk` (RML Toolkit) features. A proper GitHub release will follow once Apache Jena 4.8.0 is out as some code depends on its latest SNAPSHOT changes.
-* 2023-03-28 Started updating documentation to latest changes (ongoing)
+* 2024-09-18 Improved [documentation](https://smartdataanalytics.github.io/RdfProcessingToolkit/)!
 
 [Previous entries](#History)
-
-
-## Example Usage
-
-* `integrate` allows one to load multiple RDF files and run multiple queries on them in a single invocation. Further prefixes from a snapshot of [prefix.cc](https://prefix.cc) are predefined and we made the SELECT keyword of SPARQL optional in order to make scripting less verbose. The `--jq` flag enables JSON output for interoperability with the conventional `jq` tool
-
-
-```
-rpt integrate data.nt update.ru more-data.ttl query.rq
-
-rpt integrate --jq file.ttl '?s { ?s a foaf:Person }' | jq '.[].s'
-```
-
-* `ngs` is your well known bash tooling such as `head`, `tail`, `wc` adapted to named graphs instead of lines of text
-```
-# Group RDF into graph based on consecutive subjects and for each named graph count the number of triples
-cat file.ttl | ngs subjects | ngs map --sparql 'CONSTRUCT { ?s eg:triples ?c} { SELECT ?s COUNT(*) { ?s ?p ?o } GROUP ?s }
-
-# Count number of named graphs
-rpt ngs wc file.trig
-
-# Output the first 3 graphs produced by another command
-./produce-graphs.sh | ngs head -n 3
-```
 
 
 ## Example Use Cases
@@ -51,5 +27,7 @@ The dependency tree can be viewed with Maven using `mvn dependency:tree`.
 
 ## History
 
-* (no entry yet)
+* 2023-05-19 New quality of life features: `cpcat` command and the canned queries `tree.rq` and `gtree.rq`.
+* 2023-04-04 Release v1.9.5! RPT now ships with `sansa` (Apache Spark based tooling) and `rmltk` (RML Toolkit) features. A proper GitHub release will follow once Apache Jena 4.8.0 is out as some code depends on its latest SNAPSHOT changes.
+* 2023-03-28 Started updating documentation to latest changes (ongoing)
 
