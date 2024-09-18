@@ -1,6 +1,6 @@
 ---
 title: index
-parent: GraphQL
+parent: GraphQL over SPARQL
 nav_order: 150
 layout: default
 ---

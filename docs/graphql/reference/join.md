@@ -1,6 +1,6 @@
 ---
 title: join
-parent: Reference
+parent: GraphQL over SPARQL
 nav_order: 140
 layout: default
 ---
@@ -18,7 +18,7 @@ While implicit joins automatically connect a parent’s target variables with a 
 #### Arguments
 
 - **`parent`** (`String | [String]`): Specifies the parent field's variable(s) to be joined.
-- **`this`** (`String | [String]`): Specifies the child field's variable(s) that should be connected with the parent’s variable(s).
+- **`this`** (`String | [String]`): Specifies `this` field's variable(s) that should be connected with its parent’s variable(s).
 
 #### Usage
 

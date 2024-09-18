@@ -1,3 +1,10 @@
+---
+title: Examples
+parent: RDF/SPARQL Processing
+layout: default
+nav_order: 10
+---
+
 # SPARQL Integrate examples
 
 

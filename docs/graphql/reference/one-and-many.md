@@ -1,13 +1,13 @@
 ---
 title: one and many
-parent: GraphQL
+parent: GraphQL over SPARQL
 nav_order: 130
 layout: default
 ---
 
 ## GraphQL Directives: `@one` and `@many`
 
-The `@one` and `@many` directives control the cardinality of a field within a GraphQL schema. These directives are particularly useful in RDF and SPARQL-based contexts, where fields often correspond to graph patterns that involve relationships with varying cardinalities.
+The `@one` and `@many` directives control the cardinality of a field within a GraphQL query or schema. These directives are particularly useful in RDF and SPARQL-based contexts, where fields often correspond to graph patterns that involve relationships with varying cardinalities.
 
 ### Purpose
 

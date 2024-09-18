@@ -1,7 +1,7 @@
 ---
 title: Canned Queries
 parent: RDF/SPARQL Processing
-nav_order: 10
+nav_order: 30
 layout: default
 ---
 
