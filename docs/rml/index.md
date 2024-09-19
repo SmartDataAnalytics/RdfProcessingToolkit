@@ -1,5 +1,5 @@
 ---
-title: Publications
+title: R2RML and RML
 has_children: false
 nav_order: 150
 layout: default
