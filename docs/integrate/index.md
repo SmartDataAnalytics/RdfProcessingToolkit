@@ -9,8 +9,6 @@ layout: default
 
 `rpt integrate` is the command for mixed RDF data and SPARQL statement processing. The name stems from the various SPARQL extensions that make it possible to reference and process non-RDF data inside a SPARQL statements.
 
-
-
 ## Basic Usage
 
 ### Example 1: Simple Processing
@@ -74,6 +72,13 @@ Endpoints protected by basic authentication can be proxied by supplying the cred
 
 Note, that this is **unsafe** and should be avoided in production, but it can be useful during development.
 
+
+### Example 5: Indexing Spatial Data
+
+Data that follows the GeoSPARQL standard can be indexed by providing the `--geoindex` option. The index will be automatically updated on the first query or update request that needs to access the data after any data modification.
+Statements that intrinsically do not rely on the spatial index, namely `LOAD`, `INSERT DATA` and `DELETE DATA` mark the spatial index as potentially dirty but do not trigger immediate index recreation.
+
+`rpt integrate --server --geoindex spatial-data.ttl`
 
 
 ## Embedded SPARQL Engines
