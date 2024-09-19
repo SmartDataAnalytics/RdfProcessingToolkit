@@ -83,6 +83,7 @@
 											<manifestEntries>
 												<Main-Class>org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit</Main-Class>
 												<Multi-Release>true</Multi-Release>
+												<Add-Opens>java.base/java.lang java.base/java.lang.invoke java.base/java.lang.reflect java.base/java.io java.base/java.net java.base/java.nio java.base/java.util java.base/java.util.concurrent java.base/java.util.concurrent.atomic java.base/sun.nio.ch java.base/sun.nio.cs java.base/sun.security.action java.base/sun.util.calendar java.security.jgss/sun.security.krb5</Add-Opens>
 											</manifestEntries>
 										</transformer>
 									</transformers>
