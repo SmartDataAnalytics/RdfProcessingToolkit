@@ -7,7 +7,7 @@ layout: default
 
 # Knowledge Graph Construction with (R2)RML
 
-RPT can translate RML and R2RML to SPARQL that can be run either with the [`integrate`](integrate) (single-threaded) or the [`sansa query`](sansa) (multi-threaded) commands.
+RPT can translate RML and R2RML to SPARQL that can be run either with the [`integrate`](../integrate) (single-threaded) or the [`sansa query`](../sansa/query) (multi-threaded) commands.
 Note, that the generated SPARQL queries can be also be executed against the SPARQL endpoint launched by `rpt integrate --server`. This can be used to test and inspect individual SPARQL queries and the corresponding (R2)RML mappings.
 
 ## Basic Usage
