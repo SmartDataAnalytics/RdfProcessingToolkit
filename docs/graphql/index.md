@@ -20,4 +20,4 @@ Check out the [online demonstrators](demo) for examples.
 
 The following is the set of supported directives:
 
-[`@prefix`](reference/prefix) [`@pattern`](reference/pattern) [`@one` and `@many`](reference/one-and-many) [`@index`](reference/index-directive) [`@join`](reference/join)
+[`@prefix`](reference/prefix) [`@pattern`](reference/pattern) [`@bind`](reference/bind) [`@one` and `@many`](reference/one-and-many) [`@index`](reference/index-directive) [`@join`](reference/join)

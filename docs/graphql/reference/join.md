@@ -1,7 +1,7 @@
 ---
 title: join
 parent: GraphQL over SPARQL
-nav_order: 140
+nav_order: 150
 layout: default
 ---
 

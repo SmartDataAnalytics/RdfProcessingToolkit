@@ -1,7 +1,7 @@
 ---
 title: one and many
 parent: GraphQL over SPARQL
-nav_order: 130
+nav_order: 140
 layout: default
 ---
 
