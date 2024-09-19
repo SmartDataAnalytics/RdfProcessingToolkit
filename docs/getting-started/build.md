@@ -51,9 +51,7 @@ make docker ARGS='-D"docker.tag=latest-dev"'
 
 ## JVM Options
 
-Since Java 17, RPT requires a set of `--add-opens` declarations in order for all of its various aspects to function correctly. These declarations are shown below. RPT's package builds (such as `.deb`, `.rpm`, `docker`) already include these declarations. However, when you build the jar bundle yourself, you need to add those declarations to the launcher.
-
-
+Since Java 17, RPT requires a set of `--add-opens` declarations in order for all of its various aspects to function correctly. These declarations are shown below. RPT's package builds (such as `uberjar`, `.deb`, `.rpm`, `docker`) already include these declarations. However, when creating custom bundles of the code, you need to be aware that these declarations are needed for correct functioning of all of RPT's aspects.
 
 ```bash
 #!/bin/sh
