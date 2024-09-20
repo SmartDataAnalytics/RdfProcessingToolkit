@@ -14,13 +14,17 @@ Note, that the generated SPARQL queries can be also be executed against the SPAR
 
 ### Conversion of RML files to SPARQL
 
-```bash
-# Convert an RML file to a sequence of SPARQL queries:
-rpt rmltk rml to sparql mapping.rml.ttl > mapping.raw.rml.rq
+* Convert an RML file to a sequence of SPARQL queries using rmltk's `rml to sparql` command:
 
-# Group and/or reorder SPARQL queries:
-rpt rmltk optimize workload mapping.raw.rml.rq --no-order > mapping.rml.rq
-```
+    ```bash
+    rpt rmltk rml to sparql mapping.rml.ttl > mapping.raw.rml.rq
+    ```
+
+* Group and/or reorder SPARQL queries using rmltk's `optimize workload` command:
+
+    ```bash
+    rpt rmltk optimize workload mapping.raw.rml.rq --no-order > mapping.rml.rq
+    ```
 
 ### Executing the mapping process
 
