@@ -7,7 +7,7 @@ layout: default
 
 
 
-The following aspects of RPT have been published:
+The following components of RPT have been published:
 
 
 * **Scaling RML and SPARQL-based Knowledge Graph Construction with Apache Spark.**
