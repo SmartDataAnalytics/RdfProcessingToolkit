@@ -44,14 +44,19 @@ This command starts a SPARQL server, by default on `port 8642`. Use e.g. `--port
 * Snorql frontend: http://localhost:8642/snorql
 * Resource Viewer: <a href="http://localhost:8642/view/?*?http://www.wikidata.org/entity/Q1000094">http://localhost:8642/view/?*?http://www.wikidata.org/entity/Q1000094</a>
 
-### Example 3: Loading Triples into Named Graphs
+### Example 3: Loading RDF into Named Graphs
 
-The option `graph=` (no whitespace before the `=`) sets the graph for all subsequent files. To use the default graph again, use `graph=` followed by a whitespace or simply `graph`.
+The option `graph=` (no whitespace before the `=`) sets the graph for all subsequent triple-based RDF files. To use the default graph again, use `graph=` followed by a whitespace or simply `graph`.
 
 ```bash
 rpt integrate graph=urn:foo file1.nt file2.ttl 'graph=http://www.example.org/' file3.nt.bz2 graph file4.ttl.gz
 ```
 
+For quad-based data, the SPARQL [`MOVE`](https://www.w3.org/TR/sparql11-update/#move) statement can be used to post-process the data after loading.
+
+```bash
+rpt integrate data.trig 'MOVE <urn:foo> TO <urn:bar>'.
+```
 
 ### Example 4: Using a different RDF Database Engine
 
