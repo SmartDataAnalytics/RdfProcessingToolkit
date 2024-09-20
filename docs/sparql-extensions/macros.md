@@ -21,7 +21,7 @@ The following example defines a custom `eg:greet` function that returns `Hello X
 
 ```
 # macros.ttl
-PREFIX udf: <http://ns.aksw.org/jena/udf/>
+PREFIX udf: <https://w3id.org/aksw/norse#udf.>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 PREFIX eg: <http://www.example.org/>
 
