@@ -1,4 +1,4 @@
-PREFIX udf: <http://ns.aksw.org/jena/udf/>
+PREFIX udf: <https://w3id.org/aksw/norse#udf.>
 
 # Reuse of shacl's prefix vocabulary
 PREFIX sh: <http://www.w3.org/ns/shacl#>

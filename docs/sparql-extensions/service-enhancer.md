@@ -1,7 +1,7 @@
 ---
 title: Service Enhancer
 parent: SPARQL Extensions
-nav_order: 20
+nav_order: 100
 layout: default
 ---
 

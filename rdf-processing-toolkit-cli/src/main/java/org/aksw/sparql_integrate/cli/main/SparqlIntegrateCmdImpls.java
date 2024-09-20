@@ -42,7 +42,6 @@ import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor.Provenance;
 import org.aksw.jena_sparql_api.sparql.ext.url.E_IriAsGiven.ExprTransformIriToIriAsGiven;
 import org.aksw.jena_sparql_api.sparql.ext.url.F_BNodeAsGiven.ExprTransformBNodeToBNodeAsGiven;
 import org.aksw.jena_sparql_api.sparql.ext.url.JenaUrlUtils;
-import org.aksw.jena_sparql_api.user_defined_function.UserDefinedFunctions;
 import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.jenax.arq.util.dataset.HasDataset;
 import org.aksw.jenax.arq.util.query.QueryTransform;
@@ -72,6 +71,7 @@ import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLoc
 import org.aksw.jenax.graphql.rdf.api.RdfGraphQlExecFactory;
 import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
 import org.aksw.jenax.graphql.sparql.v2.api.high.GraphQlExecFactory;
+import org.aksw.jenax.model.udf.util.UserDefinedFunctions;
 import org.aksw.jenax.sparql.query.rx.RDFDataMgrEx;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtMgr;
@@ -584,7 +584,7 @@ public class SparqlIntegrateCmdImpls {
         Map<String, UserDefinedFunctionDefinition> udfRegistry = new LinkedHashMap<>();
         for (String macroSource : cmd.macroSources) {
             Model model = RDFDataMgr.loadModel(macroSource);
-            SparqlStmtMgr.execSparql(model, "udf-inferences.sparql");
+            SparqlStmtMgr.execSparql(model, "udf-inferences.rq");
             Map<String, UserDefinedFunctionDefinition> contrib = UserDefinedFunctions.load(model, macroProfiles);
             udfRegistry.putAll(contrib);
         }
