@@ -19,9 +19,9 @@ The object needs to be an `rdf:List`, where:
 
 The following example defines a custom `eg:greet` function that returns `Hello X!` for an argument `X`.
 
-```
+```ttl
 # macros.ttl
-PREFIX udf: <http://ns.aksw.org/jena/udf/>
+PREFIX udf: <https://w3id.org/aksw/norse#udf.>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 PREFIX eg: <http://www.example.org/>
 
@@ -53,7 +53,7 @@ rpt integrate --macro macros.ttl `SELECT (eg:greet('John Doe') AS ?x) {}` --out-
 * A current limitation in our implementation is that the `sh:namespace` presently needs to be a string rather than a literal of type `xsd:anyUri`, as demanded by the [SHACL Specification](https://www.w3.org/TR/shacl/).
 * Also note, that due to SHACL's design that the value of `sh:namespace` needs to be a literal, it is NOT possible to refer to a namespace declared on the document itself:
 
-```
+```ttl
 PREFIX eg: <http://www.example.org/>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 
