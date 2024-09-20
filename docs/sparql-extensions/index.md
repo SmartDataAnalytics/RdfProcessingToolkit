@@ -1,6 +1,7 @@
 ---
 title: SPARQL Extensions
-nav_order: 20
+nav_order: 40
+has_children: true
 layout: default
 ---
 
