@@ -1,0 +1,14 @@
+PREFIX udf: <http://ns.aksw.org/jena/udf/>
+
+# Reuse of shacl's prefix vocabulary
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX eg: <http://www.example.org/>
+
+eg:prefixMapping
+  # sh:declare [ sh:prefix "fn" ; sh:namespace fn: ] # apparently strict shacl does not allow for the shorthand
+  sh:declare [ sh:prefix "afn" ; sh:namespace "http://jena.apache.org/ARQ/function#" ]
+  .
+
+# SELECT (eg:greet('John Doe') AS ?x) {}
+eg:greet udf:simpleDefinition ("CONCAT('Hello ', STR(?x), '!')" "x") .
+
