@@ -44,9 +44,16 @@ This command starts a SPARQL server, by default on `port 8642`. Use e.g. `--port
 * Snorql frontend: http://localhost:8642/snorql
 * Resource Viewer: <a href="http://localhost:8642/view/?*?http://www.wikidata.org/entity/Q1000094">http://localhost:8642/view/?*?http://www.wikidata.org/entity/Q1000094</a>
 
+### Example 3: Loading Triples into Named Graphs
+
+The option `graph=` (no whitespace before the `=`) sets the graph for all subsequent files. To use the default graph again, use `graph=` followed by a whitespace or simply `graph`.
+
+```bash
+rpt integrate graph=urn:foo file1.nt file2.ttl 'graph=http://www.example.org/' file3.nt.bz2 graph file4.ttl.gz
+```
 
 
-### Example 3: Using a different RDF Database Engine
+### Example 4: Using a different RDF Database Engine
 
 RPT can run the RDF loading and SPARQL query execution on different (embedded) engines.
 
@@ -58,7 +65,7 @@ By default, `rpt integrate` uses the in-memory engine. The `--engine` (short `-e
 
 
 
-### Example 4: SPARQL Proxy
+### Example 5: SPARQL Proxy
 
 You can quickly launch a SPARQL proxy with the combination of `-e` and `--server`:
 
@@ -73,7 +80,7 @@ Endpoints protected by basic authentication can be proxied by supplying the cred
 Note, that this is **unsafe** and should be avoided in production, but it can be useful during development.
 
 
-### Example 5: Indexing Spatial Data
+### Example 6: Indexing Spatial Data
 
 Data that follows the GeoSPARQL standard can be indexed by providing the `--geoindex` option. The index will be automatically updated on the first query or update request that needs to access the data after any data modification.
 Statements that intrinsically do not rely on the spatial index, namely `LOAD`, `INSERT DATA` and `DELETE DATA` mark the spatial index as potentially dirty but do not trigger immediate index recreation.
