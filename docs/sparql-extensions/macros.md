@@ -19,7 +19,7 @@ The object needs to be an `rdf:List`, where:
 
 The following example defines a custom `eg:greet` function that returns `Hello X!` for an argument `X`.
 
-```ttl
+```turtle
 # macros.ttl
 PREFIX udf: <https://w3id.org/aksw/norse#udf.>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
