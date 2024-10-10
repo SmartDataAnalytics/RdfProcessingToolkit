@@ -70,7 +70,7 @@ import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLoc
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalLateral;
 import org.aksw.jenax.graphql.rdf.api.RdfGraphQlExecFactory;
 import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
-import org.aksw.jenax.graphql.sparql.v2.api.high.GraphQlExecFactory;
+import org.aksw.jenax.graphql.sparql.v2.exec.api.high.GraphQlExecFactory;
 import org.aksw.jenax.model.udf.util.UserDefinedFunctions;
 import org.aksw.jenax.sparql.query.rx.RDFDataMgrEx;
 import org.aksw.jenax.stmt.core.SparqlStmt;
