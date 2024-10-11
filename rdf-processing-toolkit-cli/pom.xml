@@ -28,10 +28,12 @@
 			<groupId>net.sansa-stack</groupId>
 			<artifactId>sansa-cmds-picocli_2.13</artifactId>
 			<exclusions>
+<!--
 				<exclusion>
 					<groupId>org.apache.hadoop</groupId>
 					<artifactId>hadoop-client-runtime</artifactId>
 				</exclusion>
+-->
 
 				<!-- Spark excluded here for the shaded sansa-spark-jakarta
 				artifact -->
@@ -88,6 +90,10 @@
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-common</artifactId>
 		</dependency>
+                        <dependency>
+                                <groupId>org.apache.hadoop</groupId>
+                                <artifactId>hadoop-hdfs-client</artifactId>
+                        </dependency>
 		<dependency>
 			<groupId>org.aksw.conjure</groupId>
 			<artifactId>conjure-datasources</artifactId>
