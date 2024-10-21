@@ -26,10 +26,13 @@ PREFIX sh: <http://www.w3.org/ns/shacl#>
 PREFIX eg: <http://www.example.org/>
 
 eg:prefixMapping
-  sh:declare [ sh:prefix "afn" ; sh:namespace "http://jena.apache.org/ARQ/function#" ]
+  sh:declare [ sh:prefix "afn" ; sh:namespace "http://jena.apache.org/ARQ/function#" ] ;
   .
 
-eg:greet udf:simpleDefinition ("CONCAT('Hello ', STR(?x), '!')" "x") .
+eg:greet
+  sh:prefixes eg:prefixMapping ;
+  udf:simpleDefinition ("CONCAT('Hello ', STR(?x), '!')" "x") ;
+  .
 ```
 
 ## Using the Macros
