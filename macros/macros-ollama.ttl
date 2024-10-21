@@ -4,13 +4,19 @@ PREFIX url: <http://jsa.aksw.org/fn/url/>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 PREFIX ollama: <https://w3id.org/aksw/norse#ollama.>
 
+#
+# This file defines macros for an external ollama service:
+# ollama.complete("http://localhost:11434/v1/chat/completions", "llama3.1", "what is the capital of mongolia? only answer the name without punctuation.") # Expected: "Ulaanbaatar"
+# ollama.embed("http://localhost:11434/api/embeddings", "llama3.1", "what is the capital of mongolia?") # Some JSON array: [0, 1, 2, 3, ...]
+#
+
 eg:prefixMapping
   sh:declare [ sh:prefix "ollama" ; sh:namespace "https://w3id.org/aksw/norse#ollama." ] ;
   sh:declare [ sh:prefix "norse" ; sh:namespace "https://w3id.org/aksw/norse#" ] ;
   sh:declare [ sh:prefix "url" ; sh:namespace "http://jsa.aksw.org/fn/url/" ] ;
   .
 
-ollama:body
+ollama:completeBody
   sh:prefixes eg:prefixMapping ;
   udf:simpleDefinition("""
     norse:json.object(
@@ -24,20 +30,47 @@ ollama:body
     """ "model" "request") ;
   .
 
-ollama:fetchSpec
+ollama:completeFetchSpec
   sh:prefixes eg:prefixMapping ;
   udf:simpleDefinition("""
     url:fetchSpec(?url,
-      "m", "POST", "h.ContentType", "application/json", "b", STR(ollama:body(?model, ?request)),
+      "m", "POST", "h.ContentType", "application/json", "b", STR(ollama:completeBody(?model, ?request)),
       "cto", 60000, "rto", 60000)
     """ "url" "model" "request") ;
   .
 
-ollama:completion
+ollama:complete
   sh:prefixes eg:prefixMapping ;
   udf:simpleDefinition ("""
-    norse:json.path(url:fetch(ollama:fetchSpec(?url, ?model, ?request)), "$.choices[0].message.content")
+    norse:json.path(url:fetch(ollama:completeFetchSpec(?url, ?model, ?request)), "$.choices[0].message.content")
   """ "url" "model" "request") ;
   .
   
+
+ollama:embedBody
+  sh:prefixes eg:prefixMapping ;
+  udf:simpleDefinition("""
+    norse:json.object(
+      "model", ?model,
+      "prompt", ?prompt
+    )
+    """ "model" "prompt") ;
+  .
+
+ollama:embedFetchSpec
+  sh:prefixes eg:prefixMapping ;
+  udf:simpleDefinition("""
+    url:fetchSpec(?url,
+      "m", "POST", "h.ContentType", "application/json", "b", STR(ollama:embedBody(?model, ?prompt)),
+      "cto", 60000, "rto", 60000)
+    """ "url" "model" "prompt") ;
+  .
+
+ollama:embed
+  sh:prefixes eg:prefixMapping ;
+  udf:simpleDefinition ("""
+    norse:json.path(url:fetch(ollama:embedFetchSpec(?url, ?model, ?prompt)), "$.embedding")
+  """ "url" "model" "prompt") ;
+  .
+
 
