@@ -2,6 +2,8 @@ PREFIX eg: <http://www.example.org/>
 PREFIX udf: <https://w3id.org/aksw/norse#udf.>
 PREFIX url: <http://jsa.aksw.org/fn/url/>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX norse: <https://w3id.org/aksw/norse#>
 PREFIX ollama: <https://w3id.org/aksw/norse#ollama.>
 
 #
@@ -73,4 +75,11 @@ ollama:embed
   """ "url" "model" "prompt") ;
   .
 
+norse:json.cosSimilarity
+  rdfs:comment "Computes the cosinus similarity (1=similar, -1 not similar) between two vectors represented as JSON arrays of numbers. Uses components starting from 0 up to that of the shorter vector." ;
+  sh:prefixes eg:prefixMapping ;
+  udf:simpleDefinition ("""
+    norse:json.js('(v1, v2) => { var v1Sq = 0; var v2Sq = 0; var dot = 0; for (i = 0; i < Math.min(v1.length, v2.length); ++i) { v1Sq += v1[i] * v1[i]; v2Sq += v2[i] * v2[i]; dot  += v1[i] * v2[i]; } v1Len = Math.sqrt(v1Sq); v2Len = Math.sqrt(v2Sq); return dot / (v1Len * v2Len); }', ?v1, ?v2)
+    """ "v1" "v2") ;
+  .
 
