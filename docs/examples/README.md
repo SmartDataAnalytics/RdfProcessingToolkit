@@ -414,13 +414,13 @@ SELECT * { <example-data/people.csv> csv:parse (?rowJson "excel -h") }
 ```
 ## Lambdas in SPARQL
 
-The function pair `norse:sparql.fn.of` and `norse:fn.call` is used to define and invoke a lambda. The definition of a lambda allows
+The function pair `norse:sparql.fn.of` and `norse:sparql.fn.call` is used to define and invoke a lambda. The definition of a lambda allows
 is based on conventional SPARQL expressions which however are evaluated lazily.
 
 * The function `norse:sparql.fn.of(var1, ... varN, expr)` first accepts a list of input sparql variables followed by a single sparql expression.
   Any non-input variable mentioned in `expr` is substituted with the current binding's value.
   The result of the function is an RDF literal of type `norse:lambda` which holds the lambda. The syntax of lambda literals is `?v1 v2 -> expr`.
-* The function `norse:fn.call(lambdaLiteral, value1, ... valueN)` is used to invoke a lambda. The declared input variables are thereby substituted with the corresponding
+* The function `norse:sparql.fn.call(lambdaLiteral, value1, ... valueN)` is used to invoke a lambda. The declared input variables are thereby substituted with the corresponding
   values. The thereby obtained effective SPARQL expression is then evaluated as usual and the result is returned.
 
 > Note: The implementation takes advantage of a feature of Jena's function extension system that allows for accessing SPARQL expressions prior to their evaluation.
