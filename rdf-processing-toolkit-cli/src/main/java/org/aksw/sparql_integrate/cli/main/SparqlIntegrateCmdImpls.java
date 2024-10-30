@@ -44,9 +44,7 @@ import org.aksw.jena_sparql_api.sparql.ext.url.F_BNodeAsGiven.ExprTransformBNode
 import org.aksw.jena_sparql_api.sparql.ext.url.JenaUrlUtils;
 import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.jenax.arq.util.dataset.HasDataset;
-import org.aksw.jenax.arq.util.query.QueryTransform;
 import org.aksw.jenax.arq.util.security.ArqSecurity;
-import org.aksw.jenax.arq.util.syntax.QueryUtils;
 import org.aksw.jenax.arq.util.update.UpdateRequestUtils;
 import org.aksw.jenax.arq.util.update.UpdateTransform;
 import org.aksw.jenax.arq.util.update.UpdateUtils;
@@ -75,6 +73,8 @@ import org.aksw.jenax.model.udf.util.UserDefinedFunctions;
 import org.aksw.jenax.sparql.query.rx.RDFDataMgrEx;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtMgr;
+import org.aksw.jenax.stmt.core.SparqlStmtTransform;
+import org.aksw.jenax.stmt.core.SparqlStmtTransforms;
 import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
@@ -600,8 +600,10 @@ public class SparqlIntegrateCmdImpls {
                     return UserDefinedFunctions.expandMacro(udfRegistry, func.copy(args));
                 }
             };
-            QueryTransform qform = q -> QueryUtils.rewrite(q, op -> Transformer.transform(null, eform, op));
-            dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, qform, null);
+            SparqlStmtTransform stmtTransform = SparqlStmtTransforms.ofExprTransform(eform);
+            dataSourceTmp = RdfDataEngines.wrapWithStmtTransform(dataSourceTmp, stmtTransform);
+            // QueryTransform qform = q -> QueryUtils.rewrite(q, op -> Transformer.transform(null, eform, op));
+            // dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, qform, null);
         }
 
         RdfDataEngine datasetAndDelete = dataSourceTmp;
