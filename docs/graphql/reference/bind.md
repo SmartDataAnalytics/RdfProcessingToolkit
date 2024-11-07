@@ -1,6 +1,6 @@
 ---
 title: bind
-parent: GraphQL
+parent: GraphQL over SPARQL
 nav_order: 130
 layout: default
 ---

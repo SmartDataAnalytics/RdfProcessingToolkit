@@ -1,6 +1,6 @@
 ---
 title: pattern
-parent: GraphQL
+parent: GraphQL over SPARQL
 nav_order: 120
 layout: default
 ---
