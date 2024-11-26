@@ -484,6 +484,16 @@ public class SparqlIntegrateCmdImpls {
             }
         }
 
+        Long resultSetPageSize = cmd.paginationConfig.queryPageSize;
+        if (resultSetPageSize != null && resultSetPageSize > 0) {
+            dataSourceTmp = RdfDataEngines.wrapWithDataSourceTransform(dataSourceTmp, ds -> RdfDataSources.withPagination(ds, resultSetPageSize));
+        }
+
+        Long queryLimit = cmd.paginationConfig.queryLimit;
+        if (queryLimit != null && queryLimit > 0) {
+            dataSourceTmp = RdfDataEngines.wrapWithDataSourceTransform(dataSourceTmp, ds -> RdfDataSources.withLimit(ds, queryLimit));
+        }
+
         dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, null, QueryExecs::withDetailedHttpMessages);
 
         if (cmd.cachePath != null) {
@@ -582,16 +592,19 @@ public class SparqlIntegrateCmdImpls {
 
         // Load function macros (run sparql inferences first)
         Map<String, UserDefinedFunctionDefinition> udfRegistry = new LinkedHashMap<>();
+
+        // XXX There should be a separate registry for default macros to load.
+        loadMacros(macroProfiles, udfRegistry, "macros/ollama.ttl");
+
         for (String macroSource : cmd.macroSources) {
-            Model model = RDFDataMgr.loadModel(macroSource);
-            SparqlStmtMgr.execSparql(model, "udf-inferences.rq");
-            Map<String, UserDefinedFunctionDefinition> contrib = UserDefinedFunctions.load(model, macroProfiles);
-            udfRegistry.putAll(contrib);
+            loadMacros(macroProfiles, udfRegistry, macroSource);
         }
 
         if (!cmd.macroSources.isEmpty()) {
-            logger.info("Loaded functions: {}", udfRegistry.keySet());
-            logger.info("Loaded {} function definitions from  {} macro sources.", udfRegistry.size(), cmd.macroSources.size());
+            if (logger.isInfoEnabled()) {
+                logger.info("Loaded functions: {}", udfRegistry.keySet());
+                logger.info("Loaded {} function definitions from  {} macro sources.", udfRegistry.size(), cmd.macroSources.size());
+            }
             // ExprTransform eform = new ExprTransformExpand(udfRegistry);
             ExprTransform eform = new ExprTransformCopy() {
                 @Override
@@ -602,8 +615,6 @@ public class SparqlIntegrateCmdImpls {
             };
             SparqlStmtTransform stmtTransform = SparqlStmtTransforms.ofExprTransform(eform);
             dataSourceTmp = RdfDataEngines.wrapWithStmtTransform(dataSourceTmp, stmtTransform);
-            // QueryTransform qform = q -> QueryUtils.rewrite(q, op -> Transformer.transform(null, eform, op));
-            // dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, qform, null);
         }
 
         RdfDataEngine datasetAndDelete = dataSourceTmp;
@@ -848,10 +859,14 @@ public class SparqlIntegrateCmdImpls {
 
                 server.start();
 
+                // Try to get the host address from a network device (e.g. within a docker container)
                 String hostAddress;
                 try(final DatagramSocket socket = new DatagramSocket()){
                     socket.connect(InetAddress.getByName("1.1.1.1"), 53);
                     hostAddress = socket.getLocalAddress().getHostAddress();
+                } catch (Exception e) {
+                    // Fall back to localhost
+                    hostAddress = "localhost";
                 }
                 URI browseUri = new URI("http://"+hostAddress+":" + port + "/");
                 if (Desktop.isDesktopSupported()) {
@@ -926,6 +941,14 @@ public class SparqlIntegrateCmdImpls {
         }
 
         return exitCode;
+    }
+
+    private static void loadMacros(Set<String> macroProfiles, Map<String, UserDefinedFunctionDefinition> udfRegistry,
+            String macroSource) {
+        Model model = RDFDataMgr.loadModel(macroSource);
+        SparqlStmtMgr.execSparql(model, "udf-inferences.rq");
+        Map<String, UserDefinedFunctionDefinition> contrib = UserDefinedFunctions.load(model, macroProfiles);
+        udfRegistry.putAll(contrib);
     }
 
     /** Be careful not to call within a read transaction! */

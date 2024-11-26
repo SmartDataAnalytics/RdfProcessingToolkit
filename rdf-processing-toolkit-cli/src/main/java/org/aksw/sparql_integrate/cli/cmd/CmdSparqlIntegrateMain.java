@@ -11,6 +11,7 @@ import java.util.Stack;
 import java.util.concurrent.Callable;
 
 import org.aksw.jenax.arq.picocli.CmdMixinArq;
+import org.aksw.jenax.arq.picocli.CmdMixinSparqlPaginate;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdCommonBase;
 import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 import org.aksw.sparql_integrate.cli.main.SparqlIntegrateCmdImpls;
@@ -75,8 +76,6 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--cache-rewrite-groupby" }, description="Cache GROUP BY operations individually. Ignored if no cache engine is specified.") //, defaultValue = "false", fallbackValue = "true")
     public boolean cacheRewriteGroupBy = false;
 
-
-
     @Option(names = { "--tmpdir" }, description="Temporary directory")
     public String tempPath = StandardSystemProperty.JAVA_IO_TMPDIR.value();
 
@@ -95,6 +94,10 @@ public class CmdSparqlIntegrateMain
     /** ARQ Mixin provides options related to ARQ such as --set and --explain */
     @Mixin
     public CmdMixinArq arqConfig = new CmdMixinArq();
+
+    /** Mixin for result set limit and pagination */
+    @Mixin
+    public CmdMixinSparqlPaginate paginationConfig = new CmdMixinSparqlPaginate();
 
     @Option(names= {"--bnp", "--bnode-profile"}, description="Blank node profile, empty string ('') to disable; 'auto' to autodetect, defaults to ${DEFAULT-VALUE}", defaultValue = "")
     public String bnodeProfile = null;
