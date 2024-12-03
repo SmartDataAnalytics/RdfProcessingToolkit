@@ -15,10 +15,13 @@
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-server-standalone</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-picocli</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-resources-macros</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
