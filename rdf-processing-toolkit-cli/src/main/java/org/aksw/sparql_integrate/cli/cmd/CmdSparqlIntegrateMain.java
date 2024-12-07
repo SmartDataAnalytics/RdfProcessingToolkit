@@ -12,6 +12,7 @@ import java.util.concurrent.Callable;
 
 import org.aksw.jenax.arq.picocli.CmdMixinArq;
 import org.aksw.jenax.arq.picocli.CmdMixinSparqlPaginate;
+import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalLateral.PolyfillLateralConfig;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdCommonBase;
 import org.aksw.rdf_processing_toolkit.cli.cmd.VersionProviderRdfProcessingToolkit;
 import org.aksw.sparql_integrate.cli.main.SparqlIntegrateCmdImpls;
@@ -21,6 +22,7 @@ import com.google.common.base.StandardSystemProperty;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.IParameterConsumer;
+import picocli.CommandLine.ITypeConverter;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.ArgSpec;
 import picocli.CommandLine.Model.CommandSpec;
@@ -206,8 +208,18 @@ public class CmdSparqlIntegrateMain
             negatable = true, defaultValue = "true", fallbackValue = "true")
     public boolean graphQlAutoConfigure;
 
-    @Option(names = { "--polyfill-lateral" }, description = "Polyfill LATERAL by evaluating it on the client (may transmit large volumes of data).")
-    public boolean polyfillLateral;
+    @Option(names = { "--polyfill-lateral" },
+            description = "Polyfill LATERAL by evaluating it on the client (may transmit large volumes of data). Format: [{bulkSize}[-{concurrentThreadCount}]]",
+            converter = TypeConverterPolyfillLateralConfig.class,
+            fallbackValue = "10-0")
+    public PolyfillLateralConfig polyfillLateral = null;
+
+    public static class TypeConverterPolyfillLateralConfig implements ITypeConverter<PolyfillLateralConfig> {
+        @Override
+        public PolyfillLateralConfig convert(String s) {
+            return PolyfillLateralConfig.parse(s);
+        }
+    }
 
     /**
      * --jq may be followed by an integer - picocli seems to greedily parse any argument even if it is not an integer

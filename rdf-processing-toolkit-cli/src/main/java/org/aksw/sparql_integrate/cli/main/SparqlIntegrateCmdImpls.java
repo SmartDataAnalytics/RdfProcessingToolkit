@@ -137,9 +137,7 @@ public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
 
     public static RdfDataEngine setupRdfDataEngine(CmdSparqlIntegrateMain cmd) throws Exception {
-
         String sourceType = Optional.ofNullable(cmd.engine).orElse("mem");
-
         RdfDataEngineFactory factory = RdfDataEngineFactoryRegistry.get().getFactory(sourceType);
         if (factory == null) {
             throw new RuntimeException("No RdfDataSourceFactory registered under name " + sourceType);
@@ -803,8 +801,8 @@ public class SparqlIntegrateCmdImpls {
                 dataSource = RdfDataSources.execQueryViaSelect(dataSource, query -> query.isConstructQuad());
             }
 
-            if (cmd.polyfillLateral) {
-                dataSource = RdfDataSourceWithLocalLateral.wrap(dataSource);
+            if (cmd.polyfillLateral != null) {
+                dataSource = RdfDataSourceWithLocalLateral.wrap(dataSource, cmd.polyfillLateral);
             }
 
             RdfDataSource finalDataSource = dataSource;
