@@ -4,7 +4,7 @@ RPT makes RDF/SPARQL workflows on the command line easy. The RDF Processing Tool
 
 ## News
 
-* 2024-12-22 Powerful support for ad-hoc [GraphQL-over-SPARQL queries](https://smartdataanalytics.github.io/RdfProcessingToolkit/graphql/)! GraphQL-Schema support in the works!
+* 2024-12-22 Powerful support for zero-config ad-hoc [GraphQL-over-SPARQL queries](https://smartdataanalytics.github.io/RdfProcessingToolkit/graphql/)! GraphQL-Schema support in the works!
 * 2024-09-18 Improved [documentation](https://smartdataanalytics.github.io/RdfProcessingToolkit/)!
 
 [Previous entries](#History)
