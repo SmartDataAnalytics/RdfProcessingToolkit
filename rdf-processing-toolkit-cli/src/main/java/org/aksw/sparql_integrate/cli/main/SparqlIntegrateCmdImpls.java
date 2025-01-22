@@ -2,10 +2,12 @@ package org.aksw.sparql_integrate.cli.main;
 
 import java.awt.Desktop;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -69,6 +71,9 @@ import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLoc
 import org.aksw.jenax.graphql.rdf.api.RdfGraphQlExecFactory;
 import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
 import org.aksw.jenax.graphql.sparql.v2.exec.api.high.GraphQlExecFactory;
+import org.aksw.jenax.graphql.sparql.v2.rewrite.TransformHarmonizeTentris;
+import org.aksw.jenax.graphql.sparql.v2.schema.SchemaNavigator;
+import org.aksw.jenax.graphql.sparql.v2.util.GraphQlUtils;
 import org.aksw.jenax.model.udf.util.UserDefinedFunctions;
 import org.aksw.jenax.sparql.query.rx.RDFDataMgrEx;
 import org.aksw.jenax.stmt.core.SparqlStmt;
@@ -85,7 +90,9 @@ import org.aksw.jenax.web.server.boot.ServletBuilderSparql;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain.OutputSpec;
+import org.aksw.sparql_integrate.web.servlet.ServletGraphQlSchema;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.geosparql.spatial.SpatialIndex;
 import org.apache.jena.irix.IRIx;
@@ -97,6 +104,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
+import org.apache.jena.riot.system.stream.StreamManager;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
@@ -131,7 +139,14 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.io.BaseEncoding;
 
+import graphql.language.AstPrinter;
+import graphql.language.Definition;
+import graphql.language.Document;
+import graphql.parser.Parser;
+import graphql.schema.idl.SchemaParser;
+import graphql.schema.idl.TypeDefinitionRegistry;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.MediaType;
 
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
@@ -615,6 +630,39 @@ public class SparqlIntegrateCmdImpls {
             dataSourceTmp = RdfDataEngines.wrapWithStmtTransform(dataSourceTmp, stmtTransform);
         }
 
+        SchemaNavigator graphqlSchemaNavigator = null;
+        String graphQlSchemaPrettyStr = null;
+        if (cmd.graphQlSchema != null) {
+            StreamManager streamMgr = StreamManager.get();
+            Parser parser = new Parser();
+            String metaSchemaRawStr = toStringUtf8(streamMgr, "jenax.meta.gqls");
+            Document metaDoc = parser.parseDocument(metaSchemaRawStr);
+
+            String graphQlSchemaRawStr = toStringUtf8(streamMgr, cmd.graphQlSchema);
+            Document schemaDoc = parser.parseDocument(graphQlSchemaRawStr);
+
+            List<Definition> mergedDefinitions = new ArrayList<>();
+            mergedDefinitions.addAll(metaDoc.getDefinitions());
+            mergedDefinitions.addAll(schemaDoc.getDefinitions());
+
+            // Create a new merged document
+            Document mergedDoc = Document.newDocument()
+                    .definitions(mergedDefinitions)
+                    .build();
+
+            mergedDoc = GraphQlUtils.applyTransform(mergedDoc, new TransformHarmonizeTentris());
+            // GraphQlUtils.println(System.out, schemaDoc);
+            graphQlSchemaPrettyStr = AstPrinter.printAst(mergedDoc);
+
+            // System.out.println(schemaDoc); //GraphQlUtils.toString(schemaDoc));
+            // System.out.println("========");
+
+            SchemaParser schemaParser = new SchemaParser();
+            TypeDefinitionRegistry schema = schemaParser.buildRegistry(mergedDoc);
+
+            graphqlSchemaNavigator = SchemaNavigator.of(schema);
+        }
+
         RdfDataEngine datasetAndDelete = dataSourceTmp;
 
         // Dataset dataset = datasetAndDelete.getKey();
@@ -833,10 +881,12 @@ public class SparqlIntegrateCmdImpls {
                     ? GraphQlExecFactoryOverSparql.autoConfLazy(serverDataSource)
                     : GraphQlExecFactoryOverSparql.of(serverDataSource);
 
-                GraphQlExecFactory graphQlExecFactoryV2 = GraphQlExecFactory.of(() -> QueryExecBuilderAdapter.adapt(serverDataSource.getConnection().newQuery()));
+                GraphQlExecFactory graphQlExecFactoryV2 = GraphQlExecFactory.of(
+                        () -> QueryExecBuilderAdapter.adapt(serverDataSource.newQuery()),
+                        graphqlSchemaNavigator);
 
                 int port = cmd.serverPort;
-                server = ServerBuilder.newBuilder()
+                ServerBuilder serverBuilder = ServerBuilder.newBuilder()
                         .addServletBuilder(ServletBuilderSparql.newBuilder()
                             .setSparqlServiceFactory((HttpServletRequest httpRequest) -> serverDataSource.getConnection())
                             .setSparqlStmtParser(
@@ -849,11 +899,20 @@ public class SparqlIntegrateCmdImpls {
                             .setGraphQlExecFactory(graphQlExecFactory)
                         )
                         .addServletBuilder(ServletBuilderGraphQlV2.newBuilder()
-                                .setGraphQlExecFactory(graphQlExecFactoryV2)
-                            )
+                            .setGraphQlExecFactory(graphQlExecFactoryV2)
+                        )
                         .addServletBuilder(ServletLdvConfigJs.newBuilder()
                                 .setDbEngine(cmd.engine))
-                        .setPort(port).create();
+                        .setPort(port);
+
+                if (graphqlSchemaNavigator != null) {
+                    serverBuilder = serverBuilder.addServletBuilder(ServletGraphQlSchema
+                        .newBuilder()
+                        .setContent(graphQlSchemaPrettyStr)
+                        .setContentType(MediaType.TEXT_PLAIN));
+                }
+
+                server = serverBuilder.create();
 
                 server.start();
 
@@ -866,10 +925,10 @@ public class SparqlIntegrateCmdImpls {
                     // Fall back to localhost
                     hostAddress = "localhost";
                 }
-                URI browseUri = new URI("http://"+hostAddress+":" + port + "/");
+                URI browseUri = new URI("http://" + hostAddress + ":" + port + "/");
                 if (Desktop.isDesktopSupported()) {
                     try {
-                        Desktop.getDesktop().browse(new URI("http://localhost:"+port));
+                        Desktop.getDesktop().browse(new URI("http://localhost:" + port));
                     } catch (UnsupportedOperationException e) {
                         logger.info("Note: Could not open system browser.");
                     }
@@ -1091,6 +1150,14 @@ public class SparqlIntegrateCmdImpls {
         });
 
         boolean result = status[0] && status[1];
+        return result;
+    }
+
+    public static String toStringUtf8(StreamManager streamMgr, String resourceName) throws IOException {
+        String result;
+        try (InputStream in = streamMgr.open(resourceName)) {
+            result = IOUtils.toString(in, StandardCharsets.UTF_8);
+        }
         return result;
     }
 }
