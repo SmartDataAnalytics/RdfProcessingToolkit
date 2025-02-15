@@ -21,6 +21,7 @@ import org.apache.jena.rdfconnection.RDFConnection;
 
 import graphql.language.AstPrinter;
 import graphql.language.Document;
+import graphql.parser.Parser;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -60,6 +61,12 @@ public class CmdGraphQlSchemaGen
 
         try (Writer writer = new OutputStreamWriter(StdIo.openStdOutWithCloseShield())) {
             writer.write(str);
+        }
+
+        boolean validateOutput = true;
+        if (validateOutput) {
+            Parser parser = new Parser();
+            parser.parse(str);
         }
 
         return 0;

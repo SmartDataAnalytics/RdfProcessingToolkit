@@ -63,6 +63,12 @@
 		</dependency>
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-arq-connection-qlever</artifactId>
+			<version>5.4.0-1-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-io-core</artifactId>
 		</dependency>
 
@@ -202,7 +208,7 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<scope>test</scope>
+			<scope>compile</scope> <!-- test containers requires junit -->
 		</dependency>
 		<!--
 		<dependency>
