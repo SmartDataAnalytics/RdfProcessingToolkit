@@ -438,7 +438,7 @@ public class SparqlIntegrateCmdImpls {
 
             List<UpdateLoad> loads = new ArrayList<>();
             int stmtIdx = 0;
-            outer: for (Entry<SparqlStmt, Provenance> e : workloads) {
+            for (Entry<SparqlStmt, Provenance> e : workloads) {
                 SparqlStmt stmt = e.getKey();
                 if (stmt.isUpdateRequest()) {
                     UpdateRequest ur = stmt.getUpdateRequest();
@@ -446,11 +446,11 @@ public class SparqlIntegrateCmdImpls {
                     boolean allLoad = updates.stream().allMatch(x -> x instanceof UpdateLoad);
                     if (allLoad) {
                         updates.stream().map(x -> (UpdateLoad) x).forEach(loads::add);
-                    } else {
-                        break outer;
+                        ++stmtIdx;
+                        continue;
                     }
                 }
-                ++stmtIdx;
+                break;
             }
             // Remove workloads that were shifted to the optimized loader
             workloads.subList(0, stmtIdx).clear();
