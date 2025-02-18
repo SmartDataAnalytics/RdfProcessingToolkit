@@ -3,7 +3,7 @@
 RPT makes RDF/SPARQL workflows on the command line easy. The RDF Processing Toolkit (RPT) integrates several of our tools into a single CLI frontend: It features commands for running SPARQL-statements on triple and quad based data both streaming and static. SPARQL extensions for working with CSV, JSON and XML are included. So is an RML toolkit that allows one to convert RML to SPARQL (or TARQL). RPT embeds several SPARQL engines, including Jena’s ARQ and TDB, as well as one of our own for SPARQL-based batch processing using Apache Spark.
 
 ## News
-⚠️ 2025-02-17 The fat-jar release of at least [v2.0.0-rc4](https://github.com/SmartDataAnalytics/RdfProcessingToolkit/releases/tag/v2.0.0-rc4) hangs a while during startup because it unpacks the jar. We are looking into how to fix this. The docker/rpm/deb packages do not suffer from it. ⚠️
+* ⚠️ 2025-02-17 The fat-jar release of at least [v2.0.0-rc4](https://github.com/SmartDataAnalytics/RdfProcessingToolkit/releases/tag/v2.0.0-rc4) hangs a while during startup because it unpacks the jar. We are looking into how to fix this. The docker/rpm/deb packages do not suffer from it.
 
 * 2025-02-17 Integration of the blazing fast [qlever](https://github.com/ad-freiburg/qlever) engine using `rpt integrate -e qlever data.ttl query.rq` with [v2.0.0-rc4](https://github.com/SmartDataAnalytics/RdfProcessingToolkit/releases/tag/v2.0.0-rc4).
 * 2024-12-22 Powerful support for zero-config ad-hoc [GraphQL-over-SPARQL queries](https://smartdataanalytics.github.io/RdfProcessingToolkit/graphql/)! GraphQL-Schema support in the works!
