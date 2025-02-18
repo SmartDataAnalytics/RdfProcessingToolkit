@@ -203,6 +203,10 @@ public class CmdSparqlIntegrateMain
     @Option(names= {"--macro-profile"}, description="Macro profile. 'auto' to auto-detect.") //, defaults to: '${DEFAULT-VALUE}'", defaultValue = "")
     public Set<String> macroProfiles = new LinkedHashSet<>();
 
+    // GraphQl
+
+    @Option(names= {"--graphql-schema"}, description="Annotated GraphQL schema file.") //, defaults to: '${DEFAULT-VALUE}'", defaultValue = "")
+    public String graphQlSchema = null;
 
     @Option(names = { "--graphql-autoconf" }, description = "Query SPARQL endpoint for VoID and SHACL metadata on first request to map an unqualified field",
             negatable = true, defaultValue = "true", fallbackValue = "true")
