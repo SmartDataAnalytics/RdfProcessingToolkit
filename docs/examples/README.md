@@ -2,7 +2,7 @@
 title: Examples
 parent: RDF/SPARQL Processing
 layout: default
-nav_order: 10
+nav_order: 20
 ---
 
 # SPARQL Integrate examples
