@@ -1,7 +1,7 @@
 ---
 title: Embedded SPARQL Engines
 parent: RDF/SPARQL Processing
-nav_order: 20
+nav_order: 10
 has_children: false
 layout: default
 ---
