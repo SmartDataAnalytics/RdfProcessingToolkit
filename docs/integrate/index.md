@@ -103,6 +103,7 @@ Embedded SPARQL engines are built into RPT and thus readily available. The follo
     <tr><td><b>tdb2</b></td><td>Apache Jena's TDB2 persisent engine. Use <i>--loc</i> to specfify the database folder.</td></tr>
     <tr><td><b>binsearch</b></td><td>Binary search engine that operates directly on sorted N-Triples files. Use <i>--loc</i> to specify the file path or HTTP(s) URL to the N-Triples file. For URLs, HTTP range requests must be supported!</td></tr>
     <tr><td><b>remote</b></td><td>A pseudo engine that forwards all processing to the SPARQL endpoint whole URL is specified in <i>--loc</i>.</td></tr>
+    <tr><td><b>qlever</b></td><td>The blazing fast [qlever](https://github.com/ad-freiburg/qlever) triple store launched from its docker image via Java's TestContainers framework. Use `qlever:imageName:tag` to use a specific image - the command lines for starting the server and creating the indexes must be compatible with the default image registered with RPT.</td></tr>
 </table>
 
 
