@@ -17,6 +17,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.commons.util.string.FileName;
 import org.aksw.commons.util.string.FileNameParser;
-import org.aksw.jena_sparql_api.cache.advanced.RdfDataSourceWithRangeCache;
+import org.aksw.jena_sparql_api.cache.advanced.RDFLinkSourceWithRangeCache;
 import org.aksw.jena_sparql_api.conjure.utils.ContentTypeUtils;
 import org.aksw.jena_sparql_api.delay.extra.Delayer;
 import org.aksw.jena_sparql_api.delay.extra.DelayerDefault;
@@ -51,26 +52,33 @@ import org.aksw.jenax.arq.util.security.ArqSecurity;
 import org.aksw.jenax.arq.util.update.UpdateRequestUtils;
 import org.aksw.jenax.arq.util.update.UpdateTransform;
 import org.aksw.jenax.arq.util.update.UpdateUtils;
+import org.aksw.jenax.arq.util.var.Vars;
 import org.aksw.jenax.dataaccess.sparql.connection.common.RDFConnectionUtils;
 import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabase;
 import org.aksw.jenax.dataaccess.sparql.creator.RdfDatabaseBuilder;
 import org.aksw.jenax.dataaccess.sparql.creator.RdfDatabaseFactory;
-import org.aksw.jenax.dataaccess.sparql.dataengine.RdfDataEngine;
-import org.aksw.jenax.dataaccess.sparql.datasource.RdfDataSource;
+import org.aksw.jenax.dataaccess.sparql.datasource.RDFDataSource;
+import org.aksw.jenax.dataaccess.sparql.engine.RDFEngine;
+import org.aksw.jenax.dataaccess.sparql.engine.RDFEngines;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecWrapperBase;
 import org.aksw.jenax.dataaccess.sparql.exec.query.QueryExecs;
 import org.aksw.jenax.dataaccess.sparql.exec.update.UpdateExecWrapperBase;
 import org.aksw.jenax.dataaccess.sparql.execution.update.UpdateProcessorWrapperBase;
+import org.aksw.jenax.dataaccess.sparql.factory.dataengine.DecoratedRDFEngine;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RDFEngineBuilder;
+import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RDFEngineDecorator;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RDFEngineFactory;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RDFEngineFactoryLegacyBase;
-import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFactoryRegistry;
-import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngines;
 import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RDFEngineFactoryLegacyBase.CloseablePath;
+import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RDFEngineFactoryRegistry;
+import org.aksw.jenax.dataaccess.sparql.factory.datasource.ExprTransformPrettyMacroExpansion;
+import org.aksw.jenax.dataaccess.sparql.factory.datasource.RDFDataSources;
 import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSourceDecorator;
 import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSourceSpecBasicFromMap;
-import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSources;
 import org.aksw.jenax.dataaccess.sparql.link.common.RDFLinkUtils;
+import org.aksw.jenax.dataaccess.sparql.link.query.LinkSparqlQueryTransformPaginate;
+import org.aksw.jenax.dataaccess.sparql.link.transform.RDFLinkTransforms;
+import org.aksw.jenax.dataaccess.sparql.linksource.RDFLinkSource;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourcePolyfill;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithBnodeRewrite;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalCache;
@@ -85,8 +93,6 @@ import org.aksw.jenax.model.udf.util.UserDefinedFunctions;
 import org.aksw.jenax.sparql.query.rx.RDFDataMgrEx;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.core.SparqlStmtMgr;
-import org.aksw.jenax.stmt.core.SparqlStmtTransform;
-import org.aksw.jenax.stmt.core.SparqlStmtTransforms;
 import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
@@ -110,6 +116,7 @@ import org.apache.jena.query.Query;
 import org.apache.jena.query.TxnType;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdfconnection.RDFConnection;
+import org.apache.jena.rdflink.RDFConnectionAdapter;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.system.stream.StreamManager;
@@ -122,11 +129,8 @@ import org.apache.jena.sparql.algebra.optimize.Optimize;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.exec.QueryExec;
 import org.apache.jena.sparql.exec.QueryExecBuilderAdapter;
-import org.apache.jena.sparql.expr.Expr;
-import org.apache.jena.sparql.expr.ExprFunctionN;
-import org.apache.jena.sparql.expr.ExprList;
 import org.apache.jena.sparql.expr.ExprTransform;
-import org.apache.jena.sparql.expr.ExprTransformCopy;
+import org.apache.jena.sparql.expr.ExprVar;
 import org.apache.jena.sparql.function.user.UserDefinedFunctionDefinition;
 import org.apache.jena.sparql.modify.request.UpdateData;
 import org.apache.jena.sparql.modify.request.UpdateLoad;
@@ -162,7 +166,7 @@ public class SparqlIntegrateCmdImpls {
 
     public static RdfDatabaseFactory setupRdfDatabaseBuilder(CmdSparqlIntegrateMain cmd) throws Exception {
         String sourceType = Optional.ofNullable(cmd.engine).orElse("mem");
-        RdfDatabaseFactory factory = RdfDataEngineFactoryRegistry.get().getDatabaseFactory(sourceType);
+        RdfDatabaseFactory factory = RDFEngineFactoryRegistry.get().getDatabaseFactory(sourceType);
         return factory;
     }
 
@@ -172,7 +176,7 @@ public class SparqlIntegrateCmdImpls {
 
     public static CloseablePath setupDbFolder(CmdSparqlIntegrateMain cmd) throws IOException {
         String sourceType = getEffectiveEngine(cmd.engine);
-        RDFEngineFactory factory = RdfDataEngineFactoryRegistry.get().getFactory(sourceType);
+        RDFEngineFactory factory = RDFEngineFactoryRegistry.get().getFactory(sourceType);
         if (factory == null) {
             throw new RuntimeException("No RdfDataSourceFactory registered under name " + sourceType);
         }
@@ -183,7 +187,7 @@ public class SparqlIntegrateCmdImpls {
 
     public static RDFEngineBuilder setupRdfDataEngineBuilder(CmdSparqlIntegrateMain cmd) throws Exception {
         String sourceType = getEffectiveEngine(cmd.engine);
-        RDFEngineFactory factory = RdfDataEngineFactoryRegistry.get().getFactory(sourceType);
+        RDFEngineFactory factory = RDFEngineFactoryRegistry.get().getFactory(sourceType);
         if (factory == null) {
             throw new RuntimeException("No RdfDataSourceFactory registered under name " + sourceType);
         }
@@ -469,7 +473,8 @@ public class SparqlIntegrateCmdImpls {
             engineBuilder.setDatabase(database);
         }
 
-        RdfDataEngine dataSourceTmp = engineBuilder.build();
+        RDFEngine rdfEngine = engineBuilder.build();
+        RDFEngineDecorator<?> rdfEngineDecorator = RDFEngines.decorate(rdfEngine);
 
         // If we created a database ourselves, then register a delete action with the engine
         // database != null -> closablePath != null
@@ -477,7 +482,7 @@ public class SparqlIntegrateCmdImpls {
             // RdfDataEngine tmp = dataSourceTmp;
             RDFDatabase tmp = database;
             Closeable deletePath = closeablePath.closeable();
-            dataSourceTmp = RdfDataEngines.wrapWithCloseAction(dataSourceTmp, () -> {
+            rdfEngineDecorator.addCloseAction(() -> {
                 tmp.getFileSet().delete();
                 deletePath.close();
             });
@@ -553,8 +558,8 @@ public class SparqlIntegrateCmdImpls {
         // Start the engine
 
         Dataset datasetTmp = null;
-        if (dataSourceTmp instanceof HasDataset) {
-            datasetTmp = ((HasDataset) dataSourceTmp).getDataset();
+        if (rdfEngineDecorator instanceof HasDataset) {
+            datasetTmp = ((HasDataset) rdfEngineDecorator).getDataset();
             if (datasetTmp != null) {
                 Context cxt = datasetTmp.getContext();
                 if (cxt != null) {
@@ -582,18 +587,15 @@ public class SparqlIntegrateCmdImpls {
 
         Long resultSetPageSize = cmd.paginationConfig.queryPageSize;
         if (resultSetPageSize != null && resultSetPageSize > 0) {
-            dataSourceTmp = RdfDataEngines.wrapWithDataSourceTransform(dataSourceTmp,
-                    ds -> RdfDataSources.withPagination(ds, resultSetPageSize));
+            rdfEngineDecorator.decorate(new LinkSparqlQueryTransformPaginate(resultSetPageSize));
         }
 
         Long queryLimit = cmd.paginationConfig.queryLimit;
         if (queryLimit != null && queryLimit > 0) {
-            dataSourceTmp = RdfDataEngines.wrapWithDataSourceTransform(dataSourceTmp,
-                    ds -> RdfDataSources.withLimit(ds, queryLimit));
+            rdfEngineDecorator.decorate(RDFLinkTransforms.withLimit(queryLimit));
         }
 
-        dataSourceTmp = RdfDataEngines.wrapWithQueryTransform(dataSourceTmp, null,
-                QueryExecs::withDetailedHttpMessages);
+        rdfEngineDecorator = rdfEngineDecorator.decorate(QueryExecs::withDetailedHttpMessages);
 
         if (cmd.cachePath != null) {
             Path cachePathBase = Path.of(cmd.cachePath);
@@ -604,7 +606,9 @@ public class SparqlIntegrateCmdImpls {
 
             String datasetId = cmd.datasetId;
             if (datasetId == null) {
-                datasetId = RdfDataSources.fetchDatasetHash(dataSourceTmp);
+                // TODO Supplying of the connection from the decorator is hacky
+                RDFEngineDecorator<?> tmpDecorator = rdfEngineDecorator;
+                datasetId = RDFDataSources.fetchDatasetHash(() -> RDFConnectionAdapter.adapt(tmpDecorator.snapshotLink()));
                 if (logger.isInfoEnabled()) {
                     logger.info("Automatically derived datasetId using data sampling: " + datasetId);
                     logger.info("Use '--dataset-id your-id' to configure the datasetId manually.");
@@ -633,8 +637,8 @@ public class SparqlIntegrateCmdImpls {
 //
 //            }
 
-            dataSourceTmp = RdfDataEngines.transform(dataSourceTmp,
-                    ds -> RdfDataSourceWithRangeCache.create(ds, cachePath, cmd.dbMaxResultSize));
+            rdfEngineDecorator = rdfEngineDecorator.decorate(
+                    (RDFLinkSource linkSource) -> RDFLinkSourceWithRangeCache.create(linkSource, cachePath, cmd.dbMaxResultSize));
 
 //            RdfDataEngines.wrapWithCustomQueryExecBuilder(dataSourceTmp, ds -> new QueryExecBuilderCustomBase<QueryExecBuilder>() {
 //            });
@@ -649,9 +653,8 @@ public class SparqlIntegrateCmdImpls {
 //            dataSourceTmp = RdfDataEngines.adapt(l);
 
             if (cmd.cacheRewriteGroupBy) {
-                dataSourceTmp = RdfDataEngines.wrapWithLinkTransform(dataSourceTmp,
-                        link -> RDFLinkUtils.wrapWithQueryTransform(link,
-                                RdfDataSourceWithLocalCache.TransformInjectCacheSyntax::rewriteQuery, null));
+                rdfEngineDecorator = rdfEngineDecorator.decorate(
+                    RdfDataSourceWithLocalCache.TransformInjectCacheSyntax::rewriteQuery);
                 // dataSourceTmp = RdfDataEngines.of(new
                 // RdfDataSourceWithLocalCache(dataSourceTmp), dataSourceTmp);
             }
@@ -665,60 +668,7 @@ public class SparqlIntegrateCmdImpls {
                     .forName("org.aksw.conjure.datasource.RdfDataSourceDecoratorSansa").getConstructor().newInstance();
             // dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, new
             // RdfDataSourceDecoratorSansa());
-            dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, sansaDecorator);
-        }
-
-        // Attempt to detect the dbms name.
-        // If one is detected then use it as an active profile name.
-        String dmbsProfile = RdfDataSources.compute(dataSourceTmp, RdfDataSourcePolyfill::detectProfile);
-        if (logger.isInfoEnabled()) {
-            logger.info("Detected DBMS: " + dmbsProfile);
-        }
-
-        String bnodeProfile = cmd.bnodeProfile;
-        if ("auto".equalsIgnoreCase(bnodeProfile)) {
-            bnodeProfile = dmbsProfile;
-        }
-
-        Set<String> macroProfiles = new HashSet<>();
-        if (dmbsProfile != null) {
-            macroProfiles.add(dmbsProfile);
-        }
-
-        if (!Strings.isNullOrEmpty(bnodeProfile)) {
-            dataSourceTmp = RdfDataEngines.of(new RdfDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile),
-                    dataSourceTmp::close);
-            // RdfDataSourceDecorator decorator = (x, conf) -> new
-            // RdfDataSourceWithBnodeRewrite(x, bnodeProfile);
-            // dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, decorator);
-        }
-
-        // Load function macros (run sparql inferences first)
-        Map<String, UserDefinedFunctionDefinition> udfRegistry = new LinkedHashMap<>();
-
-        // XXX There should be a separate registry for default macros to load.
-        loadMacros(macroProfiles, udfRegistry, "macros/ollama.ttl");
-
-        for (String macroSource : cmd.macroSources) {
-            loadMacros(macroProfiles, udfRegistry, macroSource);
-        }
-
-        if (!cmd.macroSources.isEmpty()) {
-            if (logger.isInfoEnabled()) {
-                logger.info("Loaded functions: {}", udfRegistry.keySet());
-                logger.info("Loaded {} function definitions from  {} macro sources.", udfRegistry.size(),
-                        cmd.macroSources.size());
-            }
-            // ExprTransform eform = new ExprTransformExpand(udfRegistry);
-            ExprTransform eform = new ExprTransformCopy() {
-                @Override
-                public Expr transform(ExprFunctionN func, ExprList args) {
-                    // XXX Could avoid func.copy()
-                    return UserDefinedFunctions.expandMacro(udfRegistry, func.copy(args));
-                }
-            };
-            SparqlStmtTransform stmtTransform = SparqlStmtTransforms.ofExprTransform(eform);
-            dataSourceTmp = RdfDataEngines.wrapWithStmtTransform(dataSourceTmp, stmtTransform);
+            rdfEngineDecorator = rdfEngineDecorator.decorate((RDFLinkSource ds) -> sansaDecorator.decorate(ds.asDataSource(), null).asLinkSource());
         }
 
         SchemaNavigator graphqlSchemaNavigator = null;
@@ -752,10 +702,12 @@ public class SparqlIntegrateCmdImpls {
             graphqlSchemaNavigator = SchemaNavigator.of(schema);
         }
 
-        RdfDataEngine datasetAndDelete = dataSourceTmp;
+        DecoratedRDFEngine<?> datasetAndDelete = rdfEngineDecorator.build();
 
         // Dataset dataset = datasetAndDelete.getKey();
         // Closeable deleteAction = datasetAndDelete.getValue();
+
+        // TODO Deregister the shutdown hook when the engine gets closed - because the hook is then no longer needed.
         Thread shutdownHook = new Thread(() -> {
             try {
                 datasetAndDelete.close();
@@ -773,13 +725,14 @@ public class SparqlIntegrateCmdImpls {
         // QueryExecutionFactoryRangeCache.decorate(null, splitFolder, jqDepth);
 
         try {
-            RdfDataSource[] dataSourceTmp2 = new RdfDataSource[1];
+            RDFDataSource[] dataSourceTmp2 = new RDFDataSource[1];
             dataSourceTmp2[0] = () -> {
-                RDFConnection ca = RDFConnectionUtils.wrapWithAutoDisableReorder(datasetAndDelete.getConnection());
+                RDFConnection c0 = datasetAndDelete.getLinkSource().asDataSource().getConnection();
+                RDFConnection ca = RDFConnectionUtils.wrapWithAutoDisableReorder(c0);
 
                 RDFConnection cb = RDFConnectionUtils.wrapWithContextMutator(ca, cxt -> {
                     SparqlIntegrateCmdImpls.configureOptimizer(cxt);
-                    RdfDataSource thisDataSource = dataSourceTmp2[0];
+                    RDFDataSource thisDataSource = dataSourceTmp2[0];
                     cxt.put(RDFLinkUtils.symRdfDataSource, thisDataSource);
                 });
 
@@ -928,19 +881,21 @@ public class SparqlIntegrateCmdImpls {
                 return cd;
             };
 
-            RdfDataSource dataSource = dataSourceTmp2[0];
+            RDFDataSource dataSource = dataSourceTmp2[0];
 
             // TODO Make this configurable
             boolean clientSideConstructQuads = false;
             if (clientSideConstructQuads) {
-                dataSource = RdfDataSources.execQueryViaSelect(dataSource, query -> query.isConstructQuad());
+                dataSource = RDFDataSources.execQueryViaSelect(dataSource, query -> query.isConstructQuad());
             }
 
             if (cmd.polyfillLateral != null) {
                 dataSource = RdfDataSourceWithLocalLateral.wrap(dataSource, cmd.polyfillLateral);
             }
 
-            RdfDataSource finalDataSource = dataSource;
+            dataSource = applyMacroExpansion(cmd, dataSource);
+
+            RDFDataSource finalDataSource = dataSource;
 
             // RDFConnectionFactoryEx.getQueryConnection(conn)
             Server server = null;
@@ -950,7 +905,7 @@ public class SparqlIntegrateCmdImpls {
 //                Function<String, SparqlStmt> sparqlStmtParser = SparqlStmtParserImpl.create(Syntax.syntaxSPARQL_11,
 //                        prefixMapping, false);// .getQueryParser();
 
-                RdfDataSource serverDataSource = () -> {
+                RDFDataSource serverDataSource = () -> {
                     RDFConnection r = finalDataSource.getConnection();
                     if (cmd.readOnlyMode) {
                         r = RDFConnectionUtils.wrapWithQueryOnly(r);
@@ -1078,6 +1033,69 @@ public class SparqlIntegrateCmdImpls {
         }
 
         return exitCode;
+    }
+
+    public static RDFDataSource applyMacroExpansion(CmdSparqlIntegrateMain cmd, RDFDataSource dataSourceTmp) {
+        // Attempt to detect the dbms name.
+        // If one is detected then use it as an active profile name.
+        String dmbsProfile = RDFDataSources.compute(dataSourceTmp, RdfDataSourcePolyfill::detectProfile);
+        if (logger.isInfoEnabled()) {
+            logger.info("Detected DBMS: " + dmbsProfile);
+        }
+
+        String bnodeProfile = cmd.bnodeProfile;
+        if ("auto".equalsIgnoreCase(bnodeProfile)) {
+            bnodeProfile = dmbsProfile;
+        }
+
+        Set<String> macroProfiles = new HashSet<>();
+        if (dmbsProfile != null) {
+            macroProfiles.add(dmbsProfile);
+        }
+
+        if (!Strings.isNullOrEmpty(bnodeProfile)) {
+            dataSourceTmp = new RdfDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile);
+
+//            dataSourceTmp = RdfDataEngines.of(new RdfDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile),
+//                    dataSourceTmp::close);
+            // RdfDataSourceDecorator decorator = (x, conf) -> new
+            // RdfDataSourceWithBnodeRewrite(x, bnodeProfile);
+            // dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, decorator);
+        } else {
+            // Replace <http://ns.aksw.org/function/forceBnodeIri> with a default definition
+            // TODO The UDF system lacks a fallback profile feature!
+            // TODO HashMap wrapping needed because immutable map causes NPE in Jena's ExprTransformExpand with functions that do not have an IRI such as coalesce.
+            String bnodeFnIri = "http://ns.aksw.org/function/forceBnodeIri";
+            Map<String, UserDefinedFunctionDefinition> udfRegistry = new HashMap<>(Map.of(
+                bnodeFnIri,
+                new UserDefinedFunctionDefinition(bnodeFnIri, new ExprVar(Vars.x), List.of(Vars.x))));
+
+            ExprTransform exprTransform = new ExprTransformPrettyMacroExpansion(udfRegistry);
+            dataSourceTmp = RDFDataSources.decorate(dataSourceTmp, exprTransform);
+        }
+
+        // Load function macros (run sparql inferences first)
+        Map<String, UserDefinedFunctionDefinition> udfRegistry = new LinkedHashMap<>();
+
+        // XXX There should be a separate registry for default macros to load.
+        loadMacros(macroProfiles, udfRegistry, "macros/ollama.ttl");
+
+        for (String macroSource : cmd.macroSources) {
+            loadMacros(macroProfiles, udfRegistry, macroSource);
+        }
+
+        if (!cmd.macroSources.isEmpty()) {
+            if (logger.isInfoEnabled()) {
+                logger.info("Loaded functions: {}", udfRegistry.keySet());
+                logger.info("Loaded {} function definitions from  {} macro sources.", udfRegistry.size(),
+                        cmd.macroSources.size());
+            }
+            // ExprTransform eform = new ExprTransformExpand(udfRegistry);
+            ExprTransform eform = new ExprTransformPrettyMacroExpansion(udfRegistry);
+            dataSourceTmp = RDFDataSources.decorate(dataSourceTmp, eform);
+            // dataSourceTmp = RdfDataSourceTransforms.of(eform).apply(dataSourceTmp);
+        }
+        return dataSourceTmp;
     }
 
     private static void loadMacros(Set<String> macroProfiles, Map<String, UserDefinedFunctionDefinition> udfRegistry,

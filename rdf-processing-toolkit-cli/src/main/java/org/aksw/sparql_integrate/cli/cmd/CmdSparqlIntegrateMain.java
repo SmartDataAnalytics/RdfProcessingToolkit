@@ -215,6 +215,7 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--polyfill-lateral" },
             description = "Polyfill LATERAL by evaluating it on the client (may transmit large volumes of data). Format: [{bulkSize}[-{concurrentThreadCount}]]",
             converter = TypeConverterPolyfillLateralConfig.class,
+            arity = "0..1",
             fallbackValue = "10-0")
     public PolyfillLateralConfig polyfillLateral = null;
 

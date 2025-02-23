@@ -15,15 +15,23 @@ import org.aksw.commons.io.util.symlink.SymbolicLinkStrategies;
 import org.aksw.difs.builder.DifsFactory;
 import org.aksw.jenax.arq.engine.quad.RDFConnectionFactoryQuadForm;
 import org.aksw.jenax.arq.service.vfs.ServiceExecutorFactoryRegistratorVfs;
-import org.aksw.jenax.dataaccess.sparql.factory.dataengine.RdfDataEngineFromDataset;
+import org.aksw.jenax.dataaccess.sparql.engine.RDFEngine;
+import org.aksw.jenax.dataaccess.sparql.engine.RDFEngines;
 import org.aksw.jenax.dataaccess.sparql.factory.dataset.connection.DatasetRDFConnectionFactory;
 import org.aksw.jenax.dataaccess.sparql.factory.dataset.connection.DatasetRDFConnectionFactoryBuilder;
+import org.aksw.jenax.dataaccess.sparql.factory.datasource.RDFDataSources;
+import org.aksw.jenax.dataaccess.sparql.linksource.RDFLinkSource;
+import org.aksw.jenax.dataaccess.sparql.linksource.RDFLinkSourceOverDatasetGraph;
 import org.aksw.sparql_integrate.cli.cmd.CmdSparqlIntegrateMain;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
-import org.apache.jena.rdfconnection.RDFConnectionFactory;
+import org.apache.jena.rdfconnection.RDFConnection;
+import org.apache.jena.rdflink.RDFLink;
+import org.apache.jena.rdflink.RDFLinkAdapter;
+import org.apache.jena.sparql.core.DatasetGraph;
+import org.apache.jena.sparql.core.DatasetGraphFactory;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.slf4j.Logger;
@@ -84,7 +92,7 @@ public class SparqlIntegrateLegacyDataSources {
      * @return
      * @throws IOException
      */
-    public static RdfDataEngineFromDataset configEngineOld(CmdSparqlIntegrateMain cmd) throws IOException {
+    public static RDFEngine configEngineOld(CmdSparqlIntegrateMain cmd) throws IOException {
 
         String engine = cmd.engine;
 
@@ -96,7 +104,7 @@ public class SparqlIntegrateLegacyDataSources {
         Closeable fsCloseAction = fsInfo == null ? () -> {} : fsInfo.getValue();
 
 
-        RdfDataEngineFromDataset result;
+        RDFEngine result;
         // TODO Create a registry for engines / should probably go to the conjure project
         if (engine == null || engine.equals("mem")) {
 
@@ -114,7 +122,17 @@ public class SparqlIntegrateLegacyDataSources {
                     .setContext(cxt)
                     .build();
 
-            result = RdfDataEngineFromDataset.create(DatasetFactory.create(), connector::connect, null);
+            RDFLinkSource linkSource = new RDFLinkSourceOverDatasetGraph(DatasetGraphFactory.create()) {
+                @Override
+                public RDFLink newLink() {
+                    Dataset ds = DatasetFactory.wrap(getDatasetGraph());
+                    RDFConnection conn = connector.connect(ds);
+                    return RDFLinkAdapter.adapt(conn);
+                }
+            };
+
+            result = RDFEngines.of(linkSource);
+            // result = RdfDataEngineFromDataset.create(DatasetFactory.create(), connector::connect, null);
 
         } else if (engine.equalsIgnoreCase("tdb2")) {
 
@@ -169,10 +187,8 @@ public class SparqlIntegrateLegacyDataSources {
                     }
                 };
 
-                result = RdfDataEngineFromDataset.create(
-                        dataset,
-                        RDFConnectionFactory::connect,
-                        finalDeleteAction);
+                RDFLinkSource linkSource = RDFDataSources.of(dataset).asLinkSource();
+                result = RDFEngines.of(linkSource, finalDeleteAction);
             } catch (Exception e) {
                 partialCloseAction.close();
                 throw new RuntimeException(e);
@@ -190,16 +206,27 @@ public class SparqlIntegrateLegacyDataSources {
             ServiceExecutorFactoryRegistratorVfs.register(cxt);
 
 
-            Dataset dataset = DifsFactory.newInstance()
+            DatasetGraph datasetGraph = DifsFactory.newInstance()
                 .setUseJournal(canWrite)
                 .setSymbolicLinkStrategy(SymbolicLinkStrategies.FILE)
                 .setConfigFile(dbPath)
                 .setCreateIfNotExists(false)
                 .setMaximumNamedGraphCacheSize(10000)
-                .connectAsDataset();
+                .connect();
 
-            result = RdfDataEngineFromDataset.create(dataset,
-                    ds -> RDFConnectionFactoryQuadForm.connect(ds, cxt), fsCloseAction);
+            RDFLinkSource linkSource = new RDFLinkSourceOverDatasetGraph(datasetGraph) {
+                @Override
+                public RDFLink newLink() {
+                    // XXX Get rid of legacy wrapping
+                    DatasetGraph dsg = getDatasetGraph();
+                    Dataset ds = DatasetFactory.wrap(dsg);
+                    RDFConnection conn = RDFConnectionFactoryQuadForm.connect(ds, cxt);
+                    RDFLink result = RDFLinkAdapter.adapt(conn);
+                    return result;
+                }
+            };
+
+            result = RDFEngines.of(linkSource, fsCloseAction);
 
         } else {
             throw new RuntimeException("Unknown engine: " + engine);

@@ -8,8 +8,8 @@ import java.util.concurrent.Callable;
 
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor;
-import org.aksw.jenax.dataaccess.sparql.datasource.RdfDataSource;
-import org.aksw.jenax.dataaccess.sparql.factory.datasource.RdfDataSources;
+import org.aksw.jenax.dataaccess.sparql.datasource.RDFDataSource;
+import org.aksw.jenax.dataaccess.sparql.factory.datasource.RDFDataSources;
 import org.aksw.jenax.graphql.schema.generator.GraphQlSchemaGenerator;
 import org.aksw.jenax.graphql.schema.generator.GraphQlSchemaGenerator.TypeInfo;
 import org.aksw.jenax.stmt.core.SparqlStmt;
@@ -52,7 +52,7 @@ public class CmdGraphQlSchemaGen
             }
         }
 
-        RdfDataSource dataSource = RdfDataSources.of(dataset);
+        RDFDataSource dataSource = RDFDataSources.of(dataset);
         List<TypeInfo> types = GraphQlSchemaGenerator.summarize(dataSource);
 
         GraphQlSchemaGenerator generator = new GraphQlSchemaGenerator();
