@@ -56,7 +56,7 @@ import org.aksw.jenax.arq.util.var.Vars;
 import org.aksw.jenax.dataaccess.sparql.connection.common.RDFConnectionUtils;
 import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabase;
 import org.aksw.jenax.dataaccess.sparql.creator.RdfDatabaseBuilder;
-import org.aksw.jenax.dataaccess.sparql.creator.RdfDatabaseFactory;
+import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabaseFactory;
 import org.aksw.jenax.dataaccess.sparql.datasource.RDFDataSource;
 import org.aksw.jenax.dataaccess.sparql.engine.RDFEngine;
 import org.aksw.jenax.dataaccess.sparql.engine.RDFEngines;
@@ -164,9 +164,9 @@ import jakarta.ws.rs.core.MediaType;
 public class SparqlIntegrateCmdImpls {
     private static final Logger logger = LoggerFactory.getLogger(SparqlIntegrateCmdImpls.class);
 
-    public static RdfDatabaseFactory setupRdfDatabaseBuilder(CmdSparqlIntegrateMain cmd) throws Exception {
+    public static RDFDatabaseFactory setupRdfDatabaseBuilder(CmdSparqlIntegrateMain cmd) throws Exception {
         String sourceType = Optional.ofNullable(cmd.engine).orElse("mem");
-        RdfDatabaseFactory factory = RDFEngineFactoryRegistry.get().getDatabaseFactory(sourceType);
+        RDFDatabaseFactory factory = RDFEngineFactoryRegistry.get().getDatabaseFactory(sourceType);
         return factory;
     }
 
@@ -430,7 +430,7 @@ public class SparqlIntegrateCmdImpls {
 
             // formatSource, outFilename, outFormat, formatSource, unionDefaultGraphOnCliArgs);
 
-        RdfDatabaseFactory databaseFactory = setupRdfDatabaseBuilder(cmd);
+        RDFDatabaseFactory databaseFactory = setupRdfDatabaseBuilder(cmd);
         RDFDatabase database = null;
 
         if (databaseFactory != null) {
