@@ -92,3 +92,8 @@ Statements that intrinsically do not rely on the spatial index, namely `LOAD`, `
 
 `rpt integrate --server --geoindex spatial-data.ttl`
 
+### Example 7: Load files via SPARQL Insert
+
+The `--db-loader insert` performs loading of files via SPARQL `INSERT` statements. This can be used to send data to endpoints that cannot access the files (e.g. containers).
+
+`rpt integrate -e remote --loc http://localhost:3030/update --db-loader insert file1.ttl file2.trig`
