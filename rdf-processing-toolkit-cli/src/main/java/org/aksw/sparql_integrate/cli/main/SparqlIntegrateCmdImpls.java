@@ -47,7 +47,6 @@ import org.aksw.jena_sparql_api.sparql.ext.url.E_IriAsGiven.ExprTransformIriToIr
 import org.aksw.jena_sparql_api.sparql.ext.url.F_BNodeAsGiven.ExprTransformBNodeToBNodeAsGiven;
 import org.aksw.jena_sparql_api.sparql.ext.url.JenaUrlUtils;
 import org.aksw.jenax.arq.picocli.CmdMixinArq;
-import org.aksw.jenax.arq.util.dataset.HasDataset;
 import org.aksw.jenax.arq.util.security.ArqSecurity;
 import org.aksw.jenax.arq.util.update.UpdateRequestUtils;
 import org.aksw.jenax.arq.util.update.UpdateTransform;
@@ -55,8 +54,8 @@ import org.aksw.jenax.arq.util.update.UpdateUtils;
 import org.aksw.jenax.arq.util.var.Vars;
 import org.aksw.jenax.dataaccess.sparql.connection.common.RDFConnectionUtils;
 import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabase;
-import org.aksw.jenax.dataaccess.sparql.creator.RdfDatabaseBuilder;
 import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabaseFactory;
+import org.aksw.jenax.dataaccess.sparql.creator.RdfDatabaseBuilder;
 import org.aksw.jenax.dataaccess.sparql.datasource.RDFDataSource;
 import org.aksw.jenax.dataaccess.sparql.engine.RDFEngine;
 import org.aksw.jenax.dataaccess.sparql.engine.RDFEngines;
@@ -107,11 +106,12 @@ import org.aksw.sparql_integrate.web.servlet.ServletGraphQlSchema;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
-import org.apache.jena.geosparql.spatial.SpatialIndex;
+import org.apache.jena.geosparql.spatial.index.v2.SpatialIndexLib;
 import org.apache.jena.graph.Node;
 import org.apache.jena.irix.IRIx;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.TxnType;
 import org.apache.jena.rdf.model.Model;
@@ -126,6 +126,7 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformUnionQuery;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.optimize.Optimize;
+import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.exec.QueryExec;
 import org.apache.jena.sparql.exec.QueryExecBuilderAdapter;
@@ -557,26 +558,26 @@ public class SparqlIntegrateCmdImpls {
 
         // Start the engine
 
-        Dataset datasetTmp = null;
-        if (rdfEngineDecorator instanceof HasDataset) {
-            datasetTmp = ((HasDataset) rdfEngineDecorator).getDataset();
-            if (datasetTmp != null) {
-                Context cxt = datasetTmp.getContext();
-                if (cxt != null) {
+        DatasetGraph datasetTmp = rdfEngine.getLinkSource().getDatasetGraph();
+        // if (rdfEngineDecorator instanceof HasDataset) {
+        // datasetTmp = ((HasDataset) rdfEngineDecorator).getDataset();
+        if (datasetTmp != null) {
+            Context cxt = datasetTmp.getContext();
+            if (cxt != null) {
 
-                    if (!cmd.server || cmd.unsafe) {
-                        cxt.setTrue(ArqSecurity.symAllowFileAccess);
-                    }
+                if (!cmd.server || cmd.unsafe) {
+                    cxt.setTrue(ArqSecurity.symAllowFileAccess);
                 }
             }
         }
+        // }
 
         // Auto transactions are handled by the DataEngineFactory implementations
 //        if (datasetTmp != null) {
 //            dataSourceTmp = RdfDataEngines.wrapWithAutoTxn(dataSourceTmp, datasetTmp);
 //        }
 
-        Dataset finalDataset = datasetTmp;
+        Dataset finalDataset = datasetTmp == null ? null : DatasetFactory.wrap(datasetTmp);
 
         if (cmd.arqConfig.geoindex) {
             if (finalDataset == null) {
@@ -801,8 +802,10 @@ public class SparqlIntegrateCmdImpls {
                                     // TODO This is hacky; can we avoid the copy?
                                     Context execCxt = getContext();
                                     if (execCxt != null) {
-                                        execCxt.set(SpatialIndex.SPATIAL_INDEX_SYMBOL,
-                                                finalDataset.getContext().get(SpatialIndex.SPATIAL_INDEX_SYMBOL));
+                                        SpatialIndexLib.setSpatialIndex(execCxt,
+                                            SpatialIndexLib.getSpatialIndex(finalDataset.getContext()));
+//                                        execCxt.set(SpatialIndexConstants.SPATIAL_INDEX_SYMBOL,
+//                                                finalDataset.getContext().get(SpatialIndexConstants.SPATIAL_INDEX_SYMBOL));
                                     }
                                 }
                             }
@@ -855,8 +858,10 @@ public class SparqlIntegrateCmdImpls {
                                         // Context execCxt = getContext();
                                         Context execCxt = finalDatasetCxt;
                                         if (execCxt != null) {
-                                            execCxt.set(SpatialIndex.SPATIAL_INDEX_SYMBOL, finalDataset.getContext()
-                                                    .getAsString(SpatialIndex.SPATIAL_INDEX_SYMBOL));
+                                            SpatialIndexLib.setSpatialIndex(execCxt,
+                                                SpatialIndexLib.getSpatialIndex(finalDataset.getContext()));
+//                                            execCxt.set(SpatialIndexUtils.SPATIAL_INDEX_SYMBOL, finalDataset.getContext()
+//                                                    .getAsString(SpatialIndexUtils.SPATIAL_INDEX_SYMBOL));
                                         }
                                     }
                                 }
