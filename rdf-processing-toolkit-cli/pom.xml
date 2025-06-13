@@ -64,9 +64,13 @@
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-connection-qlever</artifactId>
-			<version>5.4.0-1-SNAPSHOT</version>
 		</dependency>
-
+		
+		<dependency>
+			<groupId>org.aksw.jenax</groupId>
+			<artifactId>jenax-graphql-v2-schemagen</artifactId>
+		</dependency>
+		
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-io-core</artifactId>
