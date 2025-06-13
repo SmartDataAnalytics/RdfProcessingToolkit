@@ -31,13 +31,13 @@ Note, that the generated SPARQL queries can be also be executed against the SPAR
 * ... using the single threaded Jena engine:
 
     ```bash
-    rpt integrate mapping.rq
+    rpt integrate mapping.rml.rq
     ```
 
 * Using RPT's parallel Spark-based executor:
 
     ```bash
-    rpt sansa query mapping.rq
+    rpt sansa query mapping.rml.rq
     ```
 
 
