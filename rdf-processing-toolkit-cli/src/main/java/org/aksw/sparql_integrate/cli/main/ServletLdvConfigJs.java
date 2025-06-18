@@ -37,6 +37,7 @@ public class ServletLdvConfigJs extends HttpServlet implements ServletBuilder {
         if ("/view/_/js2/config.js".equals(req.getServletPath())) {
             resp.setContentType("text/javascript;charset=utf-8");
             writer.println("""
+//rdf-processing-toolkit-cli/src/main/java/org/aksw/sparql_integrate/cli/main/ServletLdvConfigJs.java
 (() => {
   const ldvConfig = {
     endpointUrl: '/sparql',
@@ -46,8 +47,8 @@ public class ServletLdvConfigJs extends HttpServlet implements ServletBuilder {
       method: 'POST',
     },
     datasetBase: window.location.origin,
-    exploreUrl: '@EXPLORE_URL@',
-    graphLookup: '@GRAPH_LOOKUP@',
+    exploreUrl: '/graph-explorer',
+    graphLookup: 'yes',
     reverseEnabled: '@SHOW_INVERSE@',
     labelLang: 'en',
     labelLangChoice: ['en', 'de', 'nl', 'fr'],
