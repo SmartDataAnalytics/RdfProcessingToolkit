@@ -335,6 +335,12 @@
 			</dependency>
 
 			<dependency>
+				<groupId>io.github.classgraph</groupId>
+				<artifactId>classgraph</artifactId>
+				<version>4.8.129</version>
+			</dependency>
+
+			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-vfs2</artifactId>
 				<version>${commons-vfs2.version}</version>

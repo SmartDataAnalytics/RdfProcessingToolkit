@@ -60,6 +60,8 @@ public class CmdSparqlIntegrateMain
     @Option(names = { "--read-only" },  description="Disable SPARQL update on the server")
     public boolean readOnlyMode = false;
 
+    @Option(names = { "--db-loader-set" }, description="Set an engine loader option")
+    public Map<String, String> dbLoaderOptions = new LinkedHashMap<>();
 
     @Option(names = { "--env" },  description="Set property that can be accessed using the SPARQL function sys:getenv(key).")
     public Map<String, String> env;

@@ -65,12 +65,12 @@
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-connection-qlever</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-graphql-v2-schemagen</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-io-core</artifactId>
@@ -89,6 +89,12 @@
 			<groupId>org.aksw.rmltk</groupId>
 			<artifactId>rml-jena-arq</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>io.github.classgraph</groupId>
+			<artifactId>classgraph</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>net.sansa-stack</groupId>
 			<artifactId>sansa-cmds-picocli_2.13</artifactId>

@@ -55,7 +55,7 @@ import org.aksw.jenax.arq.util.var.Vars;
 import org.aksw.jenax.dataaccess.sparql.connection.common.RDFConnectionUtils;
 import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabase;
 import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabaseFactory;
-import org.aksw.jenax.dataaccess.sparql.creator.RdfDatabaseBuilder;
+import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabaseBuilder;
 import org.aksw.jenax.dataaccess.sparql.datasource.RDFDataSource;
 import org.aksw.jenax.dataaccess.sparql.engine.RDFEngine;
 import org.aksw.jenax.dataaccess.sparql.engine.RDFEngines;
@@ -269,7 +269,19 @@ public class SparqlIntegrateCmdImpls {
             });
         }
 
-        List<String> args = cmd.nonOptionArgs;
+        List<String> rawArgs = cmd.nonOptionArgs;
+
+        List<String> args = new ArrayList<>();
+
+        for (String rawArg : rawArgs) {
+            List<String> resolved = ClassPathResourceResolver.resolve(rawArg);
+            if (resolved.isEmpty()) {
+                args.add(rawArg);
+            } else {
+                logger.info("Resolved " + rawArg + " to " + resolved);
+                args.addAll(resolved);
+            }
+        }
 
         // If an in/out file is given then prepend it to the arguments
         Path outFile = null;
@@ -437,7 +449,10 @@ public class SparqlIntegrateCmdImpls {
         if (databaseFactory != null) {
             closeablePath = setupDbFolder(cmd);
 
-            RdfDatabaseBuilder<?> databaseBuilder = databaseFactory.newBuilder();
+            RDFDatabaseBuilder<?> databaseBuilder = databaseFactory.newBuilder();
+
+            databaseBuilder.setProperties(cmd.dbLoaderOptions);
+
             Path outputFolder = closeablePath.path();
             databaseBuilder.setOutputFolder(outputFolder);
 
@@ -681,7 +696,7 @@ public class SparqlIntegrateCmdImpls {
             Document metaDoc = parser.parseDocument(metaSchemaRawStr);
 
             String graphQlSchemaRawStr = toStringUtf8(streamMgr, cmd.graphQlSchema);
-            Document schemaDoc = parser.parseDocument(graphQlSchemaRawStr);
+            Document schemaDoc = GraphQlUtils.parseUnrestricted(graphQlSchemaRawStr);
 
             List<Definition> mergedDefinitions = new ArrayList<>();
             mergedDefinitions.addAll(metaDoc.getDefinitions());
@@ -795,7 +810,7 @@ public class SparqlIntegrateCmdImpls {
                             public void beforeExec() {
                                 Context finalDatasetCxt = finalDataset.getContext();
                                 if (finalDatasetCxt != null && finalDatasetCxt.isFalseOrUndef(SPATIAL_INDEX_IS_CLEAN)) {
-                                    updateSpatialIndex(finalDataset);
+                                    updateSpatialIndex(finalDataset, cmd.arqConfig.geoindexSrs, cmd.arqConfig.geoindexFile);
 
                                     // The the spatial index symbol is in the dataset's context
                                     // copy it into the query exec's context.
@@ -851,7 +866,7 @@ public class SparqlIntegrateCmdImpls {
                                 if (finalDatasetCxt != null && finalDatasetCxt.isFalseOrUndef(SPATIAL_INDEX_IS_CLEAN)) {
                                     spatialUpdateNeeded = isSpatialIndexUpdateImmediatelyRequired(ur);
                                     if (spatialUpdateNeeded) {
-                                        updateSpatialIndex(finalDataset);
+                                        updateSpatialIndex(finalDataset, cmd.arqConfig.geoindexSrs, cmd.arqConfig.geoindexFile);
 
                                         // The the spatial index symbol is in the dataset's context
                                         // copy it into the query exec's context.
@@ -875,7 +890,7 @@ public class SparqlIntegrateCmdImpls {
                                 // Defer update
                                 if (false && spatialUpdateNeeded) {
                                     // Note: The update runs in the same transaction as the update!
-                                    updateSpatialIndex(finalDataset);
+                                    updateSpatialIndex(finalDataset, cmd.arqConfig.geoindexSrs, cmd.arqConfig.geoindexFile);
                                 }
                             }
                         };
@@ -1112,11 +1127,11 @@ public class SparqlIntegrateCmdImpls {
     }
 
     /** Be careful not to call within a read transaction! */
-    public static void updateSpatialIndex(Dataset dataset) {
+    public static void updateSpatialIndex(Dataset dataset, String srs, Path file) {
         Context cxt = dataset.getContext();
-        logger.info("(Re-)computing geo index");
+        // logger.info("(Re-)computing geo index");
         try {
-            GeoSPARQLConfig.setupSpatialIndex(dataset);
+            GeoSPARQLConfig.setupSpatialIndex(dataset, srs, file);
             cxt.setTrue(SPATIAL_INDEX_IS_CLEAN);
         } catch (Exception e) {
             if (e.getMessage().toLowerCase().contains("no srs found")) {
