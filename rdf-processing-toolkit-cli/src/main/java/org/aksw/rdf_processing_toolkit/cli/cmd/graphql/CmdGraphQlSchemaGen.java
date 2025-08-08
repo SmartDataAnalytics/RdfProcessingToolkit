@@ -5,6 +5,8 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor;
@@ -12,16 +14,22 @@ import org.aksw.jenax.dataaccess.sparql.datasource.RDFDataSource;
 import org.aksw.jenax.dataaccess.sparql.factory.datasource.RDFDataSources;
 import org.aksw.jenax.graphql.schema.generator.GraphQlSchemaGenerator;
 import org.aksw.jenax.graphql.schema.generator.GraphQlSchemaGenerator.TypeInfo;
+import org.aksw.jenax.graphql.util.GraphQlUtils;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CmdMixinSparqlDataset;
+import org.apache.jena.graph.Graph;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdfconnection.RDFConnection;
+import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.vocabulary.RDFS;
 
 import graphql.language.AstPrinter;
 import graphql.language.Document;
-import graphql.parser.Parser;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -37,11 +45,18 @@ public class CmdGraphQlSchemaGen
     @Mixin
     public CmdMixinSparqlDataset sparqlDataset = new CmdMixinSparqlDataset();
 
+    @Option(names = { "-l", "--label-source" }, description = "An RDF dataset with labels for the classes and properties. Local names will be used as fallback.")
+    public String labelSource;
+
     @Parameters(arity = "0..*", description = "Input files")
     public List<String> nonOptionArgs = new ArrayList<>();
 
     @Override
     public Integer call() throws Exception {
+        Graph labelGraph = labelSource == null
+            ? null
+            : RDFDataMgr.loadGraph(labelSource);
+
         SparqlScriptProcessor processor = SparqlScriptProcessor.createWithEnvSubstitution(null);
         processor.process(nonOptionArgs);
 
@@ -55,7 +70,19 @@ public class CmdGraphQlSchemaGen
         RDFDataSource dataSource = RDFDataSources.of(dataset);
         List<TypeInfo> types = GraphQlSchemaGenerator.summarize(dataSource);
 
-        GraphQlSchemaGenerator generator = new GraphQlSchemaGenerator();
+        Function<String, String> iriToLabel = labelGraph == null
+            ? null
+            : iriStr -> {
+                try (Stream<String> stream = labelGraph.stream(
+                    NodeFactory.createURI(iriStr), RDFS.label.asNode(), Node.ANY)
+                .map(Triple::getObject)
+                .filter(Node::isLiteral)
+                .map(Node::getLiteralLexicalForm)) {
+                    return stream.findFirst().orElse(null);
+                }
+            };
+
+        GraphQlSchemaGenerator generator = new GraphQlSchemaGenerator(iriToLabel);
         Document doc = generator.process(types);
         String str = AstPrinter.printAst(doc);
 
@@ -65,8 +92,8 @@ public class CmdGraphQlSchemaGen
 
         boolean validateOutput = true;
         if (validateOutput) {
-            Parser parser = new Parser();
-            parser.parse(str);
+            @SuppressWarnings("unused")
+            Document reparsedDoc = GraphQlUtils.parseUnrestricted(str);
         }
 
         return 0;
