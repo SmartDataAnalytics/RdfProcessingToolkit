@@ -988,6 +988,7 @@ public class SparqlIntegrateCmdImpls {
                         logger.info("Note: Could not open system browser.");
                     }
                 }
+                logger.info("RdfProcessingToolkit Server running at: " + browseUri);
                 logger.info("SPARQL service running at: " + browseUri + "sparql");
             }
 
