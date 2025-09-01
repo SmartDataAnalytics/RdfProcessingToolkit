@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.commons.util.string.FileName;
 import org.aksw.commons.util.string.FileNameParser;
+import org.aksw.jena_sparql_api.algebra.expr.transform.ExprTransformConstantFoldWithIris;
+import org.aksw.jena_sparql_api.algebra.expr.transform.ExprTransformVirtualBnodeUris.BnodeRewriteMode;
 import org.aksw.jena_sparql_api.cache.advanced.RDFLinkSourceWithRangeCache;
 import org.aksw.jena_sparql_api.conjure.utils.ContentTypeUtils;
 import org.aksw.jena_sparql_api.delay.extra.Delayer;
@@ -54,8 +56,8 @@ import org.aksw.jenax.arq.util.update.UpdateUtils;
 import org.aksw.jenax.arq.util.var.Vars;
 import org.aksw.jenax.dataaccess.sparql.connection.common.RDFConnectionUtils;
 import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabase;
-import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabaseFactory;
 import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabaseBuilder;
+import org.aksw.jenax.dataaccess.sparql.creator.RDFDatabaseFactory;
 import org.aksw.jenax.dataaccess.sparql.datasource.RDFDataSource;
 import org.aksw.jenax.dataaccess.sparql.engine.RDFEngine;
 import org.aksw.jenax.dataaccess.sparql.engine.RDFEngines;
@@ -179,14 +181,14 @@ public class SparqlIntegrateCmdImpls {
         String sourceType = getEffectiveEngine(cmd.engine);
         RDFEngineFactory factory = RDFEngineFactoryRegistry.get().getFactory(sourceType);
         if (factory == null) {
-            throw new RuntimeException("No RdfDataSourceFactory registered under name " + sourceType);
+            throw new RuntimeException("No RDFEngineFactory registered under name " + sourceType);
         }
 
         CloseablePath result = RDFEngineFactoryLegacyBase.setupPath(cmd.dbPath, cmd.dbFs, cmd.tempPath, cmd.engine, !cmd.dbKeep);
         return result;
     }
 
-    public static RDFEngineBuilder setupRdfDataEngineBuilder(CmdSparqlIntegrateMain cmd) throws Exception {
+    public static RDFEngineBuilder<?> setupRdfDataEngineBuilder(CmdSparqlIntegrateMain cmd) throws Exception {
         String sourceType = getEffectiveEngine(cmd.engine);
         RDFEngineFactory factory = RDFEngineFactoryRegistry.get().getFactory(sourceType);
         if (factory == null) {
@@ -197,6 +199,7 @@ public class SparqlIntegrateCmdImpls {
 
         RdfDataSourceSpecBasicFromMap spec = RdfDataSourceSpecBasicFromMap.create();
         spec.setTempDir(cmd.tempPath);
+        // FIXME Removed auto-delete flag from the engine - its related to the database builder.
         spec.setAutoDeleteIfCreated(!cmd.dbKeep);
         spec.setLocation(cmd.dbPath);
         spec.setLocationContext(cmd.dbFs);
@@ -913,6 +916,10 @@ public class SparqlIntegrateCmdImpls {
                 dataSource = RdfDataSourceWithLocalLateral.wrap(dataSource, cmd.polyfillLateral);
             }
 
+            if (cmd.polyfillConstantFold) {
+                dataSource = RDFDataSources.decorate(dataSource, new ExprTransformConstantFoldWithIris());
+            }
+
             dataSource = applyMacroExpansion(cmd, dataSource);
 
             RDFDataSource finalDataSource = dataSource;
@@ -1058,23 +1065,27 @@ public class SparqlIntegrateCmdImpls {
     public static RDFDataSource applyMacroExpansion(CmdSparqlIntegrateMain cmd, RDFDataSource dataSourceTmp) {
         // Attempt to detect the dbms name.
         // If one is detected then use it as an active profile name.
-        String dmbsProfile = RDFDataSources.compute(dataSourceTmp, RdfDataSourcePolyfill::detectProfile);
+        String dbmsName = RDFDataSources.compute(dataSourceTmp, RdfDataSourcePolyfill::detectProfile);
         if (logger.isInfoEnabled()) {
-            logger.info("Detected DBMS: " + dmbsProfile);
+            logger.info("Detected DBMS: " + dbmsName);
         }
+
+        String dbmsProfile = dbmsName == null ? null : "http://ns.aksw.org/profile/" + dbmsName;
 
         String bnodeProfile = cmd.bnodeProfile;
         if ("auto".equalsIgnoreCase(bnodeProfile)) {
-            bnodeProfile = dmbsProfile;
+            bnodeProfile = dbmsProfile;
         }
 
         Set<String> macroProfiles = new HashSet<>();
-        if (dmbsProfile != null) {
-            macroProfiles.add(dmbsProfile);
+        if (dbmsProfile != null) {
+            macroProfiles.add(dbmsProfile);
         }
 
+        BnodeRewriteMode bnodeRewriteMode = BnodeRewriteMode.LOOKUP_ONLY;
+
         if (!Strings.isNullOrEmpty(bnodeProfile)) {
-            dataSourceTmp = new RdfDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile);
+            dataSourceTmp = new RdfDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile, BnodeRewriteMode.FULL);
 
 //            dataSourceTmp = RdfDataEngines.of(new RdfDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile),
 //                    dataSourceTmp::close);
@@ -1082,6 +1093,10 @@ public class SparqlIntegrateCmdImpls {
             // RdfDataSourceWithBnodeRewrite(x, bnodeProfile);
             // dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, decorator);
         } else {
+            if (dbmsProfile != null) {
+                dataSourceTmp = new RdfDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile, BnodeRewriteMode.LOOKUP_ONLY);
+            }
+
             // Replace <http://ns.aksw.org/function/forceBnodeIri> with a default definition
             // TODO The UDF system lacks a fallback profile feature!
             // TODO HashMap wrapping needed because immutable map causes NPE in Jena's ExprTransformExpand with functions that do not have an IRI such as coalesce.

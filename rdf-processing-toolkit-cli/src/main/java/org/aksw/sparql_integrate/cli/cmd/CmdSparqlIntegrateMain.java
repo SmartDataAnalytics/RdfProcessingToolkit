@@ -228,6 +228,10 @@ public class CmdSparqlIntegrateMain
         }
     }
 
+    @Option(names = { "--polyfill-cfold" },
+            description = "Polyfill constant fold. Always fold constants which may improve performance of certain queries with some triple stores.")
+    public boolean polyfillConstantFold = false;
+
     /**
      * --jq may be followed by an integer - picocli seems to greedily parse any argument even if it is not an integer
      *
