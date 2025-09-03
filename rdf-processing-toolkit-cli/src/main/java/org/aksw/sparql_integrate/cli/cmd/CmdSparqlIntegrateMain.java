@@ -29,7 +29,6 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-
 @Command(name = "integrate",
     versionProvider = VersionProviderRdfProcessingToolkit.class,
     description = "Run sequences of SPARQL queries and stream triples, quads and bindings")
