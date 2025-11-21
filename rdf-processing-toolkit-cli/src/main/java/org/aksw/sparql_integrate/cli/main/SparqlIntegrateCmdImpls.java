@@ -81,8 +81,8 @@ import org.aksw.jenax.dataaccess.sparql.link.query.LinkSparqlQueryTransformPagin
 import org.aksw.jenax.dataaccess.sparql.link.transform.RDFLinkTransforms;
 import org.aksw.jenax.dataaccess.sparql.linksource.RDFLinkSource;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourcePolyfill;
-import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithBnodeRewrite;
-import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalCache;
+import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RDFDataSourceWithBnodeRewrite;
+import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RDFDataSourceWithLocalCache;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalLateral;
 import org.aksw.jenax.graphql.rdf.api.RdfGraphQlExecFactory;
 import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
@@ -108,6 +108,7 @@ import org.aksw.sparql_integrate.web.servlet.ServletGraphQlSchema;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
+import org.apache.jena.geosparql.spatial.index.v2.SpatialIndexIoKryo;
 import org.apache.jena.geosparql.spatial.index.v2.SpatialIndexLib;
 import org.apache.jena.graph.Node;
 import org.apache.jena.irix.IRIx;
@@ -195,7 +196,7 @@ public class SparqlIntegrateCmdImpls {
             throw new RuntimeException("No RdfDataSourceFactory registered under name " + sourceType);
         }
 
-        RDFEngineBuilder<?> engineBuilder = factory.newEngineBuilder();
+        RDFEngineBuilder<?> engineBuilder = factory.newBuilder();
 
         RdfDataSourceSpecBasicFromMap spec = RdfDataSourceSpecBasicFromMap.create();
         spec.setTempDir(cmd.tempPath);
@@ -602,6 +603,13 @@ public class SparqlIntegrateCmdImpls {
                 throw new RuntimeException(
                         "GeoIndex requested but the configured engine does not appear to be Jena-based as the dataset was null!");
             }
+
+            // If there is an existing index then try to load it.
+            Path geoIndexFile = cmd.arqConfig.geoindexFile;
+            if (geoIndexFile != null) {
+                GeoSPARQLConfig.setupSpatialIndex(finalDataset, cmd.arqConfig.geoindexSrs, geoIndexFile);
+                finalDataset.getContext().setTrue(SPATIAL_INDEX_IS_CLEAN);
+            }
         }
 
         Long resultSetPageSize = cmd.paginationConfig.queryPageSize;
@@ -673,7 +681,7 @@ public class SparqlIntegrateCmdImpls {
 
             if (cmd.cacheRewriteGroupBy) {
                 rdfEngineDecorator = rdfEngineDecorator.decorate(
-                    RdfDataSourceWithLocalCache.TransformInjectCacheSyntax::rewriteQuery);
+                    RDFDataSourceWithLocalCache.TransformInjectCacheSyntax::rewriteQuery);
                 // dataSourceTmp = RdfDataEngines.of(new
                 // RdfDataSourceWithLocalCache(dataSourceTmp), dataSourceTmp);
             }
@@ -1086,7 +1094,7 @@ public class SparqlIntegrateCmdImpls {
         BnodeRewriteMode bnodeRewriteMode = BnodeRewriteMode.LOOKUP_ONLY;
 
         if (!Strings.isNullOrEmpty(bnodeProfile)) {
-            dataSourceTmp = new RdfDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile, BnodeRewriteMode.FULL);
+            dataSourceTmp = new RDFDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile, BnodeRewriteMode.FULL);
 
 //            dataSourceTmp = RdfDataEngines.of(new RdfDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile),
 //                    dataSourceTmp::close);
@@ -1095,7 +1103,7 @@ public class SparqlIntegrateCmdImpls {
             // dataSourceTmp = RdfDataEngines.decorate(dataSourceTmp, decorator);
         } else {
             if (dbmsProfile != null) {
-                dataSourceTmp = new RdfDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile, BnodeRewriteMode.LOOKUP_ONLY);
+                dataSourceTmp = new RDFDataSourceWithBnodeRewrite(dataSourceTmp, bnodeProfile, BnodeRewriteMode.LOOKUP_ONLY);
             }
 
             // Replace <http://ns.aksw.org/function/forceBnodeIri> with a default definition
@@ -1147,7 +1155,7 @@ public class SparqlIntegrateCmdImpls {
         Context cxt = dataset.getContext();
         // logger.info("(Re-)computing geo index");
         try {
-            GeoSPARQLConfig.setupSpatialIndex(dataset, srs, file);
+            SpatialIndexIoKryo.buildSpatialIndex(dataset, srs, file);
             cxt.setTrue(SPATIAL_INDEX_IS_CLEAN);
         } catch (Exception e) {
             if (e.getMessage().toLowerCase().contains("no srs found")) {
