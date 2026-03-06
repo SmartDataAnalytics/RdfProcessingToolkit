@@ -6,6 +6,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Streams;
+
 import org.aksw.jena_sparql_api.common.DefaultPrefixes;
 import org.aksw.jena_sparql_api.sparql.ext.http.JenaExtensionHttp;
 import org.aksw.jena_sparql_api.sparql.ext.util.JenaExtensionUtil;
@@ -14,7 +16,6 @@ import org.aksw.jenax.stmt.resultset.SPARQLResultSinkQuads;
 import org.aksw.named_graph_stream.cli.cmd.CmdNgsMain;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
 import org.aksw.rdf_processing_toolkit.cli.cmd.RptCmdUtils;
-import com.google.common.collect.Streams;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
@@ -23,7 +24,6 @@ import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdfconnection.RDFConnection;
-import org.apache.jena.rdfconnection.RDFConnectionFactory;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
 import org.slf4j.Logger;
@@ -94,7 +94,7 @@ public class MainCliNamedGraphStream {
             String name = names.get(0);
 
             SPARQLResultSinkQuads sink = new SPARQLResultSinkQuads(out.asDatasetGraph()::add);
-            try(RDFConnection conn = RDFConnectionFactory.connect(inDs)) {
+            try(RDFConnection conn = RDFConnection.connect(inDs)) {
                 processor.accept(conn, sink);
             }
 

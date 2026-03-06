@@ -67,8 +67,9 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.aksw.jenax</groupId>
-			<artifactId>jenax-graphql-v2-schemagen</artifactId>
+			<groupId>org.aksw.graphql-over-sparql</groupId>
+			<artifactId>graphql-over-sparql-schemagen</artifactId>
+			<version>6.1.0-1-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>

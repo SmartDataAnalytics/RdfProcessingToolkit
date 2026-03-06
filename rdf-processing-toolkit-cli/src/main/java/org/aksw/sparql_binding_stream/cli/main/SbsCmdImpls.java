@@ -170,7 +170,7 @@ public class SbsCmdImpls {
     public static FunctionEnv createExecCxt() {
         Context context = ARQ.getContext().copy() ;
         context.set(ARQConstants.sysCurrentTime, NodeFactoryExtra.nowAsDateTime()) ;
-        FunctionEnv env = new ExecutionContext(context, null, null, null) ;
+        FunctionEnv env = ExecutionContext.create(context) ;
 
         return env;
     }

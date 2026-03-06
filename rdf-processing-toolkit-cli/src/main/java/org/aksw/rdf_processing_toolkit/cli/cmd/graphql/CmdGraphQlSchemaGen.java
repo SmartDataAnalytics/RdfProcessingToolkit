@@ -10,10 +10,9 @@ import java.util.stream.Stream;
 
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.jena_sparql_api.rx.script.SparqlScriptProcessor;
-import org.aksw.jenax.dataaccess.sparql.datasource.RDFDataSource;
-import org.aksw.jenax.dataaccess.sparql.factory.datasource.RDFDataSources;
 import org.aksw.jenax.graphql.schema.generator.GraphQlSchemaGenerator;
 import org.aksw.jenax.graphql.schema.generator.GraphQlSchemaGenerator.TypeInfo;
+import org.aksw.jenax.graphql.schema.generator.GraphQlSchemaSummarizer;
 import org.aksw.jenax.graphql.util.GraphQlUtils;
 import org.aksw.jenax.stmt.core.SparqlStmt;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
@@ -67,8 +66,9 @@ public class CmdGraphQlSchemaGen
             }
         }
 
-        RDFDataSource dataSource = RDFDataSources.of(dataset);
-        List<TypeInfo> types = GraphQlSchemaGenerator.summarize(dataSource);
+        // RDFDataSource dataSource = RDFDataSources.of(dataset);
+        Graph graph = dataset.asDatasetGraph().getDefaultGraph(); // XXX Make configurable.
+        List<TypeInfo> types = GraphQlSchemaSummarizer.summarize(graph);
 
         Function<String, String> iriToLabel = labelGraph == null
             ? null

@@ -29,6 +29,12 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Strings;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.io.BaseEncoding;
+
 import org.aksw.commons.io.util.StdIo;
 import org.aksw.commons.util.string.FileName;
 import org.aksw.commons.util.string.FileNameParser;
@@ -80,12 +86,10 @@ import org.aksw.jenax.dataaccess.sparql.link.common.RDFLinkUtils;
 import org.aksw.jenax.dataaccess.sparql.link.query.LinkSparqlQueryTransformPaginate;
 import org.aksw.jenax.dataaccess.sparql.link.transform.RDFLinkTransforms;
 import org.aksw.jenax.dataaccess.sparql.linksource.RDFLinkSource;
-import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourcePolyfill;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RDFDataSourceWithBnodeRewrite;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RDFDataSourceWithLocalCache;
+import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourcePolyfill;
 import org.aksw.jenax.dataaccess.sparql.polyfill.datasource.RdfDataSourceWithLocalLateral;
-import org.aksw.jenax.graphql.rdf.api.RdfGraphQlExecFactory;
-import org.aksw.jenax.graphql.sparql.GraphQlExecFactoryOverSparql;
 import org.aksw.jenax.graphql.sparql.v2.exec.api.high.GraphQlExecFactory;
 import org.aksw.jenax.graphql.sparql.v2.rewrite.TransformHarmonizeTentris;
 import org.aksw.jenax.graphql.sparql.v2.schema.SchemaNavigator;
@@ -98,7 +102,6 @@ import org.aksw.jenax.stmt.core.SparqlStmtUpdate;
 import org.aksw.jenax.stmt.resultset.SPARQLResultEx;
 import org.aksw.jenax.stmt.util.SparqlStmtUtils;
 import org.aksw.jenax.web.server.boot.ServerBuilder;
-import org.aksw.jenax.web.server.boot.ServletBuilderGraphQl;
 import org.aksw.jenax.web.server.boot.ServletBuilderGraphQlV2;
 import org.aksw.jenax.web.server.boot.ServletBuilderSparql;
 import org.aksw.rdf_processing_toolkit.cli.cmd.CliUtils;
@@ -122,7 +125,7 @@ import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdflink.RDFConnectionAdapter;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFFormat;
-import org.apache.jena.riot.system.stream.StreamManager;
+import org.apache.jena.riot.system.streammgr.StreamManager;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
@@ -149,12 +152,6 @@ import org.apache.jena.update.UpdateRequest;
 import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Strings;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import com.google.common.io.BaseEncoding;
 
 import graphql.language.AstPrinter;
 import graphql.language.Definition;
@@ -954,9 +951,9 @@ public class SparqlIntegrateCmdImpls {
                     return r;
                 };
 
-                RdfGraphQlExecFactory graphQlExecFactory = cmd.graphQlAutoConfigure
-                        ? GraphQlExecFactoryOverSparql.autoConfLazy(serverDataSource)
-                        : GraphQlExecFactoryOverSparql.of(serverDataSource);
+//                RdfGraphQlExecFactory graphQlExecFactory = cmd.graphQlAutoConfigure
+//                        ? GraphQlExecFactoryOverSparql.autoConfLazy(serverDataSource)
+//                        : GraphQlExecFactoryOverSparql.of(serverDataSource);
 
                 GraphQlExecFactory graphQlExecFactoryV2 = GraphQlExecFactory
                         .of(() -> QueryExecBuilderAdapter.adapt(serverDataSource.newQuery()), graphqlSchemaNavigator);
@@ -971,7 +968,7 @@ public class SparqlIntegrateCmdImpls {
                                         processor.getSparqlParser()
                                 // )
                                 ))
-                        .addServletBuilder(ServletBuilderGraphQl.newBuilder().setGraphQlExecFactory(graphQlExecFactory))
+                        // .addServletBuilder(ServletBuilderGraphQlV2.newBuilder().setGraphQlExecFactory(graphQlExecFactory))
                         .addServletBuilder(
                                 ServletBuilderGraphQlV2.newBuilder().setGraphQlExecFactory(graphQlExecFactoryV2))
                         .addServletBuilder(ServletLdvConfigJs.newBuilder().setDbEngine(cmd.engine)).setPort(port);

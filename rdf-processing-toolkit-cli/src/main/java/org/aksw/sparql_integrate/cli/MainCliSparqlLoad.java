@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.aksw.jenax.arq.util.exception.HttpExceptionUtils;
 import org.apache.jena.rdfconnection.RDFConnection;
-import org.apache.jena.rdfconnection.RDFConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +71,7 @@ public class MainCliSparqlLoad {
                 }
                 String graph = options.get("--g");
 
-                try(RDFConnection conn = RDFConnectionFactory.connect(serviceUrl)) {
+                try(RDFConnection conn = RDFConnection.connect(serviceUrl)) {
                     logger.info("Invoking load of file '" + arg + "' into graph '" + graph + "'");
                     if(graph == null) {
                         conn.load(arg);
