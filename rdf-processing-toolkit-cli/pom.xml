@@ -48,10 +48,12 @@
 		</dependency>
 		<!-- TODO sparql-generate ships with its own log4j.properties file which
 		may break logging-->
+		<!--
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-plugins-generate</artifactId>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>org.aksw.jenax</groupId>
 			<artifactId>jenax-arq-plugins-qudtlib</artifactId>
