@@ -59,9 +59,9 @@
 
 		<jena.version>6.1.0-SNAPSHOT</jena.version>
 		<jenax.version>6.1.0-1-SNAPSHOT</jenax.version>
-		<rmltk.version>5.2.0-1-SNAPSHOT</rmltk.version>
+		<rmltk.version>6.1.0-1-SNAPSHOT</rmltk.version>
 		<conjure.version>5.6.0-1-SNAPSHOT</conjure.version>
-		<sansa.version>0.9.6-SNAPSHOT</sansa.version>
+		<sansa.version>0.9.7-SNAPSHOT</sansa.version>
 		<graphql-over-sparql.version>6.1.0-1-SNAPSHOT</graphql-over-sparql.version>
 		
 		<!-- <jenax.version>3.14.0-2-SNAPSHOT</jenax.version> -->
