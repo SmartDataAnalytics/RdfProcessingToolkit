@@ -10,6 +10,8 @@ docker run -p '7531:7531' -it aksw/rpt integrate --server
 java -jar rpt.jar integrate --server
 ```
 
+For detailed information please refer to our documentation at https://scaseco.github.io/RdfProcessingToolkit/
+
 ![RPT Landing Page](docs/images/20260202_rpt-landing-page.png)
 
 ## News
