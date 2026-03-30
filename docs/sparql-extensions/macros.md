@@ -40,7 +40,7 @@ eg:greet
 Macros are specified using the `--macro` option and can be used throughout the system, i.e. the CLI arguments, and the SPARQL and GraphQL endpoints.
 
 ```bash
-rpt integrate --macro macros.ttl `SELECT (eg:greet('John Doe') AS ?x) {}` --out-format txt
+rpt integrate --macro macros.ttl 'SELECT (eg:greet("John Doe") AS ?x) {}' --out-format txt
 ```
 
 ```
