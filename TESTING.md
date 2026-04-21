@@ -18,6 +18,7 @@ Located in `rdf-processing-toolkit-cli/src/test/java/org/aksw/sparql_integrate/i
 
 - `TestIntegrateMem.java` - Tests for mem engine (2 tests)
 - `TestIntegrateTdb2.java` - Tests for tdb2 engine (2 tests)
+- `TestIntegrateQlever.java` - Tests for QLEVER engine (2 tests)
 
 Run with:
 ```bash
@@ -27,6 +28,7 @@ mvn test -pl rdf-processing-toolkit-cli '-Dtest=TestIntegrate*'
 ### Test Coverage
 - **mem engine**: Load Turtle data, run CONSTRUCT query, verify output in Turtle and N-Triples formats
 - **tdb2 engine**: Load Turtle data to TDB2 database, run CONSTRUCT query, verify output in Turtle and N-Triples formats
+- **qlever engine**: Load Turtle data, run CONSTRUCT query, verify output in Turtle and N-Triples formats (uses Docker via testcontainers)
 
 ## BATS Tests
 
@@ -35,6 +37,7 @@ BATS (Bash Automated Testing System) tests for CLI verification.
 ### Prerequisites
 - Install BATS: `brew install bats-core` or from source
 - Ensure `rpt` is installed and available in PATH
+- Docker must be available for qlever tests (uses testcontainers)
 
 ### Running Tests
 
@@ -45,6 +48,7 @@ bats cli-tests/integrate/
 # Run specific test directory
 bats cli-tests/integrate/test01-mem/
 bats cli-tests/integrate/test02-tdb2/
+bats cli-tests/integrate/test05-qlever/
 bats cli-tests/integrate/test03-read-only/
 bats cli-tests/integrate/test04-server/
 
@@ -62,6 +66,10 @@ bats cli-tests/integrate/test01-mem/test-engine-mem.bats
 - **tdb2 engine** (2 tests):
   - Turtle output format
   - N-Triples output format
+
+- **qlever engine** (2 tests):
+  - Turtle output format
+  - N-Triples output format (uses Docker via testcontainers)
 
 - **read-only server** (2 tests):
   - Server starts and responds to HTTP requests
@@ -101,6 +109,11 @@ Tested with:
 - Supports larger datasets
 - Test verifies database file creation with `--db-keep` flag
 
+### qlever (QLever)
+- Remote SPARQL endpoint (Docker container via testcontainers)
+- Supports full SPARQL 1.1
+- Test verifies Docker container lifecycle
+
 ## Server Mode Tests
 
 ### Read-Only Mode
@@ -121,12 +134,14 @@ Tested with:
 2. Use `CmdUtils.callCmd()` to execute `rpt integrate`
 3. Compare output with expected results using `assertEquals()`
 4. Clean up temporary files in `@After` or finally blocks
+5. For engines using Docker (qlever), ensure testcontainers is available
 
 ### BATS Tests
 1. Add test file: `cli-tests/integrate/test0X-*/test-*.bats`
 2. Use `rpt` command in test functions
 3. Verify output files or HTTP responses with `curl`
 4. Cleanup in `teardown()` function
+5. For server tests, use unique ports and proper cleanup with `pkill`
 
 ## Known Limitations
 

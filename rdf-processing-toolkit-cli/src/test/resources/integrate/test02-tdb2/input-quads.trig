@@ -1,9 +1,0 @@
-@prefix ex: <http://example.org/> .
-
-GRAPH ex:g1 {
-  ex:s1 ex:p1 "value1" .
-}
-
-GRAPH ex:g2 {
-  ex:s2 ex:p2 "value2" .
-}

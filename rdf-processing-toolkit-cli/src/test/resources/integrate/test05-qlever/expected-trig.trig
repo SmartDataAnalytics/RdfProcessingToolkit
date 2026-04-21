@@ -1,0 +1,9 @@
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX ex: <http://example.org/>
+
+ex:s1   ex:p1   "value1";
+        ex:p2   "value2" .
+
+ex:s2   ex:p1   "value3" .
+
+ex:s3   ex:p2   "value4" .
