@@ -1,49 +1,51 @@
 #!/usr/bin/env bats
 
 setup() {
-    TEST_DIR="$BATS_TEST_DIRNAME"
+    SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_DIRNAME")" && pwd)"
+    RESOURCES_DIR="$SCRIPT_DIR/resources"
+    TEMP_DIR=$(mktemp -d)
 }
 
 @test "mem: load turtle data and output turtle" {
-    run rpt integrate -e mem "$TEST_DIR/input-triples.ttl" "$TEST_DIR/query-construct-triples.sparql" -o "$TEST_DIR/output.ttl"
+    run rpt integrate -e mem "$RESOURCES_DIR/input-triples.ttl" "$RESOURCES_DIR/query-construct-triples.sparql" -o "$TEMP_DIR/output.ttl"
     [ "$status" -eq 0 ]
-    [ -f "$TEST_DIR/output.ttl" ]
+    [ -f "$TEMP_DIR/output.ttl" ]
     
-    expected=$(cat "$TEST_DIR/expected-turtle.ttl")
-    actual=$(cat "$TEST_DIR/output.ttl")
+    expected=$(cat "$RESOURCES_DIR/expected-turtle.ttl")
+    actual=$(cat "$TEMP_DIR/output.ttl")
     [ "$expected" = "$actual" ]
 }
 
 @test "mem: load turtle data and output ntriples" {
-    run rpt integrate -e mem "$TEST_DIR/input-triples.ttl" "$TEST_DIR/query-construct-triples.sparql" -o "$TEST_DIR/output.nt"
+    run rpt integrate -e mem "$RESOURCES_DIR/input-triples.ttl" "$RESOURCES_DIR/query-construct-triples.sparql" -o "$TEMP_DIR/output.nt"
     [ "$status" -eq 0 ]
-    [ -f "$TEST_DIR/output.nt" ]
+    [ -f "$TEMP_DIR/output.nt" ]
     
-    expected=$(cat "$TEST_DIR/expected-ntriples.nt")
-    actual=$(cat "$TEST_DIR/output.nt")
+    expected=$(cat "$RESOURCES_DIR/expected-ntriples.nt")
+    actual=$(cat "$TEMP_DIR/output.nt")
     [ "$expected" = "$actual" ]
 }
 
 @test "mem: load turtle data and output nquads" {
-    run rpt integrate -e mem "$TEST_DIR/input-triples.ttl" "$TEST_DIR/query-construct-triples.sparql" -o "$TEST_DIR/output.nq"
+    run rpt integrate -e mem "$RESOURCES_DIR/input-triples.ttl" "$RESOURCES_DIR/query-construct-triples.sparql" -o "$TEMP_DIR/output.nq"
     [ "$status" -eq 0 ]
-    [ -f "$TEST_DIR/output.nq" ]
+    [ -f "$TEMP_DIR/output.nq" ]
     
-    expected=$(cat "$TEST_DIR/expected-nquads.nq")
-    actual=$(cat "$TEST_DIR/output.nq")
+    expected=$(cat "$RESOURCES_DIR/expected-nquads.nq")
+    actual=$(cat "$TEMP_DIR/output.nq")
     [ "$expected" = "$actual" ]
 }
 
 @test "mem: load turtle data and output trig" {
-    run rpt integrate -e mem "$TEST_DIR/input-triples.ttl" "$TEST_DIR/query-construct-triples.sparql" -o "$TEST_DIR/output.trig"
+    run rpt integrate -e mem "$RESOURCES_DIR/input-triples.ttl" "$RESOURCES_DIR/query-construct-triples.sparql" -o "$TEMP_DIR/output.trig"
     [ "$status" -eq 0 ]
-    [ -f "$TEST_DIR/output.trig" ]
+    [ -f "$TEMP_DIR/output.trig" ]
     
-    expected=$(cat "$TEST_DIR/expected-trig.trig")
-    actual=$(cat "$TEST_DIR/output.trig")
+    expected=$(cat "$RESOURCES_DIR/expected-trig.trig")
+    actual=$(cat "$TEMP_DIR/output.trig")
     [ "$expected" = "$actual" ]
 }
 
 teardown() {
-    rm -f "$TEST_DIR/output.ttl" "$TEST_DIR/output.nt" "$TEST_DIR/output.nq" "$TEST_DIR/output.trig"
+    rm -rf "$TEMP_DIR"
 }

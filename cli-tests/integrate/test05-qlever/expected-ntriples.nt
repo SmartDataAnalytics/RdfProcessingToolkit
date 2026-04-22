@@ -1,4 +1,0 @@
-<http://example.org/s1> <http://example.org/p1> "value1" .
-<http://example.org/s1> <http://example.org/p2> "value2" .
-<http://example.org/s2> <http://example.org/p1> "value3" .
-<http://example.org/s3> <http://example.org/p2> "value4" .

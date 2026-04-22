@@ -1,11 +1,8 @@
 #!/usr/bin/env bats
 
-# Port configuration - use unique port range to avoid conflicts
-# PORT_OFFSET can be set via environment variable, defaults to 8680
-# Server test uses port 8690 to avoid conflicts with other server tests
-
 setup() {
-    export TEST_DIR="$BATS_TEST_DIRNAME/../test01-mem"
+    SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_DIRNAME")" && pwd)"
+    RESOURCES_DIR="$SCRIPT_DIR/resources"
     export SERVER_PORT=8690
     export SERVER_PID=""
 }
@@ -23,7 +20,7 @@ setup() {
 }
 
 start_server() {
-    (rpt integrate -e mem --server --port "$SERVER_PORT" "$TEST_DIR/input-triples-small.ttl" > /tmp/server-$SERVER_PORT.log 2>&1) &
+    (rpt integrate -e mem --server --port "$SERVER_PORT" "$RESOURCES_DIR/input-triples-small.ttl" > /tmp/server-$SERVER_PORT.log 2>&1) &
     SERVER_PID=$!
     sleep 2
 }
