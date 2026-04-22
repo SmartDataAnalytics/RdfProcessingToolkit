@@ -26,5 +26,5 @@ EXTRA_OPTS="--add-opens=java.base/java.lang=ALL-UNNAMED \
 
 SCRIPTING_OPTS="-Djena:scripting=true -Dnashorn.args=--language=es6"
 
-$JAVA $EXTRA_OPTS $SCRIPTING_OPTS $JAVA_OPTS -cp "$LIB_DIR:$LIB_DIR/lib/*:$EXTRA_CP" "$MAIN_CLASS" "$@"
+exec $JAVA $EXTRA_OPTS $SCRIPTING_OPTS $JAVA_OPTS -cp "$LIB_DIR:$LIB_DIR/lib/*:$EXTRA_CP" "$MAIN_CLASS" "$@"
 

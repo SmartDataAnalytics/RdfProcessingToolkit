@@ -38,6 +38,7 @@ BATS (Bash Automated Testing System) tests for CLI verification.
 - Install BATS: `brew install bats-core` or from source
 - Ensure `rpt` is installed and available in PATH
 - Docker must be available for qlever tests (uses testcontainers)
+- All test paths use relative paths, so tests can run from any directory
 
 ### Running Tests
 
@@ -54,7 +55,18 @@ bats cli-tests/integrate/test04-server/
 
 # Run specific test file
 bats cli-tests/integrate/test01-mem/test-engine-mem.bats
+
+# Run tests from any directory (paths are relative to test file location)
+cd /tmp && bats /path/to/cli-tests/integrate/test01-mem/test-engine-mem.bats
 ```
+
+### Port Configuration
+- **read-only tests**: use ports `PORT_OFFSET` (default 8680) and `PORT_OFFSET+1` (default 8681)
+- **server tests**: use port 8690 (isolated to avoid conflicts with read-only tests)
+- **engine tests**: no ports used (no server)
+
+### Environment Variables
+- `PORT_OFFSET`: Starting port for server tests (default: 8680). Use this to avoid port conflicts when running tests in parallel.
 
 ### Test Coverage
 - **mem engine** (4 tests):

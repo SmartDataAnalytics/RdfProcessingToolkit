@@ -12,6 +12,7 @@ echo ""
 echo "=== Running BATS Tests ==="
 bats cli-tests/integrate/test01-mem/test-engine-mem.bats
 bats cli-tests/integrate/test02-tdb2/test-engine-tdb2.bats
+bats cli-tests/integrate/test05-qlever/test-engine-qlever.bats
 bats cli-tests/integrate/test03-read-only/test-read-only.bats
 bats cli-tests/integrate/test04-server/test-server.bats
 

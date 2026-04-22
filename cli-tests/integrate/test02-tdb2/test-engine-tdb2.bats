@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
-    export TEST_DIR="/home/raven/Projects/Eclipse/rdf-processing-toolkit-parent/cli-tests/integrate/test02-tdb2"
+    export TEST_DIR="$BATS_TEST_DIRNAME"
     export TEMP_DIR=$(mktemp -d)
 }
 

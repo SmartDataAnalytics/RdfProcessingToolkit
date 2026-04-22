@@ -1,12 +1,17 @@
 #!/usr/bin/env bats
 
+# Port configuration - use sequential ports from PORT_OFFSET
+# PORT_OFFSET can be set via environment variable, defaults to 8680
+# read-only tests use ports PORT_OFFSET (8680) and PORT_OFFSET+1 (8681)
+
 setup() {
-    export TEST_DIR="/home/raven/Projects/Eclipse/rdf-processing-toolkit-parent/cli-tests/integrate/test01-mem"
-    export SERVER_PORT=8671
+    export TEST_DIR="$BATS_TEST_DIRNAME/../test01-mem"
+    export PORT_OFFSET="${PORT_OFFSET:-8680}"
     export SERVER_PID=""
 }
 
 @test "read-only: server starts and responds to HTTP requests" {
+    export SERVER_PORT=$PORT_OFFSET
     start_server "read-only"
     sleep 10
     
@@ -19,7 +24,7 @@ setup() {
 }
 
 @test "read-only: SPARQL UPDATE should fail via HTTP" {
-    export SERVER_PORT=8672
+    export SERVER_PORT=$((PORT_OFFSET + 1))
     start_server "read-only"
     sleep 10
     
@@ -44,8 +49,8 @@ start_server() {
 
 stop_server() {
     if [ -n "$SERVER_PID" ]; then
-        pkill -f "rpt integrate.*$SERVER_PORT" 2>/dev/null || true
-        sleep 1
+        kill "$SERVER_PID" 2>/dev/null || true
+        wait "$SERVER_PID" 2>/dev/null || true
     fi
     SERVER_PID=""
 }

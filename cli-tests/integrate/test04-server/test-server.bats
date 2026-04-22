@@ -1,8 +1,12 @@
 #!/usr/bin/env bats
 
+# Port configuration - use unique port range to avoid conflicts
+# PORT_OFFSET can be set via environment variable, defaults to 8680
+# Server test uses port 8690 to avoid conflicts with other server tests
+
 setup() {
-    export TEST_DIR="/home/raven/Projects/Eclipse/rdf-processing-toolkit-parent/cli-tests/integrate/test01-mem"
-    export SERVER_PORT=8670
+    export TEST_DIR="$BATS_TEST_DIRNAME/../test01-mem"
+    export SERVER_PORT=8690
     export SERVER_PID=""
 }
 
@@ -26,8 +30,8 @@ start_server() {
 
 stop_server() {
     if [ -n "$SERVER_PID" ]; then
-        pkill -f "rpt integrate.*$SERVER_PORT" 2>/dev/null || true
-        sleep 1
+        kill "$SERVER_PID" 2>/dev/null || true
+        wait "$SERVER_PID" 2>/dev/null || true
     fi
     SERVER_PID=""
 }
