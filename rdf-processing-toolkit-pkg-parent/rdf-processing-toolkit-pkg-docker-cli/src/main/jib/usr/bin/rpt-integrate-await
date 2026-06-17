@@ -1,0 +1,145 @@
+#!/bin/bash
+
+# rpt-integrate-await: Wrapper script that starts rpt integrate --server
+# and waits for the server to be ready via SSE health check
+# Returns the PID of the rpt process once server is healthy
+
+set -e
+
+# Default values
+DEFAULT_PORT=8642
+DEFAULT_TIMEOUT=30
+HEALTH_ENDPOINT="/health"
+
+# Arrays to store parsed arguments
+RPT_ARGS=()
+SERVER_MODE=false
+SERVER_PORT=$DEFAULT_PORT
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --server)
+            SERVER_MODE=true
+            RPT_ARGS+=("$1")
+            shift
+            ;;
+        --port)
+            if [[ -n "$2" && ! "$2" == --* ]]; then
+                SERVER_PORT="$2"
+                RPT_ARGS+=("$1" "$2")
+                shift 2
+            else
+                # Handle --port=<value> format
+                SERVER_PORT="${1#--port=}"
+                RPT_ARGS+=("$1")
+                shift
+            fi
+            ;;
+        --help|-h)
+            echo "Usage: rpt-integrate-await [options] <files...>"
+            echo ""
+            echo "Wrapper script for 'rpt integrate --server' that waits for the server to be ready."
+            echo ""
+            echo "Options:"
+            echo "  --port=<port>    Server port (default: ${DEFAULT_PORT})"
+            echo "  --timeout=<sec>  Wait timeout in seconds (default: ${DEFAULT_TIMEOUT})"
+            echo "  --help, -h       Show this help message"
+            echo ""
+            echo "All other arguments are passed to 'rpt integrate'."
+            echo "The server must be started with --server flag."
+            echo ""
+            echo "Returns the PID of the rpt process once the server is healthy."
+            exit 0
+            ;;
+        --timeout)
+            if [[ -n "$2" && ! "$2" == --* ]]; then
+                TIMEOUT="$2"
+                shift 2
+            else
+                TIMEOUT="${1#--timeout=}"
+                shift
+            fi
+            ;;
+        *)
+            RPT_ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Set default timeout if not specified
+TIMEOUT=${TIMEOUT:-$DEFAULT_TIMEOUT}
+
+# Check if --server is in arguments
+if [[ "$SERVER_MODE" != "true" ]]; then
+    echo "Error: 'rpt-integrate-await' requires the --server flag" >&2
+    echo "Usage: rpt-integrate-await --server [options] <files...>" >&2
+    exit 1
+fi
+
+# Build the health check URL
+HEALTH_URL="http://localhost:${SERVER_PORT}${HEALTH_ENDPOINT}"
+
+# Start rpt integrate in background
+# Note: We use 'rpt integrate' instead of the full path to respect the user's environment
+rpt integrate "${RPT_ARGS[@]}" > /dev/null & # 2>&1 would hide log output
+RPT_PID=$!
+
+# Function to check if process is running
+is_process_running() {
+    kill -0 "$RPT_PID" 2>/dev/null
+}
+
+# Wait for server to become available using SSE
+echo "Waiting for server to start on port ${SERVER_PORT}..." >&2
+echo "Health check endpoint: ${HEALTH_URL}" >&2
+
+# Try to connect with SSE for up to TIMEOUT seconds
+START_TIME=$(date +%s)
+HEALTHY=false
+
+while true; do
+    CURRENT_TIME=$(date +%s)
+    ELAPSED=$((CURRENT_TIME - START_TIME))
+    
+    if [[ $ELAPSED -ge $TIMEOUT ]]; then
+        echo "Error: Timeout waiting for server to start after ${TIMEOUT} seconds" >&2
+        kill "$RPT_PID" 2>/dev/null || true
+        exit 1
+    fi
+    
+    # Check if rpt process is still running
+    if ! is_process_running; then
+        echo "Error: rpt process exited unexpectedly" >&2
+        exit 1
+    fi
+    
+    # Try to connect with SSE using curl
+    if curl --no-buffer --silent --fail --max-time 2 --header "Accept: text/event-stream" "$HEALTH_URL" --connect-timeout 1 > /dev/null 2>&1; then
+        # Health check passed, now verify port ownership
+        ACTUAL_PID=$(lsof -t -i :${SERVER_PORT} 2>/dev/null | head -1)
+        
+        if [[ -z "$ACTUAL_PID" ]]; then
+            sleep 0.5
+            continue
+        fi
+        
+        if [[ "$ACTUAL_PID" != "$RPT_PID" ]]; then
+            echo "Error: Port ${SERVER_PORT} is owned by PID ${ACTUAL_PID}, not our process ${RPT_PID}" >&2
+            exit 1
+            # sleep 0.5
+            # continue
+        fi
+        
+        echo "Server is ready!" >&2
+        HEALTHY=true
+        break
+    fi
+    
+    sleep 0.5
+done
+
+# Output the PID to stdout so the caller can capture it
+echo "$RPT_PID"
+

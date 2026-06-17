@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -217,6 +218,8 @@ public class SparqlIntegrateCmdImpls {
 
         CmdMixinArq.configureGlobal(cmd.arqConfig);
         CmdMixinArq.configureCxt(ARQ.getContext(), cmd.arqConfig);
+
+        AtomicBoolean serverReady = new AtomicBoolean();
 
 //        JenaRuntime.isRDF11 = !cmd.useRdf10;
 //
@@ -971,7 +974,9 @@ public class SparqlIntegrateCmdImpls {
                         // .addServletBuilder(ServletBuilderGraphQlV2.newBuilder().setGraphQlExecFactory(graphQlExecFactory))
                         .addServletBuilder(
                                 ServletBuilderGraphQlV2.newBuilder().setGraphQlExecFactory(graphQlExecFactoryV2))
-                        .addServletBuilder(ServletLdvConfigJs.newBuilder().setDbEngine(cmd.engine)).setPort(port);
+                        .addServletBuilder(ServletLdvConfigJs.newBuilder().setDbEngine(cmd.engine))
+                        .addServletBuilder(ServletRptServerStatus.newBuilder().setServerReady(serverReady))
+                    .setPort(port);
 
                 if (graphqlSchemaNavigator != null) {
                     serverBuilder = serverBuilder.addServletBuilder(ServletGraphQlSchema.newBuilder()
@@ -1040,6 +1045,8 @@ public class SparqlIntegrateCmdImpls {
             logger.info("SPARQL overall execution finished after " + sw.stop());
 
             if (server != null) {
+                serverReady.set(true);
+                // ServletRptServerStatus.setServerReady();
                 logger.info("Server still running on port " + cmd.serverPort + ". Terminate with CTRL+C");
                 server.join();
             }
