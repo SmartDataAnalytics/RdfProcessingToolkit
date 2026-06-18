@@ -48,7 +48,7 @@
 						</tags>
 					</to>
 					<from>
-						<image>eclipse-temurin:17-jre</image>
+						<image>eclipse-temurin:21-jre</image>
 					</from>
 					<container>
 						<mainClass>org.aksw.rdf_processing_toolkit.cli.main.MainCliRdfProcessingToolkit</mainClass>
@@ -70,6 +70,20 @@
 							<jvmFlag>--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED</jvmFlag>
 						</jvmFlags>
 					</container>
+					<extraDirectories>
+						<paths>
+							<path>
+								<from>src/main/jib</from>
+								<into>/</into>
+							</path>
+						</paths>
+						<permissions>
+							<permission>
+								<file>/usr/bin/rpt-integrate-await</file>
+								<mode>755</mode>
+							</permission>
+						</permissions>
+					</extraDirectories>
 					<containerizingMode>packaged</containerizingMode>
 				</configuration>
 			</plugin>
