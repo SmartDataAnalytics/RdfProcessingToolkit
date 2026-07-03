@@ -175,10 +175,17 @@
 			<groupId>org.aksw.conjure</groupId>
 			<artifactId>conjure-datasources</artifactId>
 		</dependency>
+<!--
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-serviceenhancer</artifactId>
 		</dependency>
+-->
+                <dependency>
+                        <groupId>org.aksw.jenax</groupId>
+                        <artifactId>jenax-serviceenhancer-preview</artifactId>
+                </dependency>
+
 		<dependency>
 			<groupId>info.picocli</groupId>
 			<artifactId>picocli</artifactId>

@@ -58,7 +58,7 @@
 		<spring-boot.version>2.3.3.RELEASE</spring-boot.version>
 
 		<jena.version>6.1.0</jena.version>
-		<jenax.version>6.1.0-1-SNAPSHOT</jenax.version>
+		<jenax.version>6.1.0-2-SNAPSHOT</jenax.version>
 		<rmltk.version>6.1.0-1-SNAPSHOT</rmltk.version>
 		<conjure.version>5.6.0-1-SNAPSHOT</conjure.version>
 		<sansa.version>0.9.7-SNAPSHOT</sansa.version>
@@ -277,11 +277,19 @@
 				<artifactId>jena-tdb2</artifactId>
 				<version>${jena.version}</version>
 			</dependency>
+                        <dependency>
+                                <groupId>org.aksw.jenax</groupId>
+                                <artifactId>jenax-serviceenhancer-preview</artifactId>
+                                <version>${jenax.version}</version>
+                        </dependency>
+
+<!--
 			<dependency>
 				<groupId>org.apache.jena</groupId>
 				<artifactId>jena-serviceenhancer</artifactId>
 				<version>${jena.version}</version>
 			</dependency>
+-->
 			<dependency>
 				<groupId>org.aksw.rdf-processing-toolkit</groupId>
 				<artifactId>use-case-sportal-analysis</artifactId>
