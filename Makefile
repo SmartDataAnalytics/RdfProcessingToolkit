@@ -38,7 +38,7 @@ deb-reinstall: ## Reinstall deb (requires prior build)
 	@p1=`find rdf-processing-toolkit-pkg-parent/rdf-processing-toolkit-pkg-deb-cli/target | grep '\.deb$$'`
 	sudo dpkg -i "$$p1"
 
-deb-rere: deb-rebuild deb-reinstall ## Rebuild and reinstall deb package
+deb-rere: deb-rebuild deb-reinstall ## Rebuild and reinstall deb package. Skip signing with `ARGS="-Djdeb.signPackage=false"`.
 
 
 docker: ## Build Docker image
