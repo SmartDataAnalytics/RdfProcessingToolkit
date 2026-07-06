@@ -458,33 +458,41 @@ public class SparqlIntegrateCmdImpls {
             databaseBuilder.setProperties(cmd.dbLoaderOptions);
 
             Path outputFolder = closeablePath.path();
-            databaseBuilder.setOutputFolder(outputFolder);
+            if (outputFolder != null) {
+                databaseBuilder.setOutputFolder(outputFolder);
 
-            List<UpdateLoad> loads = new ArrayList<>();
-            int stmtIdx = 0;
-            for (Entry<SparqlStmt, Provenance> e : workloads) {
-                SparqlStmt stmt = e.getKey();
-                if (stmt.isUpdateRequest()) {
-                    UpdateRequest ur = stmt.getUpdateRequest();
-                    List<Update> updates = ur.getOperations();
-                    boolean allLoad = updates.stream().allMatch(x -> x instanceof UpdateLoad);
-                    if (allLoad) {
-                        updates.stream().map(x -> (UpdateLoad) x).forEach(loads::add);
-                        ++stmtIdx;
-                        continue;
+                RDFDatabase existingDb = databaseBuilder.getDatabaseView();
+                if (existingDb.getFileSet().isEmpty()) {
+
+                    List<UpdateLoad> loads = new ArrayList<>();
+                    int stmtIdx = 0;
+                    for (Entry<SparqlStmt, Provenance> e : workloads) {
+                        SparqlStmt stmt = e.getKey();
+                        if (stmt.isUpdateRequest()) {
+                            UpdateRequest ur = stmt.getUpdateRequest();
+                            List<Update> updates = ur.getOperations();
+                            boolean allLoad = updates.stream().allMatch(x -> x instanceof UpdateLoad);
+                            if (allLoad) {
+                                updates.stream().map(x -> (UpdateLoad) x).forEach(loads::add);
+                                ++stmtIdx;
+                                continue;
+                            }
+                        }
+                        break;
                     }
-                }
-                break;
-            }
-            // Remove workloads that were shifted to the optimized loader
-            workloads.subList(0, stmtIdx).clear();
+                    // Remove workloads that were shifted to the optimized loader
+                    workloads.subList(0, stmtIdx).clear();
 
-            for (UpdateLoad load : loads) {
-                String src = load.getSource();
-                Node dest = load.getDest();
-                databaseBuilder.addPath(src, dest);
+                    for (UpdateLoad load : loads) {
+                        String src = load.getSource();
+                        Node dest = load.getDest();
+                        databaseBuilder.addPath(src, dest);
+                    }
+                    database = databaseBuilder.build();
+                } else {
+                    logger.info("Database already existed, using SPARQL-based loading");
+                }
             }
-            database = databaseBuilder.build();
         }
 
         RDFEngineBuilder<?> engineBuilder = setupRdfDataEngineBuilder(cmd);
